@@ -1,6 +1,6 @@
 # ENGINE WATCH — Marine Engine Room Simulator (PSP)
 
-**Version 0.1 prototype** — A PSP-first, single-player hybrid marine engine-room simulator with two connected areas: the Engine Control Room (ECR) and a walkable machinery platform.
+**Version 0.1.1 prototype (PSP startup compatibility fix)** — A PSP-first, single-player hybrid marine engine-room simulator with two connected areas: the Engine Control Room (ECR) and a walkable machinery platform.
 
 The first playable task is intentionally narrow: **enter the engine room, start a local lubricating-oil pump, wait for pressure to build, return to the ECR, and verify the pressure and running indication.** Both locations share a single deterministic machinery simulation.
 
@@ -15,6 +15,18 @@ The first playable task is intentionally narrow: **enter the engine room, start 
 - Pure C++11 simulation core, unit tests, native desktop build, and PSP cross-build workflow.
 
 **No actual vessel procedures or manufacturer operating limits are claimed.** The numbers in the simulator are illustrative placeholders and must not be used for ship operation or credentialed training.
+
+## PPSSPP Android installation and black-screen troubleshooting
+
+**Important:** Place the EBOOT inside PPSSPP's configured *memory stick* folder; do not just tap a standalone `EBOOT.PBP` in Downloads.
+
+1. In PPSSPP, locate the configured Memory Stick folder under Settings > System (Android may ask you to choose/grant a folder).
+2. Extract the release ZIP **into the root of that memory stick**, so the full path inside that folder is `PSP/GAME/ENGINEWATCH/EBOOT.PBP`.
+3. Return to PPSSPP, open **Homebrew & Demos**, launch **ENGINE WATCH**, and use a fresh boot rather than loading an older save state.
+4. If it remains blank, disable **Skip buffer effects** and other speedhacks, or change the graphics backend from Vulkan to OpenGL and restart PPSSPP.
+5. This revision uses an explicit SDL2 clear command and native-resolution PSP rendering. If video initialization still fails, a temporary diagnostic screen reports the failing startup stage.
+
+**Runtime validation:** The repaired PSP executable successfully booted and rendered the ECR HUD and interactive scene in an automated PPSSPP 1.20.4 Linux OpenGL session. This is not yet an Android-device or real-PSP validation.
 
 ## Build for PSP / PPSSPP
 
