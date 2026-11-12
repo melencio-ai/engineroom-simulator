@@ -53,7 +53,7 @@ jobs:
       - name: Install virtual display and screenshot tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb imagemagick libgl1-mesa-dri
+          sudo apt-get install -y -qq xvfb imagemagick libgl1-mesa-dri pulseaudio pulseaudio-utils
       - name: Get official PPSSPP AppImage
         env:
           GH_TOKEN: ${{ github.token }}
@@ -67,7 +67,9 @@ jobs:
           mkdir -p diagnostics
           xvfb-run -a -s "-screen 0 1280x720x24" bash -c '
             export LIBGL_ALWAYS_SOFTWARE=1
-            export SDL_AUDIODRIVER=dummy
+            pulseaudio --start --exit-idle-time=-1 >/tmp/pulse-start.log 2>&1 || true
+            pactl load-module module-null-sink sink_name=ppsspp_ci_sink >/tmp/pulse-sink.log 2>&1 || true
+            export SDL_AUDIODRIVER=pulseaudio
             ./squashfs-root/AppRun --windowed game/PSP/GAME/ENGINEWATCH/EBOOT.PBP >diagnostics/ppsspp.log 2>&1 &
             pid=$!
             sleep 14
