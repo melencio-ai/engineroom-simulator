@@ -64,13 +64,14 @@ jobs:
       - name: Boot PPSSPP and capture framebuffer
         shell: bash
         run: |
-          mkdir -p diagnostics
+          mkdir -p diagnostics "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH"
+          cp game/PSP/GAME/ENGINEWATCH/EBOOT.PBP "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/EBOOT.PBP"
           xvfb-run -a -s "-screen 0 1280x720x24" bash -c '
             export LIBGL_ALWAYS_SOFTWARE=1
             pulseaudio --start --exit-idle-time=-1 >/tmp/pulse-start.log 2>&1 || true
             pactl load-module module-null-sink sink_name=ppsspp_ci_sink >/tmp/pulse-sink.log 2>&1 || true
             export SDL_AUDIODRIVER=pulseaudio
-            ./squashfs-root/AppRun --windowed game/PSP/GAME/ENGINEWATCH/EBOOT.PBP >diagnostics/ppsspp.log 2>&1 &
+            ./squashfs-root/AppRun --windowed "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/EBOOT.PBP" >diagnostics/ppsspp.log 2>&1 &
             pid=$!
             sleep 14
             import -window root diagnostics/screen.png
@@ -79,6 +80,7 @@ jobs:
           '
           identify diagnostics/screen.png
           tail -n 100 diagnostics/ppsspp.log
+          if grep -q 'Boot failed' diagnostics/ppsspp.log; then echo 'PPSSPP could not boot EBOOT.PBP'; exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
