@@ -1,10 +1,10 @@
-name: Engine Watch CI
+name: Engine Watch v0.2 CI
 
 on:
   push:
     branches: [main, develop, 'feature/**']
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, feature/psp-v0.1]
   workflow_dispatch:
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.1
+          name: engine-watch-psp-v0.2
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.1
+          name: engine-watch-psp-v0.2
           path: game/
       - name: Install virtual display and screenshot tools
         run: |
