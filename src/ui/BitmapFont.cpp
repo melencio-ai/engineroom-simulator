@@ -85,7 +85,7 @@ const unsigned char* rowsFor(unsigned char character) {
 }
 
 BitmapFont::BitmapFont(SDL_Renderer* renderer) {
-    SDL_Surface* atlas = SDL_CreateRGBSurfaceWithFormat(0, 96, 32, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Surface* atlas = SDL_CreateRGBSurfaceWithFormat(0, 128, 32, 32, SDL_PIXELFORMAT_RGBA32);
     if (!atlas) return;
     SDL_FillRect(atlas, nullptr, SDL_MapRGBA(atlas->format, 0, 0, 0, 0));
     if (SDL_LockSurface(atlas) != 0) { SDL_FreeSurface(atlas); return; }
