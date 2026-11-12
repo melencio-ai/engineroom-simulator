@@ -1,0 +1,33 @@
+name: Bootstrap Engine Watch source
+on:
+  push:
+    branches: [feature/psp-v0.1]
+    paths: ['.bootstrap/READY']
+permissions:
+  contents: write
+jobs:
+  extract:
+    if: github.ref == 'refs/heads/feature/psp-v0.1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Apply source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/source.part01 .bootstrap/source.part02 .bootstrap/source.part03 .bootstrap/source.part04 | base64 --decode | tar -xJf - -C .
+          test -f src/core/EngineSimulation.cpp
+          test -f src/ui/GameApp.cpp
+          test -f CMakeLists.txt
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap.yml
+      - name: Commit source to feature branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "feat: implement Engine Watch PSP v0.1 vertical slice"
+          git push origin HEAD:feature/psp-v0.1
