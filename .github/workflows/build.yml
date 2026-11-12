@@ -67,6 +67,7 @@ jobs:
           mkdir -p diagnostics
           xvfb-run -a -s "-screen 0 1280x720x24" bash -c '
             export LIBGL_ALWAYS_SOFTWARE=1
+            export SDL_AUDIODRIVER=dummy
             ./squashfs-root/AppRun --windowed game/PSP/GAME/ENGINEWATCH/EBOOT.PBP >diagnostics/ppsspp.log 2>&1 &
             pid=$!
             sleep 14
