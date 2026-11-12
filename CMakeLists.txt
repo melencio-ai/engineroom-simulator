@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(engine_watch VERSION 0.1 LANGUAGES C CXX)
+project(engine_watch VERSION 0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -49,7 +49,7 @@ if(ENGINEWATCH_BUILD_GAME)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH v0.1"
+            TITLE "ENGINE WATCH v0.2"
             VERSION 01.00
         )
     endif()
