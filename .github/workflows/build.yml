@@ -1,0 +1,42 @@
+name: Engine Watch CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+jobs:
+  simulation-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure headless simulation tests
+        run: cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build/tests --parallel 2
+      - name: Test
+        run: ctest --test-dir build/tests --output-on-failure
+
+  psp-eboot:
+    runs-on: ubuntu-latest
+    container:
+      image: pspdev/pspdev:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure PSP build
+        run: psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+      - name: Build EBOOT
+        run: cmake --build build/psp --parallel 2
+      - name: Package playable output
+        run: |
+          test -f build/psp/EBOOT.PBP
+          mkdir -p dist/PSP/GAME/ENGINEWATCH
+          cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-psp-v0.1
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
