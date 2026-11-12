@@ -343,7 +343,10 @@ void GameApp::renderPanel() {
 }
 
 void GameApp::render() {
+    // PSP SDL2's GU renderer needs an explicit clear command before drawing.
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(renderer_, kNavy.r, kNavy.g, kNavy.b, 255);
+    SDL_RenderClear(renderer_);
     renderBackground();
     if (room_ == ControlRoom) renderControlRoom(); else renderEngineRoom();
     renderPlayer();
