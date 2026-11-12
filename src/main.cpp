@@ -4,6 +4,7 @@
 
 #ifdef __PSP__
 #include <pspkernel.h>
+#include <pspdebug.h>
 PSP_MODULE_INFO("Engine Watch", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER);
 
@@ -25,14 +26,25 @@ static void setupExitCallback() {
 
 #include "ui/GameApp.hpp"
 
+static int failStartup(const char* stage) {
+    std::fprintf(stderr, "ENGINE WATCH: %s: %s\n", stage, SDL_GetError());
+#ifdef __PSP__
+    pspDebugScreenInit();
+    pspDebugScreenPrintf("ENGINE WATCH - STARTUP ERROR\n\n%s\n\n%s\n", stage, SDL_GetError());
+    pspDebugScreenPrintf("\nCapture this screen for debugging.\n");
+    sceKernelDelayThread(15000000);
+#endif
+    return 1;
+}
+
+
 int main(int, char**) {
 #ifdef __PSP__
     setupExitCallback();
 #endif
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) != 0) {
-        std::fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
-        return 1;
+        return failStartup("SDL_Init failed");
     }
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 #ifdef __PSP__
@@ -43,19 +55,22 @@ int main(int, char**) {
     SDL_Window* window = SDL_CreateWindow("ENGINE WATCH v0.1", SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0);
     if (!window) {
-        std::fprintf(stderr, "Window failed: %s\n", SDL_GetError());
+        failStartup("SDL_CreateWindow failed");
         SDL_Quit();
         return 1;
     }
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
     if (!renderer) {
-        std::fprintf(stderr, "Renderer failed: %s\n", SDL_GetError());
+        failStartup("SDL_CreateRenderer failed");
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
     }
+    // Native PSP screen already matches our layout; avoid unsupported scaling paths.
+#ifndef __PSP__
     SDL_RenderSetLogicalSize(renderer, 480, 272);
+#endif
     {
         enginewatch::GameApp app(renderer);
         app.run();
