@@ -1,0 +1,14 @@
+name: PSP Runtime Boot Check
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm simulator sources
+        run: |
+          test -f src/main.cpp
+          test -f src/ui/GameApp.cpp
+      - name: Print instructions
+        run: echo "Runtime PPSSPP screen validation is pending."
