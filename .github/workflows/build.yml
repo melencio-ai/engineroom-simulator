@@ -81,6 +81,12 @@ jobs:
           identify diagnostics/screen.png
           tail -n 100 diagnostics/ppsspp.log
           if grep -q 'Boot failed' diagnostics/ppsspp.log; then echo 'PPSSPP could not boot EBOOT.PBP'; exit 1; fi
+          if ! grep -q 'Booted .*ENGINEWATCH/EBOOT.PBP' diagnostics/ppsspp.log; then echo 'Missing successful PSP boot marker'; exit 1; fi
+          # The game floor is RGB(22,48,61); neither a blank frame nor the PPSSPP menu draws it.
+          if ! convert diagnostics/screen.png -format %c histogram:info:- | grep -qF '(22,48,61)'; then
+            echo 'ENGINE WATCH graphics were not visible in the emulator screenshot.'
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
