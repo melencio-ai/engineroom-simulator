@@ -42,7 +42,7 @@ if(ENGINEWATCH_BUILD_GAME)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP)
         target_link_libraries(engine_watch PRIVATE
-            pspvram pspvfpu pspdisplay pspgu pspge pspaudio pspctrl psppower pspuser
+            pspdebug pspvram pspvfpu pspdisplay pspgu pspge pspaudio pspctrl psppower pspuser
         )
         create_pbp_file(
             TARGET engine_watch
