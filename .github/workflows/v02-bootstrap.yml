@@ -16,7 +16,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode .bootstrap/source.b64 | tar -xJf - -C .
+          cat .bootstrap/part1 .bootstrap/part2 .bootstrap/part3 .bootstrap/part4 | base64 --decode | tar -xJf - -C .
           test -f src/core/EngineSimulation.cpp
           test -f src/ui/GameApp.cpp
           test -f docs/mission-002.md
