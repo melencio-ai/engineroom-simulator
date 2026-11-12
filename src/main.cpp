@@ -30,8 +30,7 @@ static int failStartup(const char* stage) {
     std::fprintf(stderr, "ENGINE WATCH: %s: %s\n", stage, SDL_GetError());
 #ifdef __PSP__
     pspDebugScreenInit();
-    pspDebugScreenPrintf("ENGINE WATCH - STARTUP ERROR\n\n%s\n\n%s\n", stage, SDL_GetError());
-    pspDebugScreenPrintf("\nCapture this screen for debugging.\n");
+    pspDebugScreenPrintf("ENGINE WATCH STARTUP ERROR\n\n%s\n\n%s\n", stage, SDL_GetError());
     sceKernelDelayThread(15000000);
 #endif
     return 1;
@@ -52,7 +51,7 @@ int main(int, char**) {
 #else
     const int windowWidth = 960, windowHeight = 544;
 #endif
-    SDL_Window* window = SDL_CreateWindow("ENGINE WATCH v0.1", SDL_WINDOWPOS_CENTERED,
+    SDL_Window* window = SDL_CreateWindow("ENGINE WATCH v0.2", SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0);
     if (!window) {
         failStartup("SDL_CreateWindow failed");
@@ -67,7 +66,6 @@ int main(int, char**) {
         SDL_Quit();
         return 1;
     }
-    // Native PSP screen already matches our layout; avoid unsupported scaling paths.
 #ifndef __PSP__
     SDL_RenderSetLogicalSize(renderer, 480, 272);
 #endif
