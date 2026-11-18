@@ -1,4 +1,4 @@
-name: Engine Watch 3D Marine Materials CI
+name: Engine Watch 3D Shipbuilding Components CI
 
 on:
   push:
@@ -8,6 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  marine-component-objects:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure portable marine 3D OBJ exporter
+        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON
+      - name: Build native 3D component exporter
+        run: cmake --build build/objects --parallel 2
+      - name: Export 33 separate OBJ/MTL meshes
+        run: |
+          mkdir -p dist/marine-objects
+          ./build/objects/enginewatch_export_parts dist/marine-objects
+          test "$(find dist/marine-objects -name '*.obj' | wc -l)" -eq 33
+          test "$(find dist/marine-objects -name '*.mtl' | wc -l)" -eq 33
+          cp docs/marine-asset-catalog.md dist/marine-objects/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-reusable-3d-objects-v0.6
+          path: dist/marine-objects/
+          if-no-files-found: error
+          retention-days: 14
+
   scene-and-simulation-tests:
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +73,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.5-marine-stairs
+          name: engine-watch-psp-v0.6-modular-engine-room
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -63,7 +85,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.5-marine-stairs
+          name: engine-watch-psp-v0.6-modular-engine-room
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -108,6 +130,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-marine-materials-screen-diagnostics
+          name: ppsspp-v0.6-modular-scene-diagnostics
           path: diagnostics/
           if-no-files-found: ignore
