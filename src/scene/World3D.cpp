@@ -436,8 +436,8 @@ void World3D::build() {
             box(x,0.079f,z,0.31f,0.022f,0.23f,red);
         }
     }
-    box(13.35f,1.12f,0.0f,1.18f,0.76f,1.37f,steel);
-    obstacle(12.18f,14.56f,-1.42f,1.42f,1u<<TankTopDeck);
+    box(13.35f,1.12f,0.0f,1.18f,0.76f,0.95f,steel);
+    obstacle(12.18f,14.56f,-0.95f,0.95f,1u<<TankTopDeck);
 
     // Long vertical pipe runs connect all floors and emphasize the open height.
     for(int side=-1;side<=1;side+=2) {
