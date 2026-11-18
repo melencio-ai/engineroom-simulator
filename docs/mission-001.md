@@ -7,11 +7,11 @@ A cargo vessel has an energized auxiliary bus. The duty engineer must ensure tha
 ## Player journey
 
 1. Spawn on **Deck 04, ECR upper platform** with a view toward the 3D machinery well.
-2. Walk through the central ECR doorway. Reach the yellow service or alternate ladder, press **X**, choose **DOWN**, and descend to **Deck 01, Pump Flat** (three adjacent-deck climbs).
+2. Walk through the central ECR doorway and use either inclined steel stair flight. **Walk down the treads physically** from Level 04 to Level 01, following the clear bypass at the landing to reach each next flight; no Cross-to-climb panel is needed.
 3. Locate the **LOCAL LO PUMP STATION** on Deck 01, press **X**, keep **MAIN PUMP MOTOR** selected, and press **X** again to request START.
 4. Watch the pump transition through a short starting delay to **RUNNING**.
 5. Allow discharge pressure to rise gradually, rather than instantly.
-6. Climb back up to Deck 04 using either ladder and return through the ECR doorway.
+6. Physically walk back up the inclined steel stair flights to Deck 04 and return through the ECR doorway.
 7. Approach the machinery monitoring console when pressure is at least 3.0 bar. Press **X** to open the console, and **X** again to explicitly verify the readings. Mission 001 is complete. A further **X** at the console starts Mission 002.
 
 ## Engineering rules (prototype assumptions)
