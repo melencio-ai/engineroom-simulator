@@ -156,8 +156,18 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     sceGumMatrixMode(GU_MODEL);
     sceGumLoadIdentity();
     const std::vector<Vertex3D>& v=world.vertices();
-    sceGumDrawArray(GU_TRIANGLES,GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D,
-                    static_cast<int>(v.size()),0,v.data());
+    // PSP GE draw calls have practical per-command vertex limits. The
+    // denser v0.5 stair and checker-plate scene must be submitted as small
+    // batches; one oversized array may yield a blank PSP framebuffer.
+    // 9600 is a multiple of 3, keeping every triangle intact.
+    const std::size_t batch=9600u;
+    for(std::size_t first=0;first<v.size();first+=batch) {
+        const std::size_t left=v.size()-first;
+        const int count=static_cast<int>(left<batch?left:batch);
+        sceGumDrawArray(GU_TRIANGLES,
+                        GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D,
+                        count,0,v.data()+first);
+    }
 
     // HUD uses absolute 2D screen vertices, without changing the 3D camera.
     sceGuDisable(GU_DEPTH_TEST);
