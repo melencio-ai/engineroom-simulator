@@ -80,9 +80,9 @@ void PspRenderer3D::text(int x,int y,const char* value,uint32_t c,int scale) {
         if(ch>='a'&&ch<='z') ch=ch-'a'+'A';
         if(ch<32 || ch>=96) ch='?';
         const int sx=((ch-32)%16)*8,sy=((ch-32)/16)*8;
-        v[k++]=TextVertex{sx/128.0f,sy/32.0f,c,static_cast<float>(px),
+        v[k++]=TextVertex{static_cast<float>(sx),static_cast<float>(sy),c,static_cast<float>(px),
                           static_cast<float>(py),0.0f};
-        v[k++]=TextVertex{(sx+5)/128.0f,(sy+7)/32.0f,c,static_cast<float>(px+5*scale),
+        v[k++]=TextVertex{static_cast<float>(sx+5),static_cast<float>(sy+7),c,static_cast<float>(px+5*scale),
                           static_cast<float>(py+7*scale),0.0f};
         px+=6*scale;
     }
@@ -92,6 +92,9 @@ void PspRenderer3D::text(int x,int y,const char* value,uint32_t c,int scale) {
     sceGuTexFilter(GU_NEAREST,GU_NEAREST);
     sceGuTexWrap(GU_CLAMP,GU_CLAMP);
     sceGuTexFunc(GU_TFX_MODULATE,GU_TCC_RGBA);
+    // GU_TRANSFORM_2D ignores texture scaling. Its UVs are RAW TEXEL
+    // coordinates, unlike the desktop OpenGL normalized UVs. Using 0..1
+    // previously sampled one transparent atlas corner and hid HUD text.
     sceGuTexScale(1.0f,1.0f);
     sceGuTexOffset(0.0f,0.0f);
     sceGuDrawArray(GU_SPRITES,GU_TEXTURE_32BITF|GU_COLOR_8888|
@@ -142,7 +145,10 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     const Vec3& p=game.camera();
     const float yaw=game.yaw();
     ScePspFVector3 eye={p.x,p.y,p.z};
-    ScePspFVector3 center={p.x+std::cos(yaw),p.y,p.z+std::sin(yaw)};
+    const float pitch=game.pitch();
+    const float cp=std::cos(pitch);
+    ScePspFVector3 center={p.x+std::cos(yaw)*cp,p.y+std::sin(pitch),
+                            p.z+std::sin(yaw)*cp};
     ScePspFVector3 up={0.0f,1.0f,0.0f};
     sceGumMatrixMode(GU_VIEW);
     sceGumLoadIdentity();

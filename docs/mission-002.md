@@ -9,17 +9,17 @@ Following successful ECR verification of Mission 001, the player selects **X: ST
 
 1. Complete Mission 001 (operate the main LO pump, then explicitly verify in ECR).
 2. In ECR, press **X** again to start Mission 002. Monitor the header reading and low-pressure alarm.
-3. Walk into the engine room. Approach the small **STR** strainer beside the LO sump and press **X** to inspect its differential pressure and main pump suction pressure. Inspection of the developing restriction is recorded.
+3. From **Deck 04 ECR**, descend three deck levels to **Deck 01 Pump Flat** via either ladder. Approach the main LO suction strainer in the forward port-side machinery bay and press **X** to inspect differential and suction pressure. Inspection of the developing restriction is recorded.
 4. Approach the **LOCAL PUMP STATION**, press **X**, navigate the six controls using **D-pad Up/Down**, and press **X** to operate the highlighted control.
 5. Open standby **suction and discharge** valves, then start the standby pump. Confirm the header pressure recovers.
 6. Stop the main pump and close its suction and discharge valves to isolate the affected path.
-7. Return to ECR. Acknowledge a still-active low-pressure alarm with **X**, and press **X** again when conditions are normal to verify restoration. If the alarm has cleared after timely intervention, acknowledgment isn't required.
+7. Climb back up to **Deck 04 ECR**. Acknowledge a still-active low-pressure alarm with **X**, and press **X** again when conditions are normal to verify restoration. If the alarm has cleared after timely intervention, acknowledgment isn't required.
 
 The assessment requires the strainer diagnosis to be recorded, standby pressure stable for at least two seconds, main pump stopped and isolated, and the ECR verification command. A user can recover before the alarm has time to activate.
 
 ## Controls
 
-- D-pad / analog: walk; D-pad Up/Down: navigate local control rows.
+- Analog: walk/strafe; D-pad Left/Right: turn; L/R: look down/up; D-pad Up/Down: walk or select rows in a local panel; X at ladder opens UP/DOWN selection.
 - X: interact, toggle a selected pump/valve, acknowledge a live alarm, verify mission, or advance.
 - O: close a panel.
 - Triangle: help.
@@ -36,4 +36,4 @@ The assessment requires the strainer diagnosis to be recorded, standby pressure 
 
 ## Limitations
 
-This is a **gameplay-oriented illustrative process model**. It does not simulate actual pump curves, valve lineups, flow continuity, real thermal/hydraulic transients, or manufacturer-approved procedures. The simulation values and alarm thresholds are not suitable for a real vessel. The engine room is schematic top-down 2D, pending later 2.5D rendering work. Standby pumps with shut valves can be commanded on here to illustrate hydraulic dependency; real interlocks, limits, and safe operation must follow specific vessel procedures.
+This is a **gameplay-oriented illustrative process model**. It does not simulate actual pump curves, valve lineups, flow continuity, real thermal/hydraulic transients, or manufacturer-approved procedures. The simulation values and alarm thresholds are not suitable for a real vessel. The game environment is a five-height-band, first-person low-polygon 3D machinery space; the layout and models are composite representations, not actual ship drawings. Standby pumps with shut valves can be commanded on here to illustrate hydraulic dependency; real interlocks, limits, and safe operation must follow specific vessel procedures.
