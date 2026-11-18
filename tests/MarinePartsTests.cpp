@@ -90,6 +90,13 @@ static void worldAssemblyChecks() {
                                     world.partCatalog().partName(static_cast<MarinePartId>(id)));
         assert(used[id] && "Every marine component should be used at least once");
     }
+    for(int m=0;m<MarineMaterialCount;++m) {
+        if(!finishes_used[m]) {
+            std::fprintf(stderr,"No world instance with finish: %s\n",
+                         world.partCatalog().finish(static_cast<MarineMaterialId>(m)).name);
+        }
+        assert(finishes_used[m] && "Every defined finish should be exercised in the scene");
+    }
     // World is still assembled from the original marine equipment and the
     // new reusable parts, not a showroom replacing LO interaction locations.
     assert(world.canStand(-7.35f,0.0f,EcrDeck));
