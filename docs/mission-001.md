@@ -6,12 +6,12 @@ A cargo vessel has an energized auxiliary bus. The duty engineer must ensure tha
 
 ## Player journey
 
-1. Spawn in the ECR next to the access door.
-2. Approach the engine-room door and select it.
-3. Walk to the **LOCAL PUMP STATION**, press **X**, keep **MAIN PUMP MOTOR** selected, and press **X** again to request START.
+1. Spawn on **Deck 04, ECR upper platform** with a view toward the 3D machinery well.
+2. Walk through the central ECR doorway. Reach the yellow service or alternate ladder, press **X**, choose **DOWN**, and descend to **Deck 01, Pump Flat** (three adjacent-deck climbs).
+3. Locate the **LOCAL LO PUMP STATION** on Deck 01, press **X**, keep **MAIN PUMP MOTOR** selected, and press **X** again to request START.
 4. Watch the pump transition through a short starting delay to **RUNNING**.
 5. Allow discharge pressure to rise gradually, rather than instantly.
-6. Return through the door to the ECR.
+6. Climb back up to Deck 04 using either ladder and return through the ECR doorway.
 7. Approach the machinery monitoring console when pressure is at least 3.0 bar. Press **X** to open the console, and **X** again to explicitly verify the readings. Mission 001 is complete. A further **X** at the console starts Mission 002.
 
 ## Engineering rules (prototype assumptions)
@@ -39,4 +39,4 @@ These mechanics illustrate causality and are *not* manufacturer specifications o
 
 ## Verification
 
-The original v0.1.1 visuals and the mission completion path were demonstrated on Android PPSSPP. Version v0.2 modifies control panels and progression and requires a new hands-on walkthrough. The game builds through PSPDEV CI, with a PPSSPP rendering smoke check.
+Versions v0.1/v0.2 demonstrated the mission process in a 2D engine room. The v0.4 route now crosses multiple 3D decks. Automated core simulation and 3D navigation tests and PPSSPP boot checks exist; the full physical route still requires a hands-on PSP/PPSSPP walkthrough.
