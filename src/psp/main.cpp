@@ -55,8 +55,10 @@ int main(int, char**) {
         in.strafe=normalizedAxis(pad.Lx);
         if(pad.Buttons & PSP_CTRL_UP) in.forward+=1.0f;
         if(pad.Buttons & PSP_CTRL_DOWN) in.forward-=1.0f;
-        if(pad.Buttons & (PSP_CTRL_LEFT|PSP_CTRL_LTRIGGER)) in.turn-=1.0f;
-        if(pad.Buttons & (PSP_CTRL_RIGHT|PSP_CTRL_RTRIGGER)) in.turn+=1.0f;
+        if(pad.Buttons & PSP_CTRL_LEFT) in.turn-=1.0f;
+        if(pad.Buttons & PSP_CTRL_RIGHT) in.turn+=1.0f;
+        if(pad.Buttons & PSP_CTRL_LTRIGGER) in.look-=1.0f;
+        if(pad.Buttons & PSP_CTRL_RTRIGGER) in.look+=1.0f;
         in.interact=(pressed & PSP_CTRL_CROSS)!=0;
         in.back=(pressed & PSP_CTRL_CIRCLE)!=0;
         in.help=(pressed & PSP_CTRL_TRIANGLE)!=0;
