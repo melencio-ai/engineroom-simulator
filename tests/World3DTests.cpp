@@ -154,8 +154,8 @@ static void gameplayChecks(const World3D& world) {
         assert(!game.isClimbing());
         if(target>TankTopDeck) {
             // Use the clear side bypass to reach the next descent landing.
-            driveTo(game,1.35f,3.62f);
-            driveTo(game,-2.35f,3.62f);
+            driveTo(game,1.35f,3.94f);
+            driveTo(game,-2.35f,3.94f);
             driveTo(game,-2.35f,5.00f);
         }
     }
@@ -164,8 +164,8 @@ static void gameplayChecks(const World3D& world) {
     driveTo(game,-2.35f,5.00f);
     assert(game.currentDeck()==PumpFlatDeck);
     assert(std::fabs(game.camera().y-4.85f)<0.04f);
-    driveTo(game,-2.35f,3.62f);
-    driveTo(game,1.35f,3.62f);
+    driveTo(game,-2.35f,3.94f);
+    driveTo(game,1.35f,3.94f);
     driveTo(game,1.35f,5.00f);
     driveTo(game,-2.35f,5.00f);
     assert(game.currentDeck()==MainEngineDeck);
