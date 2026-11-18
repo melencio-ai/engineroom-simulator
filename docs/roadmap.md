@@ -27,7 +27,7 @@
 - Preserved LO simulation with floor-aware interaction and two ladder route markers.
 - PSP font atlas UV corrected, desktop/PSP 3D render paths and CI smoke.
 
-## v0.5 — marine materials and inclined stairs (current feature branch)
+## v0.5 — marine materials and inclined stairs (completed prototype)
 
 - Marine-green epoxy appearance on steel tread plates with raised chequer patterns, panel seams and selected open-grating catwalks.
 - Warm off-white bulkheads, pale steel safety railings, grey-green transverse frames, welded brackets, plate girder/casing details, brighter task lamps.
@@ -41,23 +41,39 @@
 
 **Review gate:** verify Windows PPSSPP visual lighting, green deck readability, horizontal and vertical traversability, frame rate and both missions before any merge.
 
-## v0.6 — operational machinery expansion
+## v0.6 — reusable 3D shipbuilding components (current feature branch)
 
-- Generator start/stop, electrical load-sharing and ECR mimic page.
-- Cooling-water pumps, seawater/freshwater loops, heat exchanger and alarms.
-- LO instrumentation and pipe-name labels mapped to physical pump/strainer positions.
+- Separate finish definitions from geometry types and placed instances.
+- Generate **33 low-poly marine component meshes** (structural, deck, steel stairs, pipe systems, fittings, fasteners and fixtures) only once per type.
+- Define **16 marine material finishes** independently, compatible with PSP vertex colours and future PBR metadata.
+- Keep explicit, inspectable `MarinePartPlacement` instances with position/scale/rotation in the multi-level world.
+- Use every archetype in actual engine-room assembly: catwalks, structure, pipework, machinery pipe skid, valves, bolts, instruments, lighting and supports.
+- Remove duplicate checker-tread polygon generation to remain inside PSP geometry budget.
+- Produce separate **OBJ + MTL assets** via a native exporter, shipped as a GitHub Actions artifact and usable outside PSP.
+- Headless catalog coverage tests, existing world tests, desktop PSP build and PPSSPP smoke gates.
+- Engineering reference and export instructions: `docs/marine-asset-catalog.md`.
 
-## v0.7 — main-engine operations
+**Review gate:** Verify the new EBOOT and exported assets on Windows. No branch merge without explicit approval.
 
-- Compressed air system, compressors, receiver banks and start permissives.
-- Main engine readiness states and representative startup sequence.
+## v0.7 — dimensioned marine systems
+
+- Add explicit pipe NPS/DN/schedule lookup against ASME B36.10 and B16.5/B16.9 dimensional presets.
+- Add local/remote operational valves, pressure-relevant fitting and connection relationships.
+- Generator start/stop, electrical loading and ECR mimic.
+- Cooling-water, seawater/freshwater loops and LO physical instrumentation.
+- Reference vessel's approved machinery GA before definitive equipment placement.
+
+## v0.8 — main-engine operations
+
+- Starting air system, compressors and receivers.
+- Main-engine readiness and safe permissive logic (illustrative).
 - Alarm logic, troubleshooting and mission scoring.
 
-## v0.8+ — training and polish
+## v0.9+ — training and polish
 
-- Expanded spatial detail, equipment animations, maintenance platforms and new mission routes.
-- Scenario selection, assessments, save/load, integrated help and maintenance tasks.
-- Sound, equipment animations and more realistic process models once verified against an approved vessel reference.
+- Scenario selection, save/load, assessments and maintenance jobs.
+- Sound, animations, vessel-specific access and inspection routes.
+- Optional higher-detail desktop component assets, object editor and scene instancing.
 
 ## Simulation disclaimer
 

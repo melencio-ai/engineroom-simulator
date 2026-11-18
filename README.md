@@ -1,90 +1,108 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
-**Version 0.5 feature build: marine-green steel decks and physically walkable inclined stairs.**
+**v0.6 feature build: reusable parametric 3D shipbuilding components**
 
-A first-person PSP/PPSSPP engineering-room game in C++, with native Sony PSP GU/GUM 3D and optional desktop SDL2/OpenGL preview. Its world is a fictional single-screw merchant-cargo-ship composite; engineering dimensions, paint layouts and machinery are illustrative rather than drawings of any particular ship.
+This is a first-person, multi-deck PSP/PPSSPP marine engine-room simulator in C++11, with a matching SDL2/OpenGL desktop preview. The environment is now built in part from an independent library of **33 reusable 3D marine components**, with **16 separate material/finish types**. Each component can be resized, rotated, placed in the engine room or exported as an individual **OBJ + MTL** asset for Blender and other 3D tools.
 
-## What has been added in v0.5?
+The game is a *fictional merchant cargo ship composite*. The geometry and process simulation are representative; it is not approved naval-architecture documentation or shipboard operating guidance.
 
-- **Marine green steel decking:** epoxy-look painted checker/diamond plate, raised low-poly diagonal tread bars, panel seams and grating near the central engine well.
-- **Real ship structure:** warm off-white bulkheads, grey-green stiffeners and welded-looking brackets, painted safety handrails, structural deck beams, machinery foundations, bolts and brighter luminaire fixtures.
-- **Physically walkable inclined stair flights:** two separated 50-degree steel stair routes spanning adjacent floors, with 16 anti-slip horizontal treads per rise, steel stringers, paired handrails, underside shields and actual landings.
-- **Continuous vertical gameplay:** walking up/down the slope changes camera Y in real space. No ladder menu or Cross-to-teleport mechanic. There are guarded open stairwell cutouts and clear connecting corridors at each level.
-- **More credible piping:** neutral/insulated pipe surfaces, short service-colour identification collars, flanges and pressure-gauge props rather than entire bright red/blue pipes.
-- **Improved PSP rendering:** dense world triangles submitted in bounded batches to avoid one excessively large PSP GE draw call.
-- **Existing LO simulation preserved:** mission 001 (main LO pump/pressure verification), mission 002 (suction strainer restriction/standby changeover/return to ECR) and local station interaction remain.
+## Reusable shipbuilding object library
 
-## World layout
+The new source modules are:
 
-| Floor | Space |
-| --- | --- |
-| 04 | ECR, control consoles, upper viewing area |
-| 03 | Generator/auxiliary machinery flat |
-| 02 | Main engine service platform |
-| 01 | Pump flat with main + standby LO pumps, strainer, valves |
-| 00 | Tank top, main engine bedplate, bilge covers and shaft access |
+- `src/scene/SceneGeometry.hpp` — shared compact PSP-friendly vertex/3D coordinate definitions.
+- `src/scene/MarineParts.hpp` / `.cpp` — 33 independently generated component templates, 16 material finishes and transform/placement API.
+- `src/scene/World3D.cpp` — the assembled five-height-band ship engine room built from individually recorded `MarinePartPlacement` instances and core engine geometry.
+- `tests/MarinePartsTests.cpp` — checks every template, material, transform, and actual use in the world.
+- `tools/export_marine_parts.cpp` — native OBJ/MTL exporter for independent 3D object reuse.
 
-One six-cylinder slow-speed main engine continues through the open center of all platforms. The levels are partial flats and crosswalks, not sealed rectangular rooms.
+**[Complete object catalog and standards references](docs/marine-asset-catalog.md)**
 
-### On-foot stair traversal
+### Component families
 
-The **forward starboard stair** is near X -1.82 to 0.86, Z +5.0. From upper levels, walk toward the upper end near X -1.82 and descend in the positive X direction. To reach the next flight, go around the open stairwell using the parallel bypass at Z +3.94.
+| Structural / architectural | Pipes / fittings | Equipment / hardware |
+| --- | --- | --- |
+| Steel plate and marine checker plate | Pipe spool, 90° elbow, tee, reducer | Gate, globe and butterfly valves |
+| Open steel grating, stair tread | Weld-neck and blind flange | Y-strainer and pressure gauge |
+| I-beam, channel, angle, bulb-flat, flat bar | Rubber gasket and pipe support | Hex bolt, hex nut, washer, U-bolt |
+| Gussets, handrail posts/spans | Pipe clamp | Access cover, cable tray, worklight |
 
-The **aft alternate stair** is near X +13.50, Z -4.54 to -1.88. It runs from the negative-Z side toward the centerline as it descends.
+Colours are **surface finishes**, not physical steel grades. Actual ship-grade materials and approved dimensions must be sourced from class rules, GA drawings and component manufacturer catalogs.
 
-No interact key is required to use either stair: **move along its sloped tread line**. Looking up/down is controlled independently.
+### Using a part in the C++ environment
 
-## Controls
+```cpp
+#include "scene/MarineParts.hpp"
 
-| PSP input | Action |
-| --- | --- |
-| Analog stick | Walk and strafe (also walk on stairs) |
-| D-pad Left/Right | Turn camera |
-| D-pad Up/Down | Walk when exploring, select rows when a panel is open |
-| L/R triggers | Look down/up |
-| Cross (X) | Use machinery/control station |
-| Circle (O) | Close panel |
-| Triangle | Help |
-| Start | Pause/resume; X while paused resets |
+enginewatch::MarinePartLibrary catalog;
+std::vector<enginewatch::Vertex3D> mesh;
 
-Desktop preview: WASD walk; left/right/Q turn; I/K or PageUp/PageDown look; X/E/Space use; C/Esc back; H/F1 help; P/Tab pause. Game controller support is included.
-
-## Windows PPSSPP installation
-
-No GitHub CLI is necessary:
-
-1. Visit the [Engine Watch GitHub Actions builds](https://github.com/melencio-ai/engineroom-simulator/actions/workflows/build.yml) and select a successful run of **Engine Watch 3D Marine Materials CI** on branch `feature/psp-v0.5-marine-materials-stairs`.
-2. Download artifact **`engine-watch-psp-v0.5-marine-stairs`** from the Artifacts section and save to `D:\Downloads`.
-3. Extract its ZIP. Find the internal `PSP/GAME/ENGINEWATCH/EBOOT.PBP` file.
-4. Close PPSSPP, back up your old EBOOT, and copy the new file over `C:\Users\Melencio\Documents\PPSSPP\PSP\GAME\ENGINEWATCH\EBOOT.PBP`.
-5. Launch PPSSPP and select **ENGINE WATCH** under Homebrew & Demos. Do **not** load an old v0.3/v0.4 savestate.
-
-The game can also be compiled with [PSPDEV](https://pspdev.github.io/):
-
-```bash
-psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-cmake --build build/psp --parallel 2
+// Place a 2-metre visual pipe spool with an insulated finish.
+catalog.append(mesh,
+    enginewatch::PipeSpool,
+    enginewatch::PipeInsulation,
+    enginewatch::PartTransform(4.0f, 5.0f, -5.0f,
+                               2.0f, 1.0f, 1.0f));
 ```
 
-Output: `build/psp/EBOOT.PBP`.
+The world also records each stamped part in `World3D::parts()` for future selection, editing, service tagging and inspection.
 
-## Tests and desktop preview
+## Get 33 separate OBJ files
+
+Open a **successful** v0.6 GitHub Actions run of [Engine Watch 3D Shipbuilding Components CI](https://github.com/melencio-ai/engineroom-simulator/actions/workflows/build.yml).
+
+Under **Artifacts**, download `engine-watch-reusable-3d-objects-v0.6`. Its ZIP contains **33 separate `.obj` models and 33 companion `.mtl` files**, together with the object catalog. Each object is independent and can be imported into Blender or another mesh application.
+
+Generate the same assets locally on Linux/macOS/Windows with CMake and a C++ compiler:
 
 ```bash
-cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
-cmake --build build/tests --parallel 2
-ctest --test-dir build/tests --output-on-failure
-
-# Optional SDL2 + OpenGL preview:
-cmake -S . -B build/desktop -DENGINEWATCH_BUILD_GAME=ON -DBUILD_TESTING=ON
-cmake --build build/desktop --parallel 2
-./build/desktop/engine_watch
+cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON
+cmake --build build/objects --parallel 2
+mkdir -p dist/marine-objects
+./build/objects/enginewatch_export_parts dist/marine-objects
 ```
 
-See [materials and stair engineering plan](docs/v0.5-marine-materials-and-stair-geometry.md), [multi-deck layout](docs/multideck-engine-room-layout.md), [roadmap](docs/roadmap.md), and [Windows PPSSPP QA](docs/qa-v0.5-windows.md).
+## The game environment
 
-## Scope and safety
+The engine room has **four main platforms L1–L4 plus an additional tank-top access level L0**, connected by two physically walkable inclined steel stair systems:
 
-This is a **PSP-optimized low-poly simulation**, not photoreal rendering or an approved maritime training program. The stair geometry and graphic materials are illustrative, not certified for escape-route or shipbuilding compliance; the pipe IDs and machinery logic must not be used as shipboard operating instructions.
+| Deck | Purpose |
+| --- | --- |
+| **04** | ECR and upper viewing gallery |
+| **03** | Generator and auxiliary machinery |
+| **02** | Main engine service platform |
+| **01** | Main/standby lubricating-oil pump flat, local valves, suction strainer |
+| **00** | Tank top, engine foundation and bilge access areas |
 
-**Branch policy:** keep updates isolated and review/verify PPSSPP before merging into any prior branch, `develop`, or `main`.
+New reusable pieces enhance green marine checker plating, partial grating, structural steel profiles, handrails, lights, pipe skids, flanged valves, pipe identification bands, holding-down bolts and service gauges. The main engine remains a continuous six-cylinder low-poly mesh extending through several deck levels.
+
+**Mission 001:** from Deck 04 ECR, walk down to L1, start the main LO pump, return to ECR and verify pressure. **Mission 002:** diagnose LO strainer restriction on L1, change over to standby pump and verify system recovery in ECR. Core pump simulation remains unchanged.
+
+### PSP controls
+
+- Analog: walk and strafe, including on inclined stairs.
+- D-pad Left/Right: turn.
+- L/R: look down/up.
+- D-pad Up/Down: movement or menu selection.
+- Cross (X): interact with machinery. **No Cross is required to climb the stairs.**
+- Circle: close; Triangle: help; Start: pause/reset.
+
+## Windows PPSSPP — install the new game
+
+1. From a successful v0.6 CI run, download `engine-watch-psp-v0.6-modular-engine-room` into `D:\Downloads`.
+2. Extract the ZIP. Inside it, find `PSP\GAME\ENGINEWATCH\EBOOT.PBP`.
+3. Close PPSSPP and back up your current EBOOT.
+4. Replace `C:\Users\Melencio\Documents\PPSSPP\PSP\GAME\ENGINEWATCH\EBOOT.PBP` with the extracted executable.
+5. Open PPSSPP → **Homebrew & Demos** → **ENGINE WATCH**; use a fresh launch, not a savestate from v0.5.
+
+**No GitHub CLI is needed** when downloading artifacts through the browser.
+
+## Build, testing and limitations
+
+The CI workflow validates headless LO simulation tests, world/collision/navigation tests, all 33 component templates, material lookup, transforms, desktop OpenGL compilation, native PSP EBOOT compilation, and a PPSSPP boot/framebuffer smoke check. CI also exports all OBJ and MTL assets automatically.
+
+The system uses vertex-coloured **low-poly** meshes, not dense manufacturer CAD. Material metallic/roughness values are descriptive for future renderers and are not PSP physically based shaders. Flange drilling, pipe schedules, material grades, service pressures and structural adequacy **are not verified** against actual approved manufacturing dimensions. Do not use this game as a certified marine engineering or safety trainer.
+
+For engineering and art direction see [multi-deck layout](docs/multideck-engine-room-layout.md), [marine material and stair plan](docs/v0.5-marine-materials-and-stair-geometry.md), and [reusable component catalog](docs/marine-asset-catalog.md).
+
+**Merge gate:** work remains on a separate feature branch until actual Windows PPSSPP QA and explicit approval.

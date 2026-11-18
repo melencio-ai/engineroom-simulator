@@ -133,11 +133,9 @@ void World3D::plateSeams(float x0,float x1,float z0,float z1,float y) {
         quad(Vec3{x0,y+0.004f,z-0.011f},Vec3{x1,y+0.004f,z-0.011f},
              Vec3{x1,y+0.004f,z+0.011f},Vec3{x0,y+0.004f,z+0.011f},seam);
     }
-    for(float x=x0+0.42f;x<x1-0.22f;x+=0.74f) {
-        for(float z=z0+0.42f;z<z1-0.22f;z+=0.74f) {
-            checkerTread(x,y+0.007f,z,shade(deck,1.23f));
-        }
-    }
+    // Raised tread detail is now provided by placed CheckerPlate objects from
+    // MarinePartLibrary; drawing the legacy per-deck tread mesh as well would
+    // duplicate thousands of triangles and lose the reusable asset boundary.
 }
 void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
     if(x1<=x0 || z1<=z0) return;
@@ -247,6 +245,12 @@ void World3D::stairGeometry(const Stair3D& st) {
                 box(x,y+0.028f,z,width*0.52f,0.028f,0.045f,yellow);
         }
     }
+}
+
+void World3D::part(MarinePartId type,MarineMaterialId finish,
+                   const PartTransform& position) {
+    if(parts_library_.append(vertices_,type,finish,position))
+        parts_.push_back(MarinePartPlacement(type,finish,position));
 }
 
 void World3D::build() {
@@ -500,8 +504,154 @@ void World3D::build() {
     }
     // Inclined, physically walkable steel stair flights with handrails and
     // anti-slip treads, repeating between all deck levels.
+
     stairGeometry(stairs_[0]);
     stairGeometry(stairs_[1]);
+
+    // MARINE COMPONENT CATALOG: these are individually identified, reusable
+    // world objects, not ad-hoc modelling calls. Each part is a cached local
+    // template plus a finish and ship/world transform. See MarineParts.hpp.
+    // Placement is illustrative and does not claim an approved vessel GA.
+    part(SteelPlate,GreenEpoxy,PartTransform(0.1f,0.035f,-2.9f,1.8f,1.0f,1.1f));
+    for(int d=0;d<DeckCount;++d) {
+        const float y=floorHeight(d);
+        // Removable embossed deck panels and open grating at the engine well.
+        for(int i=0;i<4;++i) {
+            const float x=4.05f+i*2.3f;
+            for(int side=-1;side<=1;side+=2) {
+                part(CheckerPlate,GreenEpoxy,
+                     PartTransform(x,y+0.060f,side*4.70f,1.75f,0.60f,1.05f));
+                part(OpenSteelGrating,GreenGrating,
+                     PartTransform(x,y+0.057f,side*2.91f,1.06f,0.72f,0.54f));
+            }
+        }
+        // Structural beams live above the walking envelope, not on the decks.
+        for(int side=-1;side<=1;side+=2) {
+            part(IBeam,StructuralSteelGrey,
+                 PartTransform(6.8f,y+2.85f,side*6.48f,12.0f,0.65f,0.70f));
+            part(ChannelSection,StructuralSteelGrey,
+                 PartTransform(3.56f,y+2.77f,side*6.46f,1.8f,0.46f,0.7f,1.57f));
+            part(GussetBracket,OffWhiteCoatedSteel,
+                 PartTransform(3.44f,y+2.42f,side*6.55f,0.50f,0.55f,0.45f));
+            part(WorkLightFixture,WorkLightWhite,
+                 PartTransform(7.48f,y+2.69f,side*5.72f,1.50f,0.70f,1.0f));
+        }
+        // The stair treads are additionally stamped from the standardized
+        // checker-tread template, including contrasting front/nosing geometry.
+        if(d<EcrDeck) {
+            for(int j=1;j<15;j+=4) {
+                const float t=(j+0.5f)/16.0f;
+                const float sx=stairs_[0].bottom_x+
+                               (stairs_[0].top_x-stairs_[0].bottom_x)*t;
+                const float sz=stairs_[1].bottom_z+
+                               (stairs_[1].top_z-stairs_[1].bottom_z)*t;
+                part(StairTread,GreenEpoxy,
+                     PartTransform(sx,y+3.2f*t+0.025f,5.0f,
+                                   0.17f,0.52f,1.04f));
+                part(StairTread,GreenEpoxy,
+                     PartTransform(13.50f,y+3.2f*t+0.025f,sz,
+                                   1.04f,0.52f,0.17f,1.570796327f));
+            }
+        }
+    }
+
+    // Ship-stiffener profiles, angle-bar reinforcement and removable plates.
+    part(AngleSection,StructuralSteelGrey,
+         PartTransform(6.6f,16.42f,-6.65f,12.5f,0.90f,0.65f));
+    part(BulbFlat,StructuralSteelGrey,
+         PartTransform(6.7f,16.34f,6.62f,13.0f,0.73f,1.0f));
+    part(FlatBar,GalvanizedSteel,
+         PartTransform(8.1f,15.98f,5.97f,5.2f,0.50f,0.70f));
+    part(HandrailSpan,OffWhiteCoatedSteel,
+         PartTransform(2.20f,top+1.05f,-3.42f,1.8f,1.2f,1.0f));
+    part(HandrailPost,OffWhiteCoatedSteel,
+         PartTransform(2.88f,top+0.54f,3.33f,0.8f,1.04f,0.80f));
+    part(AngleSection,SafetyYellow,
+         PartTransform(3.05f,top+0.14f,-3.31f,0.62f,0.22f,0.48f));
+    part(AccessCover,GreenEpoxy,
+         PartTransform(-1.35f,0.070f,-4.38f,0.85f,0.60f,0.85f));
+    part(AccessCover,GreenEpoxy,
+         PartTransform(2.20f,0.070f,4.05f,1.2f,0.60f,0.85f));
+    part(CableTray,StainlessSteel,
+         PartTransform(7.5f,13.72f,-6.55f,9.0f,0.55f,0.55f));
+    part(CableTray,GalvanizedSteel,
+         PartTransform(8.2f,10.60f,6.55f,7.5f,0.55f,0.55f));
+
+    // A fabricated LO skid with matching pipe spools, flange/collar hardware,
+    // hand-operated valves and differential pressure instrumentation.
+    const float ly=floorHeight(PumpFlatDeck)+1.18f;
+    part(PipeSpool,PipeInsulation,
+         PartTransform(1.10f,ly,-6.06f,3.60f,1.10f,1.10f));
+    part(PipeSpool,PipeInsulation,
+         PartTransform(1.60f,ly,5.95f,3.0f,0.88f,0.88f));
+    part(PipeElbow90,PipeInsulation,
+         PartTransform(3.03f,ly,-6.06f,0.90f,1.10f,1.10f));
+    part(PipeTee,PipeInsulation,
+         PartTransform(2.94f,ly,5.95f,0.76f,0.90f,0.90f));
+    part(ConcentricReducer,PipeInsulation,
+         PartTransform(-0.35f,ly,-6.06f,0.66f,1.12f,1.12f));
+    for(int i=0;i<3;++i) {
+        const float x=0.10f+1.04f*i;
+        part(WeldNeckFlange,GalvanizedSteel,
+             PartTransform(x,ly,-6.06f,0.35f,0.65f,0.65f));
+        part(PipeGasket,RubberGasket,
+             PartTransform(x+0.09f,ly,-6.06f,0.30f,0.68f,0.68f));
+        for(int angle=0;angle<4;++angle) {
+            const float a=1.570796327f*angle;
+            part(HexBolt,GalvanizedSteel,
+                 PartTransform(x,ly+0.25f*std::cos(a),
+                               -6.06f+0.25f*std::sin(a),
+                               0.20f,0.25f,0.20f,0,0,1.570796327f));
+        }
+    }
+    part(GateValve,MachineryBlue,PartTransform(1.53f,ly,-6.06f,0.66f,0.66f,0.66f));
+    part(GlobeValve,MachineryBlue,PartTransform(1.30f,ly,5.95f,0.63f,0.63f,0.63f));
+    part(ButterflyValve,CastIron,PartTransform(2.62f,ly,5.95f,0.72f,0.62f,0.62f));
+    part(YStrainer,CastIron,PartTransform(2.35f,ly-0.24f,-5.70f,0.58f,0.58f,0.58f));
+    part(BlindFlange,GalvanizedSteel,
+         PartTransform(3.50f,ly,-6.06f,0.28f,0.66f,0.66f));
+    part(PressureGauge,BronzeInstrument,
+         PartTransform(2.30f,ly+0.75f,-5.72f,0.48f,0.44f,0.44f));
+    part(PipeSupport,StructuralSteelGrey,
+         PartTransform(2.45f,ly-0.70f,-6.00f,0.55f,0.68f,0.78f));
+    part(PipeClamp,GalvanizedSteel,
+         PartTransform(0.73f,ly,-6.05f,0.44f,0.42f,0.44f));
+    part(Ubolt,GalvanizedSteel,
+         PartTransform(0.73f,ly+0.37f,-6.05f,0.44f,0.55f,0.44f));
+    part(HexNut,GalvanizedSteel,
+         PartTransform(0.73f,ly+0.58f,-5.89f,0.22f,0.22f,0.22f));
+    part(FlatWasher,GalvanizedSteel,
+         PartTransform(0.73f,ly+0.44f,-5.89f,0.22f,0.20f,0.22f));
+
+    // A separate cooling/header manifold with repeated neutral pipe surfaces
+    // and narrower blue identification bands as finish-specific objects.
+    for(int i=0;i<3;++i) {
+        const float x=4.55f+i*2.35f;
+        part(PipeSpool,PipeInsulation,
+             PartTransform(x,8.15f,1.78f,2.12f,0.78f,0.78f));
+        part(WeldNeckFlange,GalvanizedSteel,
+             PartTransform(x+1.0f,8.15f,1.78f,0.22f,0.42f,0.42f));
+        part(PipeSpool,CoolingWaterBlue,
+             PartTransform(x+0.73f,8.15f,1.78f,0.09f,0.82f,0.82f));
+        part(PipeSpool,LubricatingOilOrange,
+             PartTransform(x+0.73f,2.03f,1.78f,0.09f,0.82f,0.82f));
+        part(PipeSpool,FireSystemRed,
+             PartTransform(x+0.73f,13.62f,-0.94f,0.09f,0.82f,0.82f));
+    }
+
+    // Bolted engine seating: repeating fasteners are individual reusable
+    // components, not texturing tricks embedded in the bedplate mesh.
+    for(int i=0;i<6;++i) {
+        const float x=4.75f+i*1.13f;
+        for(int side=-1;side<=1;side+=2) {
+            const float z=side*1.79f;
+            part(HexBolt,GalvanizedSteel,
+                 PartTransform(x,0.20f,z,0.36f,0.50f,0.36f));
+            part(FlatWasher,GalvanizedSteel,
+                 PartTransform(x,0.12f,z,0.45f,0.46f,0.45f));
+        }
+    }
+
 }
 
 bool World3D::canStand(float x,float z,int deck_id,float radius) const {
