@@ -60,6 +60,14 @@ elseif(ENGINEWATCH_BUILD_GAME)
     endif()
 endif()
 
+# Export individual portable 3D mesh files (.obj + .mtl) from the same
+# 33 reusable prototypes used by the PSP game. Native-host tool only.
+option(ENGINEWATCH_EXPORT_ASSETS "Build OBJ exporter for the marine parts library" OFF)
+if(ENGINEWATCH_EXPORT_ASSETS AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(enginewatch_export_parts tools/export_marine_parts.cpp)
+    target_link_libraries(enginewatch_export_parts PRIVATE enginewatch_scene)
+endif()
+
 include(CTest)
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_tests tests/EngineSimulationTests.cpp)
