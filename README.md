@@ -1,52 +1,80 @@
-# ENGINE WATCH 3D — PSP Marine Engine Room Simulator
+# ENGINE WATCH 3D — Multi-deck PSP Engine Room Simulator
 
-**v0.3 prototype: real-time, first-person 3D.** The v0.2 schematic/top-down renderer has been replaced by 3D geometry and a walkable engine room. Existing C++ LO system simulation and missions remain intact.
+**v0.4 feature prototype** — Real-time, first-person 3D marine machinery space for PSP/PPSSPP and a matching desktop OpenGL preview. The engine room has **four principal working platforms (L1–L4)** plus a **lowest tank-top access level (L0)**, with an open vertical main-engine well.
 
-## 3D environment
+The layout represents a *fictional composite merchant cargo ship*, not a specific vessel. Machinery behavior is illustrative gameplay logic and must not be used as actual shipboard operating instructions.
 
-- Connected engine control room (ECR) and machinery deck, with a passable doorway and solid collision geometry.
-- Low-polygon six-cylinder main diesel engine, two diesel-generator sets, LO pump assemblies, main suction strainer, ECR console, deck grating, piping, handrails and overhead beams.
-- Real perspective/depth-tested rendering through **PSP GU/GUM**; same procedural mesh, camera and interaction state are used in the optional desktop OpenGL preview.
-- Face nearby equipment and press X to use the LO pump station, inspect the strainer or open the ECR console.
+## What's new in v0.4?
 
-This is a **3D blockout**, not a photorealistic environment. Main engine and generator models are currently visual only. Textures, animation, additional operating systems and collision refinement are future work.
+- A single, **continuous five-height-band engine room** with working platforms separated vertically by 3.2 illustrative game-world metres.
+- A six-cylinder main engine built **once** and extending from its tank-top foundation through upper platforms, visible through open machinery wells.
+- Connected forward and aft crosswalks, port/starboard grating platforms, railings, overhead pipes, lighting, bulkheads, bilge access pockets and structural details.
+- **L4:** ECR/control room with a doorway and overlooking windows.
+- **L3:** two diesel generator models, auxiliaries, compressors and workshops.
+- **L2:** main engine service catwalks, local access panels and exhaust/cooling lines.
+- **L1:** main and standby LO pumps, valves, suction strainer and local control panel.
+- **L0:** tank top, engine foundation, bilge wells and lower shaft access.
+- Two separated ladders with deck shaft openings, **UP/DOWN selection** and continuous (animated) vertical camera movement.
+- Deck-aware collision and interaction so controls on another floor cannot be used through the deck.
+- PSP camera pitch control (L/R shoulders), so the player can look into the machinery well from above or examine overhead equipment.
+- Fix to the PSP font texture UV coordinates: HUD text previously sampled transparent texels in `GU_TRANSFORM_2D`.
+- Both LO system missions inherited from v0.2 remain connected to L1 and L4.
 
-## Playable missions
+### Prototype limits
 
-**001 — Start and verify LO pump:** walk to the local station, start the main LO pump, allow pressure to stabilize and verify it back at the ECR.
+This is an optimized low-polygon **functional 3D blockout**, not a photorealistic ship or certified trainer. Generator/main-engine models are scenery (not operable yet); the currently simulated systems are LO pumps, valves, pressure, strainer fault and associated ECR actions. Ladder traversal is a short automatic camera climb after selecting a destination, not a hand-over-hand animation.
 
-**002 — Strainer restriction:** inspect high suction strainer DP, open standby valves, start standby pump, stop/isolate main pump, and verify alarm/pressure recovery at the ECR.
-
-These are illustrative gameplay models. **Never use the values or steps as actual vessel operating instructions.**
+For the design, deck arrangement, source references and acceptance criteria, see **[Multi-deck engine room layout](docs/multideck-engine-room-layout.md)**.
 
 ## Controls
 
-| PSP input | Action |
-|---|---|
+| PSP | Action |
+| --- | --- |
 | Analog stick | Walk forward/back and strafe |
-| D-pad Left/Right or L/R | Turn camera |
-| D-pad Up/Down | Walk, or navigate menu rows when a panel is open |
-| Cross (X) | Interact / operate |
-| Circle (O) | Close panel |
+| D-pad Left/Right | Rotate viewpoint |
+| L trigger / R trigger | Look **down / up** |
+| D-pad Up/Down | Walk when exploring; select rows inside panels |
+| Cross (X) | Interact, open ladder panel, climb, operate pump/valve |
+| Circle (O) | Close a panel |
 | Triangle | Help |
-| Start | Pause / resume (Cross while paused resets) |
+| Start | Pause/resume; X while paused resets |
 
-Desktop preview: WASD movement, Left/Right or Q turning, X/E/Space interaction, C/Esc back, H/F1 help, P/Tab pause, and Up/Down menu navigation. Game controllers are also supported.
+**Ladder:** Move near the yellow ladder landing; press X, select UP or DOWN, press X again, and the camera climbs to the adjacent platform. The protected-looking alternative ladder is a simplified visual aid and should not be taken as a regulation-compliant escape route model.
 
-## PSP build and installation
+**Desktop native preview:** WASD to move, Left/Right or Q to turn, I/K or PageUp/PageDown to look up/down, X/E/Space to interact, C/Esc to close, H/F1 help, P/Tab pause. Right gamepad stick supports look controls.
 
-Use the maintained [PSPDEV SDK](https://pspdev.github.io/).
+## Mission walkthrough
+
+1. **Mission 001:** Start in **L4 ECR**. Walk through the centre doorway and descend three decks on the service/escape ladder to **L1 Pump Flat**. Locate the local LO panel, start the main pump, then climb back to **L4** and verify LO header pressure at the ECR console.
+2. **Mission 002:** After progressing at the ECR, return to **L1**, diagnose the strainer restriction, open standby valves, start standby, secure main, and return to L4 to verify pressure recovery.
+
+During either mission you can explore L0–L4. The process model remains unchanged from v0.2; only physical navigation and presentation are reworked.
+
+## Windows PPSSPP: download and play
+
+1. Open the [GitHub Actions build runs](https://github.com/melencio-ai/engineroom-simulator/actions/workflows/build.yml) for the `feature/psp-v0.4-multideck-environment` branch.
+2. Select a successful run of **Engine Watch 3D Multi-Deck CI**.
+3. Download the `engine-watch-psp-v0.4-multideck` **artifact ZIP** in the run's Artifacts section (GitHub sign-in may be needed).
+4. Extract it. The internal layout is `PSP/GAME/ENGINEWATCH/EBOOT.PBP`.
+5. In PPSSPP, choose **File > Open Memory Stick Folder** (or **Settings > System > PSP Memory Stick**). Copy the whole `ENGINEWATCH` folder into that memory stick's `PSP/GAME/` directory.
+6. Start the game from **Homebrew & Demos**. Always launch a fresh session instead of loading an old v0.3 savestate.
+
+Do not run `EBOOT.PBP` from an arbitrary ZIP path if PPSSPP cannot resolve `ms0:/PSP/GAME/...`; install it into the configured memory stick first.
+
+## Native PSP build
+
+Use [PSPDEV](https://pspdev.github.io/):
 
 ```bash
 psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 cmake --build build/psp -j2
 ```
 
-Copy `build/psp/EBOOT.PBP` into the PPSSPP/PSP memory stick directory `PSP/GAME/ENGINEWATCH/EBOOT.PBP`. A successful GitHub Actions PSP job also publishes an `engine-watch-psp-v0.3-native-3d` artifact.
+Output: `build/psp/EBOOT.PBP`.
 
-## Desktop 3D preview / tests
+## Desktop preview and headless tests
 
-Install SDL2 and OpenGL development headers.
+SDL2 and OpenGL headers are required for the preview:
 
 ```bash
 cmake -S . -B build/desktop -DENGINEWATCH_BUILD_GAME=ON
@@ -55,7 +83,7 @@ ctest --test-dir build/desktop --output-on-failure
 ./build/desktop/engine_watch
 ```
 
-Without graphics dependencies, run headless simulation and world tests:
+For portable geometry/simulation tests without SDL2/OpenGL:
 
 ```bash
 cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
@@ -63,13 +91,16 @@ cmake --build build/tests -j2
 ctest --test-dir build/tests --output-on-failure
 ```
 
-## Source layout
+## Source map
 
-- `src/core`: v0.2 pump, valve, pressure, strainer, alarm and mission simulation.
-- `src/scene`: geometry, obstacle collision, stations, first-person controls, HUD and font.
-- `src/psp`: dedicated native GU/GUM 3D renderer and PSP controller entrypoint.
-- `src/desktop`: matching desktop OpenGL preview with SDL2 input.
-- `src/ui`: retained v0.2 2D code, **not part of the v0.3 build**.
-- `tests`: headless simulation and 3D navigation/collision checks.
+- `src/core/EngineSimulation.*`: original process model and LO missions.
+- `src/scene/World3D.*`: all decks, engine/pumps/gensets, ladders, geometry, deck-scoped collision.
+- `src/scene/Game3D.*`: camera position/deck/pitch, ladder traversal and machinery interactions.
+- `src/scene/FontAtlas.*`: 5x7 HUD glyphs.
+- `src/psp/*`: native GU/GUM 3D pipeline and controller inputs.
+- `src/desktop/*`: desktop SDL2/OpenGL camera and mesh preview.
+- `src/ui/*`: retained unused v0.2 2D implementation.
+- `tests/*`: 3D floor geometry/traversal and LO system tests.
+- `docs/qa-multideck.md`: manual test route for PPSSPP Windows.
 
-**Branch workflow:** no merge to `develop` or `main` without approval. Review the isolated changes against `feature/psp-v0.2`.
+**Review gate:** develop on a separate branch, validate on PPSSPP and **do not merge** to other branches without approval.
