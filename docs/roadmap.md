@@ -20,40 +20,40 @@
 
 **Review gate:** PPSSPP hardware/Android hands-on check for native 3D scene visibility, fonts, turning speed, walking controls and interactive station positioning before merging.
 
-## v0.4 — multi-deck layout and regeneration (current feature branch)
+## v0.4 — multi-deck environment (completed prototype)
 
-- Four principal engine-room platforms (L1-L4) plus the lowest tank-top access (L0), in a single world.
-- Multi-level main-engine mesh, open center well, four sets of partial catwalks with railings and grating.
-- ECR upper overlooking windows, deck 03 twin diesel generators, deck 01 pumps/strainer, lowest bilge access.
-- Two separated yellow ladder routes, floor openings and continuous vertical camera traverse.
-- Deck-aware equipment interaction and obstacle collision; expanded vertical camera pitch inputs.
-- Fixed PSP GU font atlas UV mapping to restore HUD readability.
-- Headless floor/shaft/ladder tests, native PSP EBOOT and desktop OpenGL checks.
-- New detailed source-backed layout document at `docs/multideck-engine-room-layout.md`.
+- Four working platforms (L1-L4) plus lowest tank top (L0), open multi-level engine well.
+- ECR upper, auxiliary generators, operating platforms, pump flat and lower bilge access.
+- Preserved LO simulation with floor-aware interaction and two ladder route markers.
+- PSP font atlas UV corrected, desktop/PSP 3D render paths and CI smoke.
 
-**Review gate:** Manually inspect PPSSPP Windows/Android visuals, deck transitions, FPS, HUD visibility, and both LO missions. Do not merge without approval.
+## v0.5 — marine materials and inclined stairs (current feature branch)
 
-## v0.5 — machinery detail and interactivity
+- Marine-green epoxy appearance on steel tread plates with raised chequer patterns, panel seams and selected open-grating catwalks.
+- Warm off-white bulkheads, pale steel safety railings, grey-green transverse frames, welded brackets, plate girder/casing details, brighter task lamps.
+- Two approximately 50-degree, 1-metre-wide inclined steel stair routes with separate landings, step noses, stringers, dual rails and underside shielding.
+- Full first-person slope traversal: **walk between decks without pressing X or teleporting**; collision uses continuous foot height and stair-opening exclusions.
+- Shipboard-looking neutral/insulated piping with coloured service bands rather than saturated pipe bodies, bolted bedplates and gauge details.
+- Repositioned selected equipment to keep the main stair and the aft escape stair approaches unobstructed.
+- PSP GU mesh submitted in safe batches to handle a denser visual scene; 480x272 low-poly material language remains.
+- New world/navigation tests cover repeated stair rise, angle, collision, real player movement and preserved ECR/LO interactions.
+- Design references, caveats and acceptance checks: `docs/v0.5-marine-materials-and-stair-geometry.md`.
 
-- Better low-poly engine cylinder heads, turbocharger, gensets and auxiliary equipment.
-- Texture/label atlas for deck numbers, emergency paths and machinery nameplates.
-- Proper inclined staircase or ladder motion with a readable climbing animation.
-- Separate tooltips/console inspection views where 480x272 needs additional clarity.
-- Performance profiling and platform/visibility culling on actual PSP/PPSSPP hardware.
+**Review gate:** verify Windows PPSSPP visual lighting, green deck readability, horizontal and vertical traversability, frame rate and both missions before any merge.
 
-## v0.5 — operational machinery expansion
+## v0.6 — operational machinery expansion
 
-- Diesel-generator start/stop, electrical load-sharing and ECR mimic page.
-- Cooling-water pumps, seawater and freshwater loops, heat exchanger and alarms.
-- LO instrumentation mapped to physical pump/strainer locations.
+- Generator start/stop, electrical load-sharing and ECR mimic page.
+- Cooling-water pumps, seawater/freshwater loops, heat exchanger and alarms.
+- LO instrumentation and pipe-name labels mapped to physical pump/strainer positions.
 
-## v0.6 — engine operations
+## v0.7 — main-engine operations
 
 - Compressed air system, compressors, receiver banks and start permissives.
 - Main engine readiness states and representative startup sequence.
 - Alarm logic, troubleshooting and mission scoring.
 
-## v0.7+ — training and polish
+## v0.8+ — training and polish
 
 - Expanded spatial detail, equipment animations, maintenance platforms and new mission routes.
 - Scenario selection, assessments, save/load, integrated help and maintenance tasks.
