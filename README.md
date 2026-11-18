@@ -1,59 +1,61 @@
-# ENGINE WATCH — Marine Engine Room Simulator
+# ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
-**Version 0.2 prototype** — An offline, native PSP / PPSSPP hybrid marine engine-room simulator. Walk between a control room (ECR) and machinery platform, operate local machinery, monitor hydraulic behavior, and practice elementary fault diagnosis.
+**v0.3 prototype: real-time, first-person 3D.** The v0.2 schematic/top-down renderer has been replaced by 3D geometry and a walkable engine room. Existing C++ LO system simulation and missions remain intact.
 
-## What's playable
+## 3D environment
 
-| Scenario | Actions | Result |
-|---|---|---|
-| **Mission 001 — Start and verify LO pump** | Enter engine room, operate main LO pump from local panel, return to ECR, **explicitly verify** stabilized LO header pressure. | First mission passes; **X** in the ECR console begins Mission 002. |
-| **Mission 002 — Suction strainer restriction** | Observe deteriorating pressure/strainer DP, inspect local strainer, open standby valves, start standby pump, stop and isolate main, verify at ECR. | Second mission passes only after diagnosis, pressure recovery and safe isolation. |
+- Connected engine control room (ECR) and machinery deck, with a passable doorway and solid collision geometry.
+- Low-polygon six-cylinder main diesel engine, two diesel-generator sets, LO pump assemblies, main suction strainer, ECR console, deck grating, piping, handrails and overhead beams.
+- Real perspective/depth-tested rendering through **PSP GU/GUM**; same procedural mesh, camera and interaction state are used in the optional desktop OpenGL preview.
+- Face nearby equipment and press X to use the LO pump station, inspect the strainer or open the ECR console.
 
-Mission 002 has main/standby LO pumps, four shutoff valves, strainer differential pressure, suction pressure, common LO header pressure, simplified oil temperature, delayed low-pressure alarm, and alarm acknowledgment. Parameters respond continuously to player actions. The model runs independently of the PSP UI and has headless C++ automated tests.
+This is a **3D blockout**, not a photorealistic environment. Main engine and generator models are currently visual only. Textures, animation, additional operating systems and collision refinement are future work.
 
-**All engineering values are illustrative for gameplay and are NOT operating instructions.** Real vessel machinery operation must follow the ship's approved procedures and manufacturer documentation.
+## Playable missions
 
-## PPSSPP / Android installation
+**001 — Start and verify LO pump:** walk to the local station, start the main LO pump, allow pressure to stabilize and verify it back at the ECR.
 
-1. Extract a release ZIP into PPSSPP's configured **Memory Stick root** (configured in PPSSPP > Settings > System, depending on platform).
-2. Check the full path *inside that memory stick folder*: `PSP/GAME/ENGINEWATCH/EBOOT.PBP`.
-3. In PPSSPP, open **Homebrew & Demos**, select **ENGINE WATCH**, and perform a fresh launch (not an old emulator save state).
-4. If the screen is blank, switch PPSSPP graphics backend from Vulkan to OpenGL, turn off **Skip buffer effects**/speedhacks, and restart. A temporary on-device diagnostic screen is displayed if SDL startup fails.
+**002 — Strainer restriction:** inspect high suction strainer DP, open standby valves, start standby pump, stop/isolate main pump, and verify alarm/pressure recovery at the ECR.
 
-Game uses native 480×272 rendering; the font atlas is power-of-two sized for PSP graphics compatibility. The original black-screen issue was resolved and visibly tested in PPSSPP Linux. Android gameplay success was also confirmed by the user for v0.1.1. **New v0.2 gameplay still needs hands-on validation.**
+These are illustrative gameplay models. **Never use the values or steps as actual vessel operating instructions.**
 
 ## Controls
 
-| PSP control | Game action |
+| PSP input | Action |
 |---|---|
-| D-pad / analog stick | Move player; D-pad Up/Down selects a row while local pump panel is open |
-| X (Cross) | Interact, operate selection, acknowledge alarm, verify mission, advance |
-| O (Circle) | Close panel |
-| Triangle | Open/close help |
-| Start | Pause/resume (then X to reset the simulation) |
+| Analog stick | Walk forward/back and strafe |
+| D-pad Left/Right or L/R | Turn camera |
+| D-pad Up/Down | Walk, or navigate menu rows when a panel is open |
+| Cross (X) | Interact / operate |
+| Circle (O) | Close panel |
+| Triangle | Help |
+| Start | Pause / resume (Cross while paused resets) |
 
-Desktop build uses arrows/WASD, X/E/Space/Enter for action, C/Esc/Backspace for back, H/T/F1 for help, P/Tab for pause, and R for reset while paused.
+Desktop preview: WASD movement, Left/Right or Q turning, X/E/Space interaction, C/Esc back, H/F1 help, P/Tab pause, and Up/Down menu navigation. Game controllers are also supported.
 
-## Build (native PSP)
+## PSP build and installation
 
-Use the maintained [PSPDEV toolchain](https://pspdev.github.io/), with SDL2 and CMake.
+Use the maintained [PSPDEV SDK](https://pspdev.github.io/).
 
 ```bash
 psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 cmake --build build/psp -j2
 ```
 
-The output is `build/psp/EBOOT.PBP`. Put it in the PPSSPP memory stick folder described above.
+Copy `build/psp/EBOOT.PBP` into the PPSSPP/PSP memory stick directory `PSP/GAME/ENGINEWATCH/EBOOT.PBP`. A successful GitHub Actions PSP job also publishes an `engine-watch-psp-v0.3-native-3d` artifact.
 
-## Build and test (desktop)
+## Desktop 3D preview / tests
+
+Install SDL2 and OpenGL development headers.
 
 ```bash
 cmake -S . -B build/desktop -DENGINEWATCH_BUILD_GAME=ON
 cmake --build build/desktop -j2
 ctest --test-dir build/desktop --output-on-failure
+./build/desktop/engine_watch
 ```
 
-If SDL2 development headers are not available, test the headless machinery simulation:
+Without graphics dependencies, run headless simulation and world tests:
 
 ```bash
 cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
@@ -61,13 +63,13 @@ cmake --build build/tests -j2
 ctest --test-dir build/tests --output-on-failure
 ```
 
-## Code layout
+## Source layout
 
-- `src/core/EngineSimulation.{hpp,cpp}` — platform-independent system, pumps, valves, pressure, alarm and missions.
-- `src/ui/GameApp.{hpp,cpp}` — PSP/desktop controls, connected scenes, machinery panels, and HUD.
-- `src/ui/BitmapFont.{hpp,cpp}` — no external font resources.
-- `tests/EngineSimulationTests.cpp` — six headless test suites covering mission flow, faults, valves, alarms and restoration.
-- `docs/mission-001.md`, `docs/mission-002.md` — mission briefs.
-- `.github/workflows/build.yml` — GitHub Actions PSP cross-build, simulation tests and optional PPSSPP boot screenshot.
+- `src/core`: v0.2 pump, valve, pressure, strainer, alarm and mission simulation.
+- `src/scene`: geometry, obstacle collision, stations, first-person controls, HUD and font.
+- `src/psp`: dedicated native GU/GUM 3D renderer and PSP controller entrypoint.
+- `src/desktop`: matching desktop OpenGL preview with SDL2 input.
+- `src/ui`: retained v0.2 2D code, **not part of the v0.3 build**.
+- `tests`: headless simulation and 3D navigation/collision checks.
 
-**Workflow:** new features are developed on separate branches and submitted to draft PRs. Do not merge into `develop` or `main` without explicit approval.
+**Branch workflow:** no merge to `develop` or `main` without approval. Review the isolated changes against `feature/psp-v0.2`.
