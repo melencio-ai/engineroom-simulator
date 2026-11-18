@@ -5,7 +5,7 @@
 #include <pspctrl.h>
 #include <pspkernel.h>
 
-PSP_MODULE_INFO("Engine Watch 3D", 0, 0, 3);
+PSP_MODULE_INFO("Engine Watch 3D", 0, 0, 4);
 PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_USER);
 
 namespace {
