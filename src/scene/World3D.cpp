@@ -16,22 +16,28 @@ uint32_t shade(uint32_t c, float amount) {
     const unsigned b = static_cast<unsigned>(((c >> 16) & 255u) * amount);
     return rgb(std::min(r, 255u), std::min(g, 255u), std::min(b, 255u));
 }
-const uint32_t steel = rgb(64, 92, 108);
-const uint32_t deck = rgb(31, 53, 63);
-const uint32_t wall = rgb(44, 65, 77);
-const uint32_t machinery = rgb(63, 91, 109);
-const uint32_t engineBlue = rgb(47, 86, 119);
-const uint32_t yellow = rgb(229, 179, 72);
-const uint32_t red = rgb(160, 67, 54);
-const uint32_t pipe = rgb(78, 143, 155);
-const uint32_t bright = rgb(135, 158, 163);
-const uint32_t green = rgb(67, 166, 126);
-const uint32_t dark = rgb(26, 43, 51);
+// Composite merchant-ship coating palette: painted marine green tread plate,
+// warm off-white bulkheads, grey-green structure and insulated pipework.
+const uint32_t steel = rgb(135, 151, 144);
+const uint32_t deck = rgb(40, 93, 67);       // green marine epoxy
+const uint32_t wall = rgb(213, 220, 211);     // off-white protected steel
+const uint32_t machinery = rgb(112, 129, 132);
+const uint32_t engineBlue = rgb(69, 105, 116);
+const uint32_t yellow = rgb(229, 180, 63);
+const uint32_t red = rgb(161, 67, 54);
+const uint32_t pipe = rgb(153, 162, 158);      // painted/metallic, with ID bands
+const uint32_t bright = rgb(184, 202, 193);
+const uint32_t green = rgb(87, 174, 110);
+const uint32_t grating = rgb(65, 113, 82);
+const uint32_t handrail = rgb(222, 226, 209);
+const uint32_t dark = rgb(48, 67, 64);
 }
 
 World3D::World3D() {
-    ladders_[0]=Ladder3D{-0.75f,3.70f,-0.75f,5.00f,false};
-    ladders_[1]=Ladder3D{12.20f,-5.00f,13.50f,-5.00f,true};
+    // ~50 degree steel stair-ladders, 3.2 m rise between adjacent platforms.
+    // The flight repeats by deck with clear bypass walkways around each well.
+    stairs_[0]=Stair3D{-1.82f,5.00f,0.86f,5.00f,1.00f,false};
+    stairs_[1]=Stair3D{13.50f,-4.54f,13.50f,-1.88f,1.00f,true};
     build();
 }
 
