@@ -23,6 +23,8 @@ jobs:
           test "$(find dist/marine-objects -name '*.obj' | wc -l)" -eq 33
           test "$(find dist/marine-objects -name '*.mtl' | wc -l)" -eq 33
           cp docs/marine-asset-catalog.md dist/marine-objects/README.md
+          cp assets/marine_parts/catalog.json dist/marine-objects/catalog.json
+          python3 -c 'import json,os; p="dist/marine-objects/"; d=json.load(open(p+"catalog.json")); assert len(d["parts"])==33; assert len(d["finishes"])==16; assert all(os.path.isfile(p+x["obj_file"]) and os.path.isfile(p+x["mtl_file"]) for x in d["parts"]); print("33 OBJ+MTL models and 16 finishes verified")'
       - uses: actions/upload-artifact@v4
         with:
           name: engine-watch-reusable-3d-objects-v0.6
