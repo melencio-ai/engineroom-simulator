@@ -29,7 +29,11 @@ const uint32_t green = rgb(67, 166, 126);
 const uint32_t dark = rgb(26, 43, 51);
 }
 
-World3D::World3D() { build(); }
+World3D::World3D() {
+    ladders_[0]=Ladder3D{-0.75f,3.70f,-0.75f,5.00f,false};
+    ladders_[1]=Ladder3D{12.20f,-5.00f,13.50f,-5.00f,true};
+    build();
+}
 
 void World3D::triangle(const Vec3& a, const Vec3& b, const Vec3& c, uint32_t color) {
     vertices_.push_back(Vertex3D{color, a.x, a.y, a.z});
@@ -81,157 +85,322 @@ void World3D::pipeZ(float z0,float z1,float x,float y,float r,uint32_t c) {
         quad(p,q,v,u,shade(c,0.75f+0.30f*std::max(0.0f,std::sin(a))));
     }
 }
-void World3D::obstacle(float x0,float x1,float z0,float z1) {
-    obstacles_.push_back(Footprint{x0,x1,z0,z1});
+
+void World3D::obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask) {
+    obstacles_.push_back(Footprint{x0,x1,z0,z1,deck_mask});
+}
+
+float World3D::floorHeight(int deck_id) {
+    const int clamped=std::max(0,std::min(DeckCount-1,deck_id));
+    return 3.2f*static_cast<float>(clamped);
+}
+const char* World3D::deckName(int deck_id) {
+    static const char* names[DeckCount]={
+        "00 TANK TOP","01 PUMP FLAT","02 MAIN ENGINE","03 AUXILIARIES","04 ECR / UPPER"
+    };
+    return names[std::max(0,std::min(DeckCount-1,deck_id))];
+}
+int World3D::cameraDeck(float eye_height) {
+    const int d=static_cast<int>(std::floor((eye_height-1.65f)/3.2f+0.5f));
+    return std::max(0,std::min(DeckCount-1,d));
+}
+
+void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
+    if(x1<=x0 || z1<=z0) return;
+    box((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
+        (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
+}
+void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
+    if(x1<=x0) return;
+    cylinderX(x0,x1,height+1.02f,z,0.038f,6,color);
+    cylinderX(x0,x1,height+0.53f,z,0.030f,6,color);
+    for(float x=x0;x<=x1+0.01f;x+=2.10f)
+        box(x,height+0.55f,z,0.04f,0.55f,0.04f,color);
+    box(x1,height+0.55f,z,0.04f,0.55f,0.04f,color);
+}
+void World3D::ladderGeometry(const Ladder3D& l) {
+    const uint32_t c=l.alternate_escape ? rgb(237,191,84) : yellow;
+    const float x=l.shaft_x,z=l.shaft_z;
+    for(int d=0;d<DeckCount-1;++d) {
+        const float y0=floorHeight(d),y1=floorHeight(d+1);
+        cylinderY(x-0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
+        cylinderY(x+0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
+        for(float y=y0+0.28f;y<y1+0.10f;y+=0.29f)
+            box(x,y,z,0.34f,0.027f,0.055f,shade(c,1.12f));
+        // Open back supports and guard-post outlines: visible but not an opaque elevator box.
+        for(int side=-1;side<=1;side+=2) {
+            box(x+side*0.65f,(y0+y1)*0.5f,z+0.49f,
+                0.035f,1.58f,0.035f,steel);
+            box(x+side*0.65f,(y0+y1)*0.5f,z-0.49f,
+                0.035f,1.58f,0.035f,steel);
+        }
+    }
+    // Five floor landings: hazard stripe, small safety lamp, ladder head marker.
+    for(int d=0;d<DeckCount;++d) {
+        const float y=floorHeight(d);
+        box(l.landing_x,y+0.02f,l.landing_z,0.40f,0.025f,0.12f,c);
+        box(l.landing_x,y+1.73f,l.landing_z,0.28f,0.16f,0.085f,d==EcrDeck?green:c);
+        box(x,y+1.06f,z+0.72f,0.69f,0.034f,0.034f,c);
+    }
 }
 
 void World3D::build() {
-    vertices_.reserve(18000);
-    // ECR and engine room are connected by a real doorway, not a scene switch.
-    box(-6.5f,-0.15f,0.0f,3.5f,0.15f,4.2f,deck);
-    box( 6.2f,-0.15f,0.0f,9.3f,0.15f,7.0f,deck);
-    box(-6.5f,4.60f,0.0f,3.5f,0.15f,4.2f,dark);
-    box( 6.2f,4.80f,0.0f,9.3f,0.20f,7.0f,dark);
-    box(-10.0f,2.3f,0.0f,0.16f,2.3f,4.2f,wall);
-    box(-6.5f,2.3f,-4.2f,3.5f,2.3f,0.16f,wall);
-    box(-6.5f,2.3f, 4.2f,3.5f,2.3f,0.16f,wall);
-    box(-3.0f,2.3f,-2.75f,0.20f,2.3f,1.45f,wall);
-    box(-3.0f,2.3f, 2.75f,0.20f,2.3f,1.45f,wall);
-    box(-3.0f,4.10f,0.0f,0.20f,0.50f,1.28f,yellow);
-    box(15.5f,2.4f,0.0f,0.20f,2.4f,7.0f,wall);
-    box( 6.2f,2.4f,-7.0f,9.3f,2.4f,0.18f,wall);
-    box( 6.2f,2.4f, 7.0f,9.3f,2.4f,0.18f,wall);
-    // A small amount of repeated grating and hazard marking gives depth cues.
-    for (int i=-2;i<=15;++i) {
-        box(static_cast<float>(i)+0.10f,0.018f,0.0f,0.026f,0.018f,6.80f,shade(bright,0.39f));
+    vertices_.reserve(48000);
+    const unsigned all=(1u<<DeckCount)-1u;
+    // No sealed stacked rooms: the central main-engine well is open through
+    // four partial working flats. Below is a continuous tank top with engine seating.
+    deckSlab(-2.85f,15.30f,-6.65f,6.65f,0.0f,deck);
+    for(int d=1;d<DeckCount;++d) {
+        const float y=floorHeight(d);
+        const uint32_t floor_col=(d%2==0)?shade(deck,1.08f):deck;
+        // Forward crosswalk with port-side ladder cut-out (X=-1.5..0, Z=4.12..5.83).
+        deckSlab(-2.85f,-1.52f,-6.65f,6.65f,y,floor_col);
+        deckSlab(-1.52f,-0.05f,-6.65f,4.12f,y,floor_col);
+        deckSlab(-1.52f,-0.05f,5.83f,6.65f,y,floor_col);
+        deckSlab(-0.05f,3.10f,-6.65f,6.65f,y,floor_col);
+        // Two long catwalks. The omitted center is a vertical machinery well.
+        deckSlab(3.10f,12.20f,-6.65f,-2.38f,y,floor_col);
+        deckSlab(3.10f,12.20f,2.38f,6.65f,y,floor_col);
+        // Aft crosswalk with separate escape-ladder cut-out (X=12.76..14.23).
+        deckSlab(12.20f,12.76f,-6.65f,6.65f,y,floor_col);
+        deckSlab(12.76f,14.23f,-6.65f,-5.87f,y,floor_col);
+        deckSlab(12.76f,14.23f,-4.15f,6.65f,y,floor_col);
+        deckSlab(14.23f,15.30f,-6.65f,6.65f,y,floor_col);
+
+        // Readable deck grating and alternating stripe rhythm, without textures.
+        for(float x=3.40f;x<12.06f;x+=1.10f) {
+            for(int side=-1;side<=1;side+=2)
+                box(x,y+0.019f,side*4.53f,0.026f,0.016f,2.05f,shade(bright,0.51f));
+        }
+        for(int side=-1;side<=1;side+=2) {
+            for(float z=2.86f;z<6.56f;z+=1.07f)
+                box(7.66f,y+0.021f,side*z,4.41f,0.017f,0.020f,shade(bright,0.49f));
+            railing(3.16f,12.14f,side*2.38f,y,yellow);
+        }
+        // Real floor level identification: five distinct bands of structural lighting.
+        box(-2.65f,y+2.27f,-6.44f,0.07f,0.08f,0.31f,
+            d==PumpFlatDeck?green:d==MainEngineDeck?yellow:d==AuxiliaryDeck?red:pipe);
+        box(-2.65f,y+2.27f,6.44f,0.07f,0.08f,0.31f,bright);
     }
-    for (int i=-6;i<=6;++i) {
-        box(6.1f,0.016f,static_cast<float>(i),9.10f,0.016f,0.020f,shade(bright,0.43f));
+
+    // Upper ECR lives outside the engine well, overlooking the main engine.
+    const float top=floorHeight(EcrDeck);
+    deckSlab(-9.80f,-3.35f,-3.94f,3.94f,top,shade(deck,1.15f));
+    deckSlab(-3.35f,-2.85f,-1.18f,1.18f,top,shade(deck,1.15f));
+    box(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,dark);
+    box(-10.02f,top+1.98f,0.0f,0.16f,2.02f,4.06f,wall);
+    box(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f,wall);
+    box(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f,wall);
+    // ECR-front bulkhead with two clear look-through windows and central door.
+    for(int side=-1;side<=1;side+=2) {
+        const float z=side*2.65f;
+        box(-3.38f,top+0.30f,z,0.12f,0.30f,1.34f,wall);
+        box(-3.38f,top+3.62f,z,0.12f,0.38f,1.34f,wall);
+        box(-3.38f,top+2.05f,side*1.32f,0.12f,1.76f,0.08f,steel);
+        box(-3.38f,top+2.05f,side*3.98f,0.12f,1.76f,0.08f,steel);
+        box(-3.35f,top+2.55f,z,0.07f,0.065f,1.28f,bright);
     }
-    for (int i=0;i<5;++i) {
-        box(-9.4f+i*1.25f,0.02f,3.4f,0.32f,0.022f,0.09f,yellow);
-    }
-    // ECR: wall-mounted LO monitoring desk, gauges and illuminated mimic boards.
-    box(-9.34f,1.12f,0.0f,0.44f,0.66f,2.22f,steel);
-    box(-9.03f,1.78f,0.0f,0.17f,0.76f,2.12f,dark);
+    box(-3.38f,top+3.60f,0.0f,0.15f,0.40f,1.20f,wall);
+    box(-3.36f,top+1.10f,-1.22f,0.07f,1.10f,0.075f,yellow);
+    box(-3.36f,top+1.10f,1.22f,0.07f,1.10f,0.075f,yellow);
+    // ECR control wall behind player on spawn; turned-to using proximity.
+    box(-9.41f,top+0.94f,0.0f,0.34f,0.92f,2.30f,steel);
+    box(-9.12f,top+2.12f,0.0f,0.13f,0.72f,2.25f,dark);
     for(int i=0;i<5;++i) {
-        box(-8.83f,1.94f,-1.57f+i*0.78f,0.025f,0.26f,0.28f,engineBlue);
-        box(-8.79f,2.01f,-1.57f+i*0.78f,0.015f,0.045f,0.16f,
-            (i<2 ? green : yellow));
+        const float z=-1.68f+0.84f*i;
+        box(-8.95f,top+2.23f,z,0.03f,0.30f,0.32f,engineBlue);
+        box(-8.91f,top+2.36f,z,0.018f,0.065f,0.15f,i<2?green:yellow);
     }
-    box(-8.83f,1.20f,0.0f,0.05f,0.10f,1.72f,bright);
-    box(-9.10f,0.60f,0.0f,0.35f,0.56f,1.95f,dark);
-    // ECR ceiling light panels.
-    for(int i=0;i<3;++i) box(-8.5f+i*1.6f,4.39f,0.0f,0.57f,0.027f,0.36f,rgb(172,198,189));
+    for(int i=0;i<3;++i)
+        box(-8.25f+1.70f*i,top+3.85f,0.0f,0.56f,0.034f,0.34f,rgb(171,195,188));
+    obstacle(-9.75f,-8.70f,-2.35f,2.35f,1u<<EcrDeck);
 
-    // Main engine: heavy bedplate, crankcase, six distinct cylinder modules.
-    box(7.55f,0.46f,0.0f,4.04f,0.46f,1.76f,dark);
-    box(7.40f,1.48f,0.0f,3.35f,0.62f,1.42f,engineBlue);
-    box(7.40f,2.24f,0.0f,3.24f,0.19f,1.12f,steel);
-    for(int i=0;i<6;++i) {
-        const float x=4.62f+i*1.12f;
-        box(x,2.65f,0.0f,0.46f,0.48f,1.04f,machinery);
-        box(x,3.25f,0.0f,0.49f,0.16f,0.94f,bright);
-        box(x,1.35f,-1.51f,0.30f,0.24f,0.08f,steel);
-        cylinderY(x,3.41f,3.81f,0.0f,0.21f,10,red);
+    // Hull, stern bulkhead, forward machinery boundary, roof beams and framing.
+    box(6.24f,8.48f,-6.91f,9.28f,8.53f,0.16f,wall);
+    box(6.24f,8.48f, 6.91f,9.28f,8.53f,0.16f,wall);
+    box(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f,wall);
+    box(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f,wall);
+    box(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,dark);
+    for(float x=-2.0f;x<15.0f;x+=3.0f) {
+        box(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
+        for(int side=-1;side<=1;side+=2)
+            box(x,8.40f,side*6.66f,0.16f,8.45f,0.12f,steel);
     }
-    cylinderX(11.10f,11.65f,1.48f,0.0f,1.12f,16,steel);
-    cylinderX(11.66f,11.83f,1.48f,0.0f,0.30f,12,yellow);
-    // Exhaust manifold, scavenge receiver and LO piping.
-    cylinderX(4.25f,10.70f,3.92f,-0.76f,0.17f,12,red);
-    cylinderX(4.10f,10.80f,1.04f,1.65f,0.10f,10,pipe);
-    for(int i=0;i<6;++i) {
-        const float x=4.62f+i*1.12f;
-        box(x,3.71f,-0.43f,0.12f,0.16f,0.41f,red);
+    for(int i=0;i<5;++i) {
+        const float y=floorHeight(i);
+        for(int side=-1;side<=1;side+=2) {
+            box(6.0f,y+2.94f,side*6.34f,8.85f,0.13f,0.12f,steel);
+            box(3.0f+i*2.15f,y+2.80f,side*6.38f,0.52f,0.030f,0.10f,bright);
+        }
     }
-    obstacle(3.20f,11.88f,-1.90f,1.90f);
 
-    // Two separate diesel-generator sets along the fore-and-aft walkway.
+    // One slow-speed six-cylinder main engine from foundation to top platform.
+    box(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
+    box(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
+    box(7.60f,5.72f,0.0f,3.63f,1.35f,1.49f,shade(engineBlue,1.06f));
+    box(7.60f,8.43f,0.0f,3.55f,1.42f,1.45f,machinery);
+    box(7.60f,10.82f,0.0f,3.53f,0.75f,1.35f,steel);
+    for(int i=0;i<6;++i) {
+        const float x=4.70f+i*1.14f;
+        box(x,11.76f,0.0f,0.48f,0.48f,1.14f,engineBlue);
+        box(x,12.27f,0.0f,0.51f,0.13f,1.13f,bright);
+        cylinderY(x,12.41f,13.25f,0.0f,0.24f,10,red);
+        box(x,4.61f,-1.62f,0.35f,0.20f,0.10f,steel);
+        box(x,7.35f,-1.58f,0.33f,0.25f,0.09f,bright);
+        box(x,9.20f,1.59f,0.32f,0.29f,0.10f,pipe);
+    }
+    // Exhaust and cooling manifolds, flywheel and upper turbocharger.
+    cylinderX(4.25f,11.62f,13.62f,-0.87f,0.23f,12,red);
+    cylinderX(4.16f,11.60f,8.15f,1.66f,0.13f,10,pipe);
+    cylinderX(4.03f,11.92f,2.03f,1.75f,0.13f,10,pipe);
+    cylinderX(11.73f,12.15f,2.28f,0.0f,1.22f,16,steel);
+    cylinderX(12.16f,12.29f,2.28f,0.0f,0.31f,12,yellow);
+    cylinderX(11.16f,12.35f,11.42f,-0.45f,0.76f,14,steel);
+    cylinderX(12.36f,12.71f,11.42f,-0.45f,0.30f,12,red);
+    for(int i=0;i<6;++i) {
+        const float x=4.70f+1.14f*i;
+        box(x,13.36f,-0.52f,0.085f,0.22f,0.42f,red);
+    }
+    obstacle(3.42f,12.35f,-2.12f,2.12f,all);
+
+    // L3 auxiliary machinery: two generators, compressor bank, purifier/ workshop.
+    const float ay=floorHeight(AuxiliaryDeck);
     for(int side=-1;side<=1;side+=2) {
-        const float z=side*4.82f;
-        box(6.00f,0.31f,z,3.12f,0.31f,1.10f,dark);
-        box(4.50f,1.18f,z,1.26f,0.65f,0.83f,engineBlue);
-        for(int i=0;i<4;++i) box(3.75f+i*0.48f,1.88f,z,0.18f,0.18f,0.70f,machinery);
-        cylinderX(5.89f,8.18f,1.23f,z,0.84f,14,steel);
-        cylinderX(8.19f,8.42f,1.23f,z,0.43f,12,yellow);
-        cylinderX(3.60f,5.90f,2.48f,z+side*0.52f,0.11f,10,red);
-        box(4.52f,1.27f,z-side*0.98f,0.21f,0.38f,0.09f,green);
-        obstacle(2.90f,8.85f,z-1.20f,z+1.20f);
+        const float z=side*4.42f;
+        box(1.52f,ay+0.20f,z,1.23f,0.20f,0.94f,dark);
+        box(0.82f,ay+0.94f,z,0.76f,0.61f,0.67f,engineBlue);
+        for(int i=0;i<3;++i)
+            box(0.35f+i*0.44f,ay+1.60f,z,0.15f,0.14f,0.58f,machinery);
+        cylinderX(1.36f,2.52f,ay+1.06f,z,0.62f,12,steel);
+        cylinderX(2.53f,2.68f,ay+1.06f,z,0.32f,10,yellow);
+        cylinderX(0.35f,1.10f,ay+2.08f,z+0.40f*side,0.10f,8,red);
+        box(0.42f,ay+1.29f,z-side*1.03f,0.14f,0.31f,0.10f,green);
+        obstacle(0.10f,2.90f,z-1.03f,z+1.03f,1u<<AuxiliaryDeck);
+    }
+    for(int i=0;i<3;++i)
+        cylinderY(10.50f+i*0.68f,ay+0.20f,ay+1.95f,-4.86f,0.28f,10,steel);
+    box(10.65f,ay+0.48f,-5.75f,1.12f,0.47f,0.39f,dark);
+    obstacle(10.20f,12.12f,-5.25f,-4.40f,1u<<AuxiliaryDeck);
+    box(13.94f,ay+0.91f,4.70f,0.39f,0.91f,1.25f,machinery);
+
+    // L2 engine side service boards and cylinder maintenance walkways.
+    const float my=floorHeight(MainEngineDeck);
+    for(int side=-1;side<=1;side+=2) {
+        for(int i=0;i<3;++i) {
+            const float x=4.73f+i*2.48f,z=side*3.08f;
+            box(x,my+1.30f,z,0.35f,0.58f,0.15f,steel);
+            box(x,my+1.50f,z-side*0.17f,0.16f,0.08f,0.07f,green);
+        }
     }
 
-    // Main and standby LO pumps with nearby valve wheels and manifold.
+    // L1 pump flat: maintain the existing LO mission interaction points.
+    const float py=floorHeight(PumpFlatDeck);
     for(int i=0;i<2;++i) {
-        const float z=i==0 ? -3.70f : 3.65f;
-        box(0.60f,0.25f,z,0.87f,0.25f,0.70f,dark);
-        cylinderX(-0.02f,0.88f,0.93f,z,0.45f,12,pipe);
-        box(0.82f,0.93f,z,0.56f,0.49f,0.42f,machinery);
-        box(0.83f,1.47f,z,0.45f,0.055f,0.33f,yellow);
-        cylinderY(1.25f,1.03f,1.20f,z,0.23f,10,red);
-        cylinderX(-0.45f,1.27f,1.20f,z+0.55f,0.10f,10,pipe);
-        obstacle(-0.40f,1.58f,z-0.80f,z+0.80f);
+        const float z=i==0?-4.38f:4.38f;
+        box(0.55f,py+0.21f,z,0.87f,0.21f,0.68f,dark);
+        cylinderX(-0.12f,0.92f,py+0.91f,z,0.45f,12,pipe);
+        box(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
+        box(0.90f,py+1.39f,z,0.43f,0.055f,0.31f,yellow);
+        cylinderY(1.25f,py+0.96f,py+1.17f,z,0.22f,10,red);
+        cylinderX(-0.40f,1.30f,py+1.20f,z+0.56f,0.09f,10,pipe);
+        obstacle(-0.45f,1.58f,z-0.78f,z+0.78f,1u<<PumpFlatDeck);
     }
-    // Local controls and strainer are separately inspectable.
-    box(1.86f,1.20f,-2.79f,0.18f,0.65f,0.56f,steel);
-    box(1.64f,1.32f,-2.78f,0.036f,0.44f,0.44f,dark);
-    box(1.58f,1.49f,-2.92f,0.025f,0.080f,0.080f,green);
-    box(1.58f,1.49f,-2.67f,0.025f,0.080f,0.080f,yellow);
-    cylinderY(1.47f,0.30f,1.54f,-5.90f,0.30f,14,steel);
-    box(1.47f,1.56f,-5.90f,0.40f,0.13f,0.40f,red);
-    cylinderX(0.43f,2.40f,0.65f,-5.90f,0.105f,10,pipe);
-    obstacle(1.05f,1.90f,-6.34f,-5.46f);
+    box(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
+    box(1.67f,py+1.32f,-2.83f,0.033f,0.42f,0.40f,dark);
+    box(1.62f,py+1.44f,-2.98f,0.024f,0.07f,0.085f,green);
+    box(1.62f,py+1.44f,-2.67f,0.024f,0.07f,0.085f,yellow);
+    obstacle(1.67f,2.14f,-3.32f,-2.30f,1u<<PumpFlatDeck);
+    cylinderY(1.68f,py+0.21f,py+1.61f,-5.87f,0.28f,12,steel);
+    box(1.68f,py+1.62f,-5.87f,0.36f,0.11f,0.36f,red);
+    cylinderX(0.56f,2.51f,py+0.63f,-5.87f,0.09f,10,pipe);
+    obstacle(1.20f,2.11f,-6.24f,-5.49f,1u<<PumpFlatDeck);
 
-    // Long overhead systems: cooling pipes, ventilation and structural rails.
-    cylinderX(-2.00f,14.00f,4.12f,-5.92f,0.16f,12,pipe);
-    cylinderX(-2.00f,14.00f,4.12f, 5.92f,0.16f,12,pipe);
-    cylinderX(-2.00f,13.70f,4.18f,-2.84f,0.11f,12,red);
-    for(int i=0;i<6;++i) {
-        const float x=-1.0f+i*2.85f;
-        pipeZ(-5.9f,-3.1f,x,4.12f,0.09f,pipe);
-        box(x,4.39f,0.0f,0.10f,0.15f,6.65f,steel);
-        box(x,3.92f,-6.20f,0.13f,0.44f,0.12f,yellow);
-        box(x,3.92f, 6.20f,0.13f,0.44f,0.12f,yellow);
-    }
-    // Protective handrails beside the main engine, with a gap at the inspection point.
+    // L0 tank top, bilge well indicators and lower shaft direction.
     for(int side=-1;side<=1;side+=2) {
-        const float z=side*2.40f;
-        cylinderX(4.20f,11.60f,1.15f,z,0.035f,8,yellow);
-        cylinderX(4.20f,11.60f,0.60f,z,0.030f,8,yellow);
-        for(int i=0;i<5;++i) cylinderY(4.3f+i*1.75f,0.04f,1.15f,z,0.045f,8,yellow);
+        for(int i=0;i<3;++i) {
+            const float x=-1.12f+1.20f*i,z=side*5.64f;
+            box(x,0.035f,z,0.43f,0.035f,0.31f,shade(dark,0.70f));
+            box(x,0.079f,z,0.31f,0.022f,0.23f,red);
+        }
     }
+    box(13.35f,1.12f,0.0f,1.18f,0.76f,1.37f,steel);
+    obstacle(12.18f,14.56f,-1.42f,1.42f,1u<<TankTopDeck);
+
+    // Long vertical pipe runs connect all floors and emphasize the open height.
+    for(int side=-1;side<=1;side+=2) {
+        const float z=side*6.15f;
+        for(int i=0;i<3;++i) {
+            const float x=4.0f+i*4.00f;
+            cylinderY(x,0.30f,16.30f,z,0.11f,8,i==0?red:i==1?pipe:steel);
+        }
+        cylinderX(-2.20f,13.80f,16.10f,side*5.95f,0.13f,8,pipe);
+    }
+    // Key structural ladder trunks (service + alternate escape) reach every deck.
+    ladderGeometry(ladders_[0]);
+    ladderGeometry(ladders_[1]);
 }
 
-bool World3D::canStand(float x, float z, float r) const {
-    if(r < 0.0f || r > 1.0f) return false;
-    if(x < -9.80f+r || x > 15.30f-r) return false;
-    const float az = std::fabs(z);
-    if(x < -3.35f) {
-        if(az > 4.00f-r) return false;
-    } else if(x <= -2.65f) {
-        if(az > 1.24f-r) return false;
-    } else if(az > 6.79f-r) return false;
+bool World3D::canStand(float x,float z,int deck_id,float radius) const {
+    if(deck_id<0 || deck_id>=DeckCount || radius<0.0f || radius>0.65f) return false;
+    if(!std::isfinite(x) || !std::isfinite(z)) return false;
+    const float az=std::fabs(z);
+    if(deck_id==EcrDeck && x< -2.70f) {
+        if(x< -9.75f+radius || az>3.93f-radius) return false;
+        // Only the centre ECR doorway connects to the machinery upper platform.
+        if(x> -3.54f-radius && az>1.12f-radius) return false;
+        if(x> -2.81f-radius && az>1.12f-radius) return false;
+    } else {
+        if(x< -2.84f+radius || az>6.64f-radius) return false;
+    }
+    if(x>15.29f-radius) return false;
+    // The engine is not a floor: retain port/starboard catwalk openings at L1-L4.
+    if(deck_id>TankTopDeck && x>3.10f-radius && x<12.20f+radius &&
+       az<2.38f+radius) return false;
+    if(deck_id>TankTopDeck) {
+        // Deck plates are cut out around both ladder shafts. Enter only when climbing.
+        if(x> -1.52f-radius && x< -0.05f+radius &&
+           z>4.12f-radius && z<5.83f+radius) return false;
+        if(x>12.76f-radius && x<14.23f+radius &&
+           z> -5.87f-radius && z< -4.15f+radius) return false;
+    }
     for(std::size_t i=0;i<obstacles_.size();++i) {
         const Footprint& b=obstacles_[i];
-        if(x > b.x0-r && x < b.x1+r && z > b.z0-r && z < b.z1+r) return false;
+        if(!(b.deck_mask & (1u<<deck_id))) continue;
+        if(x>b.x0-radius && x<b.x1+radius &&
+           z>b.z0-radius && z<b.z1+radius) return false;
     }
     return true;
 }
 
-StationId World3D::lookAtStation(const Vec3& camera, float yaw) const {
-    struct Target { StationId id; float x,z,range; };
-    const Target targets[] = {
-        {EcrConsoleStation,-9.16f,0.0f,2.70f},
-        {LoPumpStation,1.61f,-2.79f,2.30f},
-        {StrainerStation,1.47f,-5.90f,2.25f}
+StationId World3D::lookAtStation(const Vec3& camera,float yaw) const {
+    const int deck_id=cameraDeck(camera.y);
+    // A ladder landing must be approachable without fine-grained look precision.
+    int closest=-1;
+    float best_ladder=1.20f*1.20f;
+    for(int i=0;i<2;++i) {
+        const float dx=ladders_[i].landing_x-camera.x;
+        const float dz=ladders_[i].landing_z-camera.z;
+        const float dist2=dx*dx+dz*dz;
+        if(dist2<best_ladder) { best_ladder=dist2;closest=i; }
+    }
+    if(closest>=0) return closest==0?MainLadderStation:EscapeLadderStation;
+
+    struct Target { StationId id; int level; float x,z,range; };
+    const Target targets[]={
+        {EcrConsoleStation,EcrDeck,-9.18f,0.0f,2.70f},
+        {LoPumpStation,PumpFlatDeck,1.69f,-2.81f,2.35f},
+        {StrainerStation,PumpFlatDeck,1.68f,-5.87f,2.25f}
     };
     StationId best=NoStation;
-    float bestDist=1.0e6f;
+    float best_dist=1.0e6f;
     for(unsigned i=0;i<sizeof(targets)/sizeof(targets[0]);++i) {
-        const float dx=targets[i].x-camera.x, dz=targets[i].z-camera.z;
-        const float dsq=dx*dx+dz*dz;
-        if(dsq > targets[i].range*targets[i].range || dsq < 0.001f) continue;
-        const float facing=(dx*std::cos(yaw)+dz*std::sin(yaw))/std::sqrt(dsq);
-        if(facing < 0.10f) continue;
-        if(dsq < bestDist) { best=targets[i].id; bestDist=dsq; }
+        if(deck_id!=targets[i].level) continue;
+        const float dx=targets[i].x-camera.x,dz=targets[i].z-camera.z;
+        const float dist2=dx*dx+dz*dz;
+        if(dist2>targets[i].range*targets[i].range || dist2<0.001f) continue;
+        const float facing=(dx*std::cos(yaw)+dz*std::sin(yaw))/std::sqrt(dist2);
+        if(facing<0.10f) continue;
+        if(dist2<best_dist) { best=targets[i].id;best_dist=dist2; }
     }
     return best;
 }
