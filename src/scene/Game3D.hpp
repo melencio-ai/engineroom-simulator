@@ -46,7 +46,7 @@ public:
     const EngineSimulation& simulation() const { return sim_; }
 
 private:
-    enum Panel { Closed, Console, Pumps, Strainer, Help, Ladder };
+    enum Panel { Closed, Console, Pumps, Strainer, Help };
     const World3D& world_;
     EngineSimulation sim_;
     Vec3 camera_{-7.35f,14.45f,0.0f};
@@ -55,21 +55,14 @@ private:
     int deck_=EcrDeck;
     Panel panel_=Closed;
     int selected_=0;
-    int ladder_index_=-1;
     bool paused_=false;
 
-    // Smooth, camera-position-preserving vertical ladder traversal.
+    // Updated directly from physical slope collision; no teleport / ladder UI.
     bool climbing_=false;
-    int climb_target_deck_=EcrDeck;
-    float climb_elapsed_=0.0f;
-    Vec3 climb_start_{};
-    Vec3 climb_end_{};
 
     void use();
     void operate();
     void move(float dt,float forward,float strafe,float turn,float look);
-    void beginClimb(int destination);
-    void advanceClimb(float dt);
 };
 
 } // namespace enginewatch

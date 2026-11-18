@@ -16,22 +16,28 @@ uint32_t shade(uint32_t c, float amount) {
     const unsigned b = static_cast<unsigned>(((c >> 16) & 255u) * amount);
     return rgb(std::min(r, 255u), std::min(g, 255u), std::min(b, 255u));
 }
-const uint32_t steel = rgb(64, 92, 108);
-const uint32_t deck = rgb(31, 53, 63);
-const uint32_t wall = rgb(44, 65, 77);
-const uint32_t machinery = rgb(63, 91, 109);
-const uint32_t engineBlue = rgb(47, 86, 119);
-const uint32_t yellow = rgb(229, 179, 72);
-const uint32_t red = rgb(160, 67, 54);
-const uint32_t pipe = rgb(78, 143, 155);
-const uint32_t bright = rgb(135, 158, 163);
-const uint32_t green = rgb(67, 166, 126);
-const uint32_t dark = rgb(26, 43, 51);
+// Composite merchant-ship coating palette: painted marine green tread plate,
+// warm off-white bulkheads, grey-green structure and insulated pipework.
+const uint32_t steel = rgb(135, 151, 144);
+const uint32_t deck = rgb(40, 93, 67);       // green marine epoxy
+const uint32_t wall = rgb(213, 220, 211);     // off-white protected steel
+const uint32_t machinery = rgb(112, 129, 132);
+const uint32_t engineBlue = rgb(69, 105, 116);
+const uint32_t yellow = rgb(229, 180, 63);
+const uint32_t red = rgb(161, 67, 54);
+const uint32_t pipe = rgb(153, 162, 158);      // painted/metallic, with ID bands
+const uint32_t bright = rgb(184, 202, 193);
+const uint32_t green = rgb(87, 174, 110);
+const uint32_t grating = rgb(65, 113, 82);
+const uint32_t handrail = rgb(222, 226, 209);
+const uint32_t dark = rgb(48, 67, 64);
 }
 
 World3D::World3D() {
-    ladders_[0]=Ladder3D{-0.75f,3.70f,-0.75f,5.00f,false};
-    ladders_[1]=Ladder3D{12.20f,-5.00f,13.50f,-5.00f,true};
+    // ~50 degree steel stair-ladders, 3.2 m rise between adjacent platforms.
+    // The flight repeats by deck with clear bypass walkways around each well.
+    stairs_[0]=Stair3D{-1.82f,5.00f,0.86f,5.00f,1.00f,false};
+    stairs_[1]=Stair3D{13.50f,-4.54f,13.50f,-1.88f,1.00f,true};
     build();
 }
 
@@ -105,47 +111,146 @@ int World3D::cameraDeck(float eye_height) {
     return std::max(0,std::min(DeckCount-1,d));
 }
 
+
+void World3D::checkerTread(float x,float y,float z,uint32_t color) {
+    // Two diagonal raised bars, representing marine diamond/checker-pattern
+    // steel tread. These cast a vertex-colour highlight without textures.
+    for(int sign=-1;sign<=1;sign+=2) {
+        const float cx=x+sign*0.105f,cz=z+sign*0.085f;
+        quad(Vec3{cx-0.075f,y+0.014f,cz-0.052f},
+             Vec3{cx-0.052f,y+0.014f,cz-0.066f},
+             Vec3{cx+0.075f,y+0.014f,cz+0.052f},
+             Vec3{cx+0.052f,y+0.014f,cz+0.066f},color);
+    }
+}
+void World3D::plateSeams(float x0,float x1,float z0,float z1,float y) {
+    const uint32_t seam=shade(deck,0.72f);
+    for(float x=std::ceil(x0/2.0f)*2.0f;x<x1;x+=2.0f) {
+        quad(Vec3{x-0.011f,y+0.004f,z0},Vec3{x+0.011f,y+0.004f,z0},
+             Vec3{x+0.011f,y+0.004f,z1},Vec3{x-0.011f,y+0.004f,z1},seam);
+    }
+    for(float z=std::ceil(z0/2.0f)*2.0f;z<z1;z+=2.0f) {
+        quad(Vec3{x0,y+0.004f,z-0.011f},Vec3{x1,y+0.004f,z-0.011f},
+             Vec3{x1,y+0.004f,z+0.011f},Vec3{x0,y+0.004f,z+0.011f},seam);
+    }
+    for(float x=x0+0.42f;x<x1-0.22f;x+=0.74f) {
+        for(float z=z0+0.42f;z<z1-0.22f;z+=0.74f) {
+            checkerTread(x,y+0.007f,z,shade(deck,1.23f));
+        }
+    }
+}
 void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
     if(x1<=x0 || z1<=z0) return;
+    // Marine-painted steel plate with visible thickness, 2 m panel joints
+    // and small embossed tread features. No expensive full-screen texture.
     box((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
         (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
+    plateSeams(x0,x1,z0,z1,height);
 }
 void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     if(x1<=x0) return;
-    cylinderX(x0,x1,height+1.02f,z,0.038f,6,color);
-    cylinderX(x0,x1,height+0.53f,z,0.030f,6,color);
-    for(float x=x0;x<=x1+0.01f;x+=2.10f)
-        box(x,height+0.55f,z,0.04f,0.55f,0.04f,color);
-    box(x1,height+0.55f,z,0.04f,0.55f,0.04f,color);
+    cylinderX(x0,x1,height+1.06f,z,0.036f,6,color);
+    cylinderX(x0,x1,height+0.54f,z,0.030f,6,color);
+    for(float x=x0;x<=x1+0.01f;x+=1.88f)
+        box(x,height+0.55f,z,0.032f,0.55f,0.035f,color);
+    box(x1,height+0.55f,z,0.035f,0.55f,0.035f,color);
+    // Low toe board at an exposed engine-side platform edge.
+    box((x0+x1)*0.5f,height+0.10f,z,0.5f*(x1-x0),0.10f,0.027f,shade(deck,1.20f));
 }
-void World3D::ladderGeometry(const Ladder3D& l) {
-    const uint32_t c=l.alternate_escape ? rgb(237,191,84) : yellow;
-    const float x=l.shaft_x,z=l.shaft_z;
+void World3D::lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color) {
+    const float dx=b.x-a.x,dz=b.z-a.z;
+    const float horizontal=std::sqrt(dx*dx+dz*dz);
+    if(horizontal<0.01f) return;
+    const float nx=-dz/horizontal,nz=dx/horizontal,h=half_width;
+    const Vec3 a0{a.x+nx*h,a.y-h,a.z+nz*h};
+    const Vec3 a1{a.x-nx*h,a.y-h,a.z-nz*h};
+    const Vec3 a2{a.x-nx*h,a.y+h,a.z-nz*h};
+    const Vec3 a3{a.x+nx*h,a.y+h,a.z+nz*h};
+    const Vec3 b0{b.x+nx*h,b.y-h,b.z+nz*h};
+    const Vec3 b1{b.x-nx*h,b.y-h,b.z-nz*h};
+    const Vec3 b2{b.x-nx*h,b.y+h,b.z-nz*h};
+    const Vec3 b3{b.x+nx*h,b.y+h,b.z+nz*h};
+    quad(a0,b0,b1,a1,shade(color,0.70f));
+    quad(a3,a2,b2,b3,shade(color,1.22f));
+    quad(a0,a3,b3,b0,color);
+    quad(a1,b1,b2,a2,shade(color,0.92f));
+    quad(a0,a1,a2,a3,color);
+    quad(b0,b3,b2,b1,color);
+}
+void World3D::stairGeometry(const Stair3D& st) {
+    const float dx=st.top_x-st.bottom_x;
+    const float dz=st.top_z-st.bottom_z;
+    const float run=std::sqrt(dx*dx+dz*dz);
+    const float nx=-dz/run,nz=dx/run;
+    const bool along_x=std::fabs(dx)>std::fabs(dz);
+    const float width=st.width;
     for(int d=0;d<DeckCount-1;++d) {
-        const float y0=floorHeight(d),y1=floorHeight(d+1);
-        cylinderY(x-0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
-        cylinderY(x+0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
-        for(float y=y0+0.28f;y<y1+0.10f;y+=0.29f)
-            box(x,y,z,0.34f,0.027f,0.055f,shade(c,1.12f));
-        // Open back supports and guard-post outlines: visible but not an opaque elevator box.
-        for(int side=-1;side<=1;side+=2) {
-            box(x+side*0.65f,(y0+y1)*0.5f,z+0.49f,
-                0.035f,1.58f,0.035f,steel);
-            box(x+side*0.65f,(y0+y1)*0.5f,z-0.49f,
-                0.035f,1.58f,0.035f,steel);
+        const float base=floorHeight(d);
+        // A 50-degree flight with 16 individual chequered steel treads.
+        for(int j=0;j<16;++j) {
+            const float t=(j+0.5f)/16.0f;
+            const float x=st.bottom_x+dx*t,z=st.bottom_z+dz*t;
+            const float y=base+3.2f*t;
+            const float hx=along_x?run/(16.0f*2.0f)*0.93f:width*0.49f;
+            const float hz=along_x?width*0.49f:run/(16.0f*2.0f)*0.93f;
+            box(x,y-0.025f,z,hx,0.035f,hz,shade(deck,1.07f));
+            box(x,y+0.017f,z,hx*0.92f,0.012f,hz*0.92f,shade(grating,1.14f));
+            // Bright metal anti-slip nosing on the tread front edge.
+            if(along_x)
+                box(x+dx/std::fabs(dx)*hx*0.82f,y+0.036f,z,
+                    0.018f,0.014f,hz*0.91f,shade(bright,0.85f));
+            else
+                box(x,y+0.036f,z+dz/std::fabs(dz)*hz*0.82f,
+                    hx*0.91f,0.014f,0.018f,shade(bright,0.85f));
         }
+        const Vec3 basePoint{st.bottom_x,base,st.bottom_z};
+        const Vec3 topPoint{st.top_x,base+3.2f,st.top_z};
+        for(int side=-1;side<=1;side+=2) {
+            const float offset=side*(width*0.5f+0.05f);
+            const Vec3 lo{basePoint.x+nx*offset,basePoint.y,basePoint.z+nz*offset};
+            const Vec3 hi{topPoint.x+nx*offset,topPoint.y,topPoint.z+nz*offset};
+            lineBar(Vec3{lo.x,lo.y-0.17f,lo.z},
+                    Vec3{hi.x,hi.y-0.17f,hi.z},0.070f,steel);
+            // Pale-painted two-rail handrail system.
+            lineBar(Vec3{lo.x,lo.y+1.00f,lo.z},
+                    Vec3{hi.x,hi.y+1.00f,hi.z},0.029f,handrail);
+            lineBar(Vec3{lo.x,lo.y+0.52f,lo.z},
+                    Vec3{hi.x,hi.y+0.52f,hi.z},0.023f,handrail);
+            for(int j=0;j<=4;++j) {
+                const float t=j/4.0f;
+                const float x=lo.x+(hi.x-lo.x)*t,y=lo.y+3.2f*t;
+                const float z=lo.z+(hi.z-lo.z)*t;
+                box(x,y+0.55f,z,0.030f,0.55f,0.032f,handrail);
+            }
+        }
+        // Shielded underside (the upper face is intentionally stepped).
+        const Vec3 la{st.bottom_x+nx*width*0.5f,base-0.20f,
+                      st.bottom_z+nz*width*0.5f};
+        const Vec3 lb{st.bottom_x-nx*width*0.5f,base-0.20f,
+                      st.bottom_z-nz*width*0.5f};
+        const Vec3 ta{st.top_x+nx*width*0.5f,base+3.0f,
+                      st.top_z+nz*width*0.5f};
+        const Vec3 tb{st.top_x-nx*width*0.5f,base+3.0f,
+                      st.top_z-nz*width*0.5f};
+        quad(la,ta,tb,lb,shade(steel,0.70f));
     }
-    // Five floor landings: hazard stripe, small safety lamp, ladder head marker.
     for(int d=0;d<DeckCount;++d) {
         const float y=floorHeight(d);
-        box(l.landing_x,y+0.02f,l.landing_z,0.40f,0.025f,0.12f,c);
-        box(l.landing_x,y+1.73f,l.landing_z,0.28f,0.16f,0.085f,d==EcrDeck?green:c);
-        box(x,y+1.06f,z+0.72f,0.69f,0.034f,0.034f,c);
+        // Tread edge hazard markers: avoid continuously yellow floor plates.
+        for(int edge=0;edge<2;++edge) {
+            const float x=edge==0?st.top_x:st.bottom_x;
+            const float z=edge==0?st.top_z:st.bottom_z;
+            if((edge==0 && d==0) || (edge==1 && d==EcrDeck)) continue;
+            if(along_x)
+                box(x,y+0.028f,z,0.045f,0.028f,width*0.52f,yellow);
+            else
+                box(x,y+0.028f,z,width*0.52f,0.028f,0.045f,yellow);
+        }
     }
 }
 
 void World3D::build() {
-    vertices_.reserve(48000);
+    vertices_.reserve(85000);
     const unsigned all=(1u<<DeckCount)-1u;
     // No sealed stacked rooms: the central main-engine well is open through
     // four partial working flats. Below is a continuous tank top with engine seating.
@@ -153,19 +258,19 @@ void World3D::build() {
     for(int d=1;d<DeckCount;++d) {
         const float y=floorHeight(d);
         const uint32_t floor_col=(d%2==0)?shade(deck,1.08f):deck;
-        // Forward crosswalk with port-side ladder cut-out (X=-1.5..0, Z=4.12..5.83).
-        deckSlab(-2.85f,-1.52f,-6.65f,6.65f,y,floor_col);
-        deckSlab(-1.52f,-0.05f,-6.65f,4.12f,y,floor_col);
-        deckSlab(-1.52f,-0.05f,5.83f,6.65f,y,floor_col);
-        deckSlab(-0.05f,3.10f,-6.65f,6.65f,y,floor_col);
+        // Forward 50-degree service stair, recessed into an open partial deck.
+        deckSlab(-2.85f,-1.82f,-6.65f,6.65f,y,floor_col);
+        deckSlab(-1.82f,0.86f,-6.65f,4.34f,y,floor_col);
+        deckSlab(-1.82f,0.86f,5.66f,6.65f,y,floor_col);
+        deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
         // Two long catwalks. The omitted center is a vertical machinery well.
         deckSlab(3.10f,12.20f,-6.65f,-2.38f,y,floor_col);
         deckSlab(3.10f,12.20f,2.38f,6.65f,y,floor_col);
-        // Aft crosswalk with separate escape-ladder cut-out (X=12.76..14.23).
-        deckSlab(12.20f,12.76f,-6.65f,6.65f,y,floor_col);
-        deckSlab(12.76f,14.23f,-6.65f,-5.87f,y,floor_col);
-        deckSlab(12.76f,14.23f,-4.15f,6.65f,y,floor_col);
-        deckSlab(14.23f,15.30f,-6.65f,6.65f,y,floor_col);
+        // Aft escape stair runs athwartships (along Z) to preserve deck access.
+        deckSlab(12.20f,12.84f,-6.65f,6.65f,y,floor_col);
+        deckSlab(12.84f,14.16f,-6.65f,-4.54f,y,floor_col);
+        deckSlab(12.84f,14.16f,-1.88f,6.65f,y,floor_col);
+        deckSlab(14.16f,15.30f,-6.65f,6.65f,y,floor_col);
 
         // Readable deck grating and alternating stripe rhythm, without textures.
         for(float x=3.40f;x<12.06f;x+=1.10f) {
@@ -175,9 +280,15 @@ void World3D::build() {
         for(int side=-1;side<=1;side+=2) {
             for(float z=2.86f;z<6.56f;z+=1.07f)
                 box(7.66f,y+0.021f,side*z,4.41f,0.017f,0.020f,shade(bright,0.49f));
-            railing(3.16f,12.14f,side*2.38f,y,yellow);
+            railing(3.16f,12.14f,side*2.38f,y,handrail);
         }
-        // Real floor level identification: five distinct bands of structural lighting.
+        // Painted green checker plate is bordered by open side grating around
+        // machinery. Horizontal grating strips remain lighter and readable.
+        for(float x=3.45f;x<12.0f;x+=0.52f) {
+            for(int side=-1;side<=1;side+=2)
+                box(x,y+0.025f,side*2.76f,0.021f,0.020f,0.32f,shade(grating,1.05f));
+        }
+        // Structural lighting bands and bright exit-route marks.
         box(-2.65f,y+2.27f,-6.44f,0.07f,0.08f,0.31f,
             d==PumpFlatDeck?green:d==MainEngineDeck?yellow:d==AuxiliaryDeck?red:pipe);
         box(-2.65f,y+2.27f,6.44f,0.07f,0.08f,0.31f,bright);
@@ -234,6 +345,32 @@ void World3D::build() {
         }
     }
 
+    // Longitudinal stiffeners and small welded gusset details express actual
+    // ship structural continuity rather than unbroken industrial box walls.
+    for(float x=-1.35f;x<15.05f;x+=2.60f) {
+        for(int side=-1;side<=1;side+=2) {
+            const float z=side*6.73f;
+            box(x,8.15f,z,0.080f,8.22f,0.070f,shade(wall,0.82f));
+            for(int d=1;d<DeckCount;++d) {
+                const float y=floorHeight(d);
+                triangle(Vec3{x-0.36f,y+0.11f,z-side*0.02f},
+                         Vec3{x+0.36f,y+0.11f,z-side*0.02f},
+                         Vec3{x,y+0.55f,z-side*0.02f},shade(steel,0.96f));
+            }
+        }
+    }
+    // Luminaires suspended below deck beams: work areas stay visually bright.
+    for(int d=0;d<DeckCount;++d) {
+        const float y=floorHeight(d)+2.72f;
+        for(int side=-1;side<=1;side+=2) {
+            for(float x=0.5f;x<14.0f;x+=4.2f) {
+                box(x,y,side*5.74f,0.65f,0.045f,0.18f,bright);
+                box(x,y-0.05f,side*5.74f,0.56f,0.016f,0.13f,
+                    rgb(235,238,211));
+            }
+        }
+    }
+
     // One slow-speed six-cylinder main engine from foundation to top platform.
     box(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
     box(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
@@ -249,10 +386,24 @@ void World3D::build() {
         box(x,7.35f,-1.58f,0.33f,0.25f,0.09f,bright);
         box(x,9.20f,1.59f,0.32f,0.29f,0.10f,pipe);
     }
-    // Exhaust and cooling manifolds, flywheel and upper turbocharger.
-    cylinderX(4.25f,11.62f,13.62f,-0.87f,0.23f,12,red);
+    // Pipe bodies are mostly metallic or insulated; identification appears as
+    // service-colour bands (orange LO, blue freshwater, red heated exhaust).
+    // Their exact markings are illustrative, not vessel-specific ISO mapping.
+    const uint32_t loBand=rgb(209,128,62);
+    const uint32_t coolingBand=rgb(69,134,177);
+    const uint32_t exhaustBand=rgb(169,66,54);
+    cylinderX(4.25f,11.62f,13.62f,-0.87f,0.29f,10,bright);
     cylinderX(4.16f,11.60f,8.15f,1.66f,0.13f,10,pipe);
     cylinderX(4.03f,11.92f,2.03f,1.75f,0.13f,10,pipe);
+    for(int i=0;i<6;++i) {
+        const float x=4.80f+1.09f*i;
+        // Short flange collars and inspection/flow identification bands.
+        cylinderX(x,x+0.08f,13.62f,-0.87f,0.32f,10,exhaustBand);
+        cylinderX(x,x+0.07f,8.15f,1.66f,0.16f,8,coolingBand);
+        cylinderX(x,x+0.07f,2.03f,1.75f,0.16f,8,loBand);
+        for(int side=-1;side<=1;side+=2)
+            box(x,0.22f,side*1.89f,0.10f,0.14f,0.13f,steel);
+    }
     cylinderX(11.73f,12.15f,2.28f,0.0f,1.22f,16,steel);
     cylinderX(12.16f,12.29f,2.28f,0.0f,0.31f,12,yellow);
     cylinderX(11.16f,12.35f,11.42f,-0.45f,0.76f,14,steel);
@@ -265,16 +416,18 @@ void World3D::build() {
 
     // L3 auxiliary machinery: two generators, compressor bank, purifier/ workshop.
     const float ay=floorHeight(AuxiliaryDeck);
-    for(int side=-1;side<=1;side+=2) {
-        const float z=side*4.42f;
+    for(int gen=0;gen<2;++gen) {
+        // Keep the upper service stair landings clear; gensets use the
+        // opposite auxiliary-side bays rather than block the stair throat.
+        const float z=gen==0 ? -4.58f : 1.12f;
         box(1.52f,ay+0.20f,z,1.23f,0.20f,0.94f,dark);
         box(0.82f,ay+0.94f,z,0.76f,0.61f,0.67f,engineBlue);
         for(int i=0;i<3;++i)
             box(0.35f+i*0.44f,ay+1.60f,z,0.15f,0.14f,0.58f,machinery);
         cylinderX(1.36f,2.52f,ay+1.06f,z,0.62f,12,steel);
         cylinderX(2.53f,2.68f,ay+1.06f,z,0.32f,10,yellow);
-        cylinderX(0.35f,1.10f,ay+2.08f,z+0.40f*side,0.10f,8,red);
-        box(0.42f,ay+1.29f,z-side*1.03f,0.14f,0.31f,0.10f,green);
+        cylinderX(0.35f,1.10f,ay+2.08f,z+(gen==0?-0.40f:0.40f),0.10f,8,pipe);
+        box(0.42f,ay+1.29f,z+(gen==0?1.03f:-1.03f),0.14f,0.31f,0.10f,green);
         obstacle(0.10f,2.90f,z-1.03f,z+1.03f,1u<<AuxiliaryDeck);
     }
     for(int i=0;i<3;++i)
@@ -296,7 +449,7 @@ void World3D::build() {
     // L1 pump flat: maintain the existing LO mission interaction points.
     const float py=floorHeight(PumpFlatDeck);
     for(int i=0;i<2;++i) {
-        const float z=i==0?-4.38f:4.38f;
+        const float z=i==0?-4.38f:2.75f;
         box(0.55f,py+0.21f,z,0.87f,0.21f,0.68f,dark);
         cylinderX(-0.12f,0.92f,py+0.91f,z,0.45f,12,pipe);
         box(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
@@ -315,6 +468,16 @@ void World3D::build() {
     cylinderX(0.56f,2.51f,py+0.63f,-5.87f,0.09f,10,pipe);
     obstacle(1.20f,2.11f,-6.24f,-5.49f,1u<<PumpFlatDeck);
 
+    // Local pressure gauges, pump labels and bolted machinery stools.
+    for(int i=0;i<2;++i) {
+        const float z=i==0?-4.38f:2.75f;
+        cylinderY(0.32f,py+1.21f,py+1.57f,z,0.045f,8,steel);
+        cylinderX(0.20f,0.30f,py+1.62f,z,0.20f,10,wall);
+        box(0.14f,py+1.66f,z,0.024f,0.035f,0.08f,dark);
+        for(int side=-1;side<=1;side+=2)
+            box(0.10f,py+0.08f,z+side*0.56f,0.08f,0.08f,0.08f,steel);
+    }
+
     // L0 tank top, bilge well indicators and lower shaft direction.
     for(int side=-1;side<=1;side+=2) {
         for(int i=0;i<3;++i) {
@@ -323,8 +486,8 @@ void World3D::build() {
             box(x,0.079f,z,0.31f,0.022f,0.23f,red);
         }
     }
-    box(13.35f,1.12f,0.0f,1.18f,0.76f,1.37f,steel);
-    obstacle(12.18f,14.56f,-1.42f,1.42f,1u<<TankTopDeck);
+    box(13.35f,1.12f,0.0f,1.18f,0.76f,0.95f,steel);
+    obstacle(12.18f,14.56f,-0.95f,0.95f,1u<<TankTopDeck);
 
     // Long vertical pipe runs connect all floors and emphasize the open height.
     for(int side=-1;side<=1;side+=2) {
@@ -335,9 +498,10 @@ void World3D::build() {
         }
         cylinderX(-2.20f,13.80f,16.10f,side*5.95f,0.13f,8,pipe);
     }
-    // Key structural ladder trunks (service + alternate escape) reach every deck.
-    ladderGeometry(ladders_[0]);
-    ladderGeometry(ladders_[1]);
+    // Inclined, physically walkable steel stair flights with handrails and
+    // anti-slip treads, repeating between all deck levels.
+    stairGeometry(stairs_[0]);
+    stairGeometry(stairs_[1]);
 }
 
 bool World3D::canStand(float x,float z,int deck_id,float radius) const {
@@ -356,13 +520,13 @@ bool World3D::canStand(float x,float z,int deck_id,float radius) const {
     // The engine is not a floor: retain port/starboard catwalk openings at L1-L4.
     if(deck_id>TankTopDeck && x>3.10f-radius && x<12.20f+radius &&
        az<2.38f+radius) return false;
-    if(deck_id>TankTopDeck) {
-        // Deck plates are cut out around both ladder shafts. Enter only when climbing.
-        if(x> -1.52f-radius && x< -0.05f+radius &&
-           z>4.12f-radius && z<5.83f+radius) return false;
-        if(x>12.76f-radius && x<14.23f+radius &&
-           z> -5.87f-radius && z< -4.15f+radius) return false;
-    }
+    // Floor plates are cut away at each inclined flight. Unlike a simple
+    // ladder trigger, a player standing on the slope resolves their height
+    // from walkSurface(), not from a fake platform in the stair opening.
+    if(x>-1.82f-radius && x<0.86f+radius &&
+       z>4.34f-radius && z<5.66f+radius) return false;
+    if(x>12.84f-radius && x<14.16f+radius &&
+       z>-4.54f-radius && z<-1.88f+radius) return false;
     for(std::size_t i=0;i<obstacles_.size();++i) {
         const Footprint& b=obstacles_[i];
         if(!(b.deck_mask & (1u<<deck_id))) continue;
@@ -372,19 +536,79 @@ bool World3D::canStand(float x,float z,int deck_id,float radius) const {
     return true;
 }
 
+bool World3D::stairHeight(const Stair3D& st,float x,float z,float feet_y,
+                          float& candidate_y,float radius) const {
+    const float vx=st.bottom_x-st.top_x;
+    const float vz=st.bottom_z-st.top_z;
+    const float run2=vx*vx+vz*vz;
+    const float run=std::sqrt(run2);
+    const float ux=x-st.top_x,uz=z-st.top_z;
+    const float t=(ux*vx+uz*vz)/run2; // t=0 at upper landing, 1 lower
+    if(t < -0.17f || t > 1.17f) return false;
+    const float lateral=std::fabs(ux*vz-uz*vx)/run;
+    if(lateral>st.width*0.5f-radius*0.28f) return false;
+    // Clamp only beyond the tread run at a safe, level landing approach.
+    const float rise=1.0f-std::max(0.0f,std::min(1.0f,t));
+    float best=0.48f;
+    bool found=false;
+    for(int d=TankTopDeck;d<EcrDeck;++d) {
+        const float possible=floorHeight(d)+3.2f*rise;
+        const float diff=std::fabs(feet_y-possible);
+        if(diff<=best) {
+            best=diff;
+            candidate_y=possible;
+            found=true;
+        }
+    }
+    return found;
+}
+
+bool World3D::walkSurface(float x,float z,float feet_y,float& next_feet_y,
+                          float radius) const {
+    if(!std::isfinite(x) || !std::isfinite(z) || !std::isfinite(feet_y))
+        return false;
+    if(radius<0.0f || radius>0.65f) return false;
+    bool found=false;
+    float best=0.49f;
+    for(int d=TankTopDeck;d<DeckCount;++d) {
+        const float y=floorHeight(d);
+        const float diff=std::fabs(feet_y-y);
+        if(diff<best && canStand(x,z,d,radius)) {
+            best=diff;
+            next_feet_y=y;
+            found=true;
+        }
+    }
+    for(int i=0;i<stairCount();++i) {
+        float stair_y=0.0f;
+        if(stairHeight(stairs_[i],x,z,feet_y,stair_y,radius)) {
+            const float diff=std::fabs(feet_y-stair_y);
+            if(diff<=best+0.001f) {
+                best=diff;
+                next_feet_y=stair_y;
+                found=true;
+            }
+        }
+    }
+    return found;
+}
+
+bool World3D::onStair(float x,float z,float feet_y) const {
+    for(int i=0;i<stairCount();++i) {
+        float candidate=0.0f;
+        if(stairHeight(stairs_[i],x,z,feet_y,candidate,0.25f)
+           && std::fabs(feet_y-candidate)<0.30f) {
+            const Stair3D& st=stairs_[i];
+            const float vx=st.bottom_x-st.top_x,vz=st.bottom_z-st.top_z;
+            const float t=((x-st.top_x)*vx+(z-st.top_z)*vz)/(vx*vx+vz*vz);
+            if(t>0.02f && t<0.98f) return true;
+        }
+    }
+    return false;
+}
+
 StationId World3D::lookAtStation(const Vec3& camera,float yaw) const {
     const int deck_id=cameraDeck(camera.y);
-    // A ladder landing must be approachable without fine-grained look precision.
-    int closest=-1;
-    float best_ladder=1.20f*1.20f;
-    for(int i=0;i<2;++i) {
-        const float dx=ladders_[i].landing_x-camera.x;
-        const float dz=ladders_[i].landing_z-camera.z;
-        const float dist2=dx*dx+dz*dz;
-        if(dist2<best_ladder) { best_ladder=dist2;closest=i; }
-    }
-    if(closest>=0) return closest==0?MainLadderStation:EscapeLadderStation;
-
     struct Target { StationId id; int level; float x,z,range; };
     const Target targets[]={
         {EcrConsoleStation,EcrDeck,-9.18f,0.0f,2.70f},
