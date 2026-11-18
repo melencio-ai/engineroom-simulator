@@ -111,42 +111,141 @@ int World3D::cameraDeck(float eye_height) {
     return std::max(0,std::min(DeckCount-1,d));
 }
 
+
+void World3D::checkerTread(float x,float y,float z,uint32_t color) {
+    // Two diagonal raised bars, representing marine diamond/checker-pattern
+    // steel tread. These cast a vertex-colour highlight without textures.
+    for(int sign=-1;sign<=1;sign+=2) {
+        const float cx=x+sign*0.105f,cz=z+sign*0.085f;
+        quad(Vec3{cx-0.075f,y+0.014f,cz-0.052f},
+             Vec3{cx-0.052f,y+0.014f,cz-0.066f},
+             Vec3{cx+0.075f,y+0.014f,cz+0.052f},
+             Vec3{cx+0.052f,y+0.014f,cz+0.066f},color);
+    }
+}
+void World3D::plateSeams(float x0,float x1,float z0,float z1,float y) {
+    const uint32_t seam=shade(deck,0.72f);
+    for(float x=std::ceil(x0/2.0f)*2.0f;x<x1;x+=2.0f) {
+        quad(Vec3{x-0.011f,y+0.004f,z0},Vec3{x+0.011f,y+0.004f,z0},
+             Vec3{x+0.011f,y+0.004f,z1},Vec3{x-0.011f,y+0.004f,z1},seam);
+    }
+    for(float z=std::ceil(z0/2.0f)*2.0f;z<z1;z+=2.0f) {
+        quad(Vec3{x0,y+0.004f,z-0.011f},Vec3{x1,y+0.004f,z-0.011f},
+             Vec3{x1,y+0.004f,z+0.011f},Vec3{x0,y+0.004f,z+0.011f},seam);
+    }
+    for(float x=x0+0.42f;x<x1-0.22f;x+=0.74f) {
+        for(float z=z0+0.42f;z<z1-0.22f;z+=0.74f) {
+            checkerTread(x,y+0.007f,z,shade(deck,1.23f));
+        }
+    }
+}
 void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
     if(x1<=x0 || z1<=z0) return;
+    // Marine-painted steel plate with visible thickness, 2 m panel joints
+    // and small embossed tread features. No expensive full-screen texture.
     box((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
         (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
+    plateSeams(x0,x1,z0,z1,height);
 }
 void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     if(x1<=x0) return;
-    cylinderX(x0,x1,height+1.02f,z,0.038f,6,color);
-    cylinderX(x0,x1,height+0.53f,z,0.030f,6,color);
-    for(float x=x0;x<=x1+0.01f;x+=2.10f)
-        box(x,height+0.55f,z,0.04f,0.55f,0.04f,color);
-    box(x1,height+0.55f,z,0.04f,0.55f,0.04f,color);
+    cylinderX(x0,x1,height+1.06f,z,0.036f,6,color);
+    cylinderX(x0,x1,height+0.54f,z,0.030f,6,color);
+    for(float x=x0;x<=x1+0.01f;x+=1.88f)
+        box(x,height+0.55f,z,0.032f,0.55f,0.035f,color);
+    box(x1,height+0.55f,z,0.035f,0.55f,0.035f,color);
+    // Low toe board at an exposed engine-side platform edge.
+    box((x0+x1)*0.5f,height+0.10f,z,0.5f*(x1-x0),0.10f,0.027f,shade(deck,1.20f));
 }
-void World3D::ladderGeometry(const Ladder3D& l) {
-    const uint32_t c=l.alternate_escape ? rgb(237,191,84) : yellow;
-    const float x=l.shaft_x,z=l.shaft_z;
+void World3D::lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color) {
+    const float dx=b.x-a.x,dz=b.z-a.z;
+    const float horizontal=std::sqrt(dx*dx+dz*dz);
+    if(horizontal<0.01f) return;
+    const float nx=-dz/horizontal,nz=dx/horizontal,h=half_width;
+    const Vec3 a0{a.x+nx*h,a.y-h,a.z+nz*h};
+    const Vec3 a1{a.x-nx*h,a.y-h,a.z-nz*h};
+    const Vec3 a2{a.x-nx*h,a.y+h,a.z-nz*h};
+    const Vec3 a3{a.x+nx*h,a.y+h,a.z+nz*h};
+    const Vec3 b0{b.x+nx*h,b.y-h,b.z+nz*h};
+    const Vec3 b1{b.x-nx*h,b.y-h,b.z-nz*h};
+    const Vec3 b2{b.x-nx*h,b.y+h,b.z-nz*h};
+    const Vec3 b3{b.x+nx*h,b.y+h,b.z+nz*h};
+    quad(a0,b0,b1,a1,shade(color,0.70f));
+    quad(a3,a2,b2,b3,shade(color,1.22f));
+    quad(a0,a3,b3,b0,color);
+    quad(a1,b1,b2,a2,shade(color,0.92f));
+    quad(a0,a1,a2,a3,color);
+    quad(b0,b3,b2,b1,color);
+}
+void World3D::stairGeometry(const Stair3D& st) {
+    const float dx=st.top_x-st.bottom_x;
+    const float dz=st.top_z-st.bottom_z;
+    const float run=std::sqrt(dx*dx+dz*dz);
+    const float nx=-dz/run,nz=dx/run;
+    const bool along_x=std::fabs(dx)>std::fabs(dz);
+    const float width=st.width;
     for(int d=0;d<DeckCount-1;++d) {
-        const float y0=floorHeight(d),y1=floorHeight(d+1);
-        cylinderY(x-0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
-        cylinderY(x+0.32f,y0+0.05f,y1+1.05f,z,0.045f,6,c);
-        for(float y=y0+0.28f;y<y1+0.10f;y+=0.29f)
-            box(x,y,z,0.34f,0.027f,0.055f,shade(c,1.12f));
-        // Open back supports and guard-post outlines: visible but not an opaque elevator box.
-        for(int side=-1;side<=1;side+=2) {
-            box(x+side*0.65f,(y0+y1)*0.5f,z+0.49f,
-                0.035f,1.58f,0.035f,steel);
-            box(x+side*0.65f,(y0+y1)*0.5f,z-0.49f,
-                0.035f,1.58f,0.035f,steel);
+        const float base=floorHeight(d);
+        // A 50-degree flight with 16 individual chequered steel treads.
+        for(int j=0;j<16;++j) {
+            const float t=(j+0.5f)/16.0f;
+            const float x=st.bottom_x+dx*t,z=st.bottom_z+dz*t;
+            const float y=base+3.2f*t;
+            const float hx=along_x?run/(16.0f*2.0f)*0.93f:width*0.49f;
+            const float hz=along_x?width*0.49f:run/(16.0f*2.0f)*0.93f;
+            box(x,y-0.025f,z,hx,0.035f,hz,shade(deck,1.07f));
+            box(x,y+0.017f,z,hx*0.92f,0.012f,hz*0.92f,shade(grating,1.14f));
+            // Bright metal anti-slip nosing on the tread front edge.
+            if(along_x)
+                box(x+dx/std::fabs(dx)*hx*0.82f,y+0.036f,z,
+                    0.018f,0.014f,hz*0.91f,shade(bright,0.85f));
+            else
+                box(x,y+0.036f,z+dz/std::fabs(dz)*hz*0.82f,
+                    hx*0.91f,0.014f,0.018f,shade(bright,0.85f));
         }
+        const Vec3 basePoint{st.bottom_x,base,st.bottom_z};
+        const Vec3 topPoint{st.top_x,base+3.2f,st.top_z};
+        for(int side=-1;side<=1;side+=2) {
+            const float offset=side*(width*0.5f+0.05f);
+            const Vec3 lo{basePoint.x+nx*offset,basePoint.y,basePoint.z+nz*offset};
+            const Vec3 hi{topPoint.x+nx*offset,topPoint.y,topPoint.z+nz*offset};
+            lineBar(Vec3{lo.x,lo.y-0.17f,lo.z},
+                    Vec3{hi.x,hi.y-0.17f,hi.z},0.070f,steel);
+            // Pale-painted two-rail handrail system.
+            lineBar(Vec3{lo.x,lo.y+1.00f,lo.z},
+                    Vec3{hi.x,hi.y+1.00f,hi.z},0.029f,handrail);
+            lineBar(Vec3{lo.x,lo.y+0.52f,lo.z},
+                    Vec3{hi.x,hi.y+0.52f,hi.z},0.023f,handrail);
+            for(int j=0;j<=4;++j) {
+                const float t=j/4.0f;
+                const float x=lo.x+(hi.x-lo.x)*t,y=lo.y+3.2f*t;
+                const float z=lo.z+(hi.z-lo.z)*t;
+                box(x,y+0.55f,z,0.030f,0.55f,0.032f,handrail);
+            }
+        }
+        // Shielded underside (the upper face is intentionally stepped).
+        const Vec3 la{st.bottom_x+nx*width*0.5f,base-0.20f,
+                      st.bottom_z+nz*width*0.5f};
+        const Vec3 lb{st.bottom_x-nx*width*0.5f,base-0.20f,
+                      st.bottom_z-nz*width*0.5f};
+        const Vec3 ta{st.top_x+nx*width*0.5f,base+3.0f,
+                      st.top_z+nz*width*0.5f};
+        const Vec3 tb{st.top_x-nx*width*0.5f,base+3.0f,
+                      st.top_z-nz*width*0.5f};
+        quad(la,ta,tb,lb,shade(steel,0.70f));
     }
-    // Five floor landings: hazard stripe, small safety lamp, ladder head marker.
     for(int d=0;d<DeckCount;++d) {
         const float y=floorHeight(d);
-        box(l.landing_x,y+0.02f,l.landing_z,0.40f,0.025f,0.12f,c);
-        box(l.landing_x,y+1.73f,l.landing_z,0.28f,0.16f,0.085f,d==EcrDeck?green:c);
-        box(x,y+1.06f,z+0.72f,0.69f,0.034f,0.034f,c);
+        // Tread edge hazard markers: avoid continuously yellow floor plates.
+        for(int edge=0;edge<2;++edge) {
+            const float x=edge==0?st.top_x:st.bottom_x;
+            const float z=edge==0?st.top_z:st.bottom_z;
+            if((edge==0 && d==0) || (edge==1 && d==EcrDeck)) continue;
+            if(along_x)
+                box(x,y+0.028f,z,0.045f,0.028f,width*0.52f,yellow);
+            else
+                box(x,y+0.028f,z,width*0.52f,0.028f,0.045f,yellow);
+        }
     }
 }
 
