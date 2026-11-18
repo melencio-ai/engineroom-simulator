@@ -1,23 +1,14 @@
 #pragma once
 
+#include "scene/MarineParts.hpp"
+
 #include <cstdint>
 #include <vector>
 
 namespace enginewatch {
 
 // World units: metres. X longitudinal (forward to aft); Z transverse;
-// Y vertical. Colours are ABGR8888 for the PSP Graphics Utility.
-struct Vec3 {
-    float x;
-    float y;
-    float z;
-};
-struct Vertex3D {
-    uint32_t color;
-    float x;
-    float y;
-    float z;
-};
+// Y vertical. PSP meshes use baked ABGR8888 colour vertices.
 struct Footprint {
     float x0, x1, z0, z1;
     unsigned deck_mask;
@@ -53,6 +44,8 @@ public:
     World3D();
 
     const std::vector<Vertex3D>& vertices() const { return vertices_; }
+    const std::vector<MarinePartPlacement>& parts() const { return parts_; }
+    const MarinePartLibrary& partCatalog() const { return parts_library_; }
     static float floorHeight(int deck);
     static const char* deckName(int deck);
     static int cameraDeck(float eye_height);
@@ -73,6 +66,8 @@ public:
 
 private:
     std::vector<Vertex3D> vertices_;
+    std::vector<MarinePartPlacement> parts_;
+    MarinePartLibrary parts_library_;
     std::vector<Footprint> obstacles_;
     Stair3D stairs_[2];
 
@@ -86,6 +81,7 @@ private:
     void deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color);
     void railing(float x0,float x1,float z,float height,uint32_t color);
     void stairGeometry(const Stair3D& stair);
+    void part(MarinePartId type,MarineMaterialId finish,const PartTransform& position);
     void checkerTread(float x,float y,float z,uint32_t color);
     void plateSeams(float x0,float x1,float z0,float z1,float y);
     void lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color);
