@@ -26,13 +26,8 @@ void Game3D::reset() {
     pitch_=-0.16f;
     panel_=Closed;
     selected_=0;
-    ladder_index_=-1;
     paused_=false;
     climbing_=false;
-    climb_target_deck_=EcrDeck;
-    climb_elapsed_=0.0f;
-    climb_start_=camera_;
-    climb_end_=camera_;
 }
 
 void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
@@ -45,11 +40,24 @@ void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
     const float magnitude=std::sqrt(forward*forward+strafe*strafe);
     if(magnitude>1.0f) { forward/=magnitude;strafe/=magnitude; }
     const float cs=std::cos(yaw_),sn=std::sin(yaw_);
-    const float dx=(cs*forward-sn*strafe)*dt*3.10f;
-    const float dz=(sn*forward+cs*strafe)*dt*3.10f;
-    // Slide along collision geometry instead of walking into engines or deck voids.
-    if(world_.canStand(camera_.x+dx,camera_.z,deck_)) camera_.x+=dx;
-    if(world_.canStand(camera_.x,camera_.z+dz,deck_)) camera_.z+=dz;
+    const float feet=camera_.y-1.65f;
+    const float speed=world_.onStair(camera_.x,camera_.z,feet) ? 1.60f:2.55f;
+    const float dx=(cs*forward-sn*strafe)*dt*speed;
+    const float dz=(sn*forward+cs*strafe)*dt*speed;
+    // Every move checks the current foot height against actual steel plates
+    // or an inclined stair. This permits continuous walkable deck-to-deck
+    // transitions, without snapping through missing floors or engine voids.
+    float surface=feet;
+    if(world_.walkSurface(camera_.x+dx,camera_.z,feet,surface)) {
+        camera_.x+=dx;
+        camera_.y=surface+1.65f;
+    }
+    if(world_.walkSurface(camera_.x,camera_.z+dz,camera_.y-1.65f,surface)) {
+        camera_.z+=dz;
+        camera_.y=surface+1.65f;
+    }
+    deck_=World3D::cameraDeck(camera_.y);
+    climbing_=world_.onStair(camera_.x,camera_.z,camera_.y-1.65f);
 }
 
 void Game3D::operate() {
@@ -62,43 +70,6 @@ void Game3D::operate() {
     case 4:sim_.setValve(StandbyLoPump,SuctionValve,!s.standby_pump.suction_open);break;
     case 5:sim_.setValve(StandbyLoPump,DischargeValve,!s.standby_pump.discharge_open);break;
     default:break;
-    }
-}
-
-void Game3D::beginClimb(int destination) {
-    if(destination<0 || destination>=DeckCount || std::abs(destination-deck_)!=1)
-        return;
-    if(ladder_index_<0 || ladder_index_>=world_.ladderCount()) return;
-    const Ladder3D& ladder=world_.ladder(ladder_index_);
-    const float dx=camera_.x-ladder.landing_x;
-    const float dz=camera_.z-ladder.landing_z;
-    if(dx*dx+dz*dz>1.55f*1.55f) return;
-    climb_start_=camera_;
-    climb_target_deck_=destination;
-    climb_end_=Vec3{ladder.landing_x,World3D::floorHeight(destination)+1.65f,
-                    ladder.landing_z};
-    climb_elapsed_=0.0f;
-    climbing_=true;
-    panel_=Closed;
-}
-
-void Game3D::advanceClimb(float dt) {
-    if(!climbing_) return;
-    climb_elapsed_+=dt;
-    const float t=clamp(climb_elapsed_/2.60f,0.0f,1.0f);
-    const Ladder3D& ladder=world_.ladder(ladder_index_);
-    // The camera moves into the open shaft, ascends/descends in real world Y,
-    // then comes out on the next deck. No disconnected scenes or instant teleport.
-    const float inside=t<0.18f?t/0.18f:
-                       t>0.82f?(1.0f-t)/0.18f:1.0f;
-    camera_.x=climb_start_.x+(ladder.shaft_x-climb_start_.x)*inside;
-    camera_.z=climb_start_.z+(ladder.shaft_z-climb_start_.z)*inside;
-    camera_.y=climb_start_.y+(climb_end_.y-climb_start_.y)*t;
-    if(t>=1.0f) {
-        deck_=climb_target_deck_;
-        camera_=climb_end_;
-        climbing_=false;
-        ladder_index_=-1;
     }
 }
 
@@ -117,23 +88,11 @@ void Game3D::use() {
         } else sim_.verifyMissionTwo();
         return;
     }
-    if(panel_==Ladder) {
-        const int destination=selected_==0?deck_+1:deck_-1;
-        beginClimb(destination);
-        return;
-    }
-
     const StationId station=world_.lookAtStation(camera_,yaw_);
     switch(station) {
     case EcrConsoleStation:panel_=Console;break;
     case LoPumpStation:panel_=Pumps;selected_=0;break;
     case StrainerStation:sim_.inspectStrainer();panel_=Strainer;break;
-    case MainLadderStation:
-    case EscapeLadderStation:
-        ladder_index_=station==MainLadderStation?0:1;
-        panel_=Ladder;
-        selected_=deck_==EcrDeck?1:0;
-        break;
     default:break;
     }
 }
@@ -147,16 +106,14 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     if(!(dt_seconds>0.0f) || !std::isfinite(dt_seconds)) return;
     const float dt=clamp(dt_seconds,0.0f,0.05f);
     sim_.step(dt);
-    if(climbing_) { advanceClimb(dt);return; }
-
     if(in.help) { panel_=panel_==Help?Closed:Help;return; }
     if(in.back) { panel_=Closed;return; }
-    if(panel_==Pumps || panel_==Ladder) {
-        if(in.up) selected_=(selected_+(panel_==Pumps?5:1))%(panel_==Pumps?6:2);
-        if(in.down) selected_=(selected_+1)%(panel_==Pumps?6:2);
+    if(panel_==Pumps) {
+        if(in.up) selected_=(selected_+5)%6;
+        if(in.down) selected_=(selected_+1)%6;
     }
     if(in.interact) use();
-    if(panel_==Closed && !climbing_) move(dt,in.forward,in.strafe,in.turn,in.look);
+    if(panel_==Closed) move(dt,in.forward,in.strafe,in.turn,in.look);
 }
 
 Hud3D Game3D::hud() const {
@@ -185,10 +142,8 @@ Hud3D Game3D::hud() const {
     if(station==EcrConsoleStation) prompt="X: OPEN ECR LO CONSOLE";
     else if(station==LoPumpStation) prompt="X: OPERATE LO PUMP STATION";
     else if(station==StrainerStation) prompt="X: INSPECT MAIN LO STRAINER";
-    else if(station==MainLadderStation) prompt="X: MAIN LADDER - SELECT DECK";
-    else if(station==EscapeLadderStation) prompt="X: ALTERNATE ESCAPE LADDER";
     if(panel_!=Closed) prompt="D-PAD UP/DOWN SELECT   X OPERATE   O CLOSE";
-    if(climbing_) prompt="CLIMBING BETWEEN DECKS - WATCH YOUR STEP";
+    if(climbing_) prompt="INCLINED STEEL STAIRS - KEEP WALKING TO THE LANDING";
     std::snprintf(h.prompt,sizeof(h.prompt),"%s",prompt);
     h.panel_visible=panel_!=Closed || paused_;
     if(paused_) {
@@ -202,27 +157,14 @@ Hud3D Game3D::hud() const {
             "ANALOG STICK: WALK AND STRAFE",
             "D-PAD LEFT/RIGHT: TURN CAMERA",
             "L/R: LOOK DOWN / UP",
-            "X: USE MACHINERY / ENTER LADDER",
-            "D-PAD UP/DOWN: SELECT PANEL",
+            "WALK UP/DOWN INCLINED STEEL STAIRS",
+            "D-PAD UP/DOWN: WALK OR SELECT PANEL",
             "O: CLOSE   TRIANGLE: HELP",
             "DESCEND FROM ECR TO DECK 01"
         };
         h.panel_count=7;
         for(int i=0;i<h.panel_count;++i)
             std::snprintf(h.panel_rows[i],sizeof(h.panel_rows[i]),"%s",lines[i]);
-    } else if(panel_==Ladder) {
-        const Ladder3D& ladder=world_.ladder(ladder_index_);
-        std::snprintf(h.panel_title,sizeof(h.panel_title),"%s LADDER | %s",
-                      ladder.alternate_escape?"ESCAPE":"SERVICE",World3D::deckName(deck_));
-        h.panel_count=3;
-        h.selected_row=selected_;
-        std::snprintf(h.panel_rows[0],sizeof(h.panel_rows[0]),"%c UP: %s",
-                      selected_==0?'>':' ',deck_==EcrDeck?"NO HIGHER PLATFORM":
-                      World3D::deckName(std::min(deck_+1,DeckCount-1)));
-        std::snprintf(h.panel_rows[1],sizeof(h.panel_rows[1]),"%c DOWN: %s",
-                      selected_==1?'>':' ',deck_==TankTopDeck?"LOWEST ACCESS LEVEL":
-                      World3D::deckName(std::max(0,deck_-1)));
-        std::snprintf(h.panel_rows[2],sizeof(h.panel_rows[2]),"X CLIMB    O BACK TO DECK");
     } else if(panel_==Pumps) {
         std::snprintf(h.panel_title,sizeof(h.panel_title),"DECK 01 | LOCAL LO PUMPS / VALVES");
         const char* names[]={"MAIN PUMP","STANDBY PUMP","MAIN SUCTION","MAIN DISCHARGE",
