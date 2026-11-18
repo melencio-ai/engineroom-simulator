@@ -7,7 +7,7 @@
 - Mission 002 strainer restriction, standby changeover, isolation, pressure restoration, alarms.
 - Deterministic headless system tests and PSP/PPSSPP builds.
 
-## v0.3 — first real 3D environment (current)
+## v0.3 — first real 3D environment (completed prototype)
 
 - **Native PSP GU/GUM perspective** rendering. No SDL2 2D game renderer on PSP.
 - Same 3D meshes and camera in desktop OpenGL preview.
@@ -20,13 +20,26 @@
 
 **Review gate:** PPSSPP hardware/Android hands-on check for native 3D scene visibility, fonts, turning speed, walking controls and interactive station positioning before merging.
 
-## v0.4 — turn blockout into recognizable engine-room spaces
+## v0.4 — multi-deck layout and regeneration (current feature branch)
 
-- Better low-polygon meshes for engine block, turbocharger, gensets and auxiliary equipment.
-- Texture atlas for labels, decks, bulkheads, and machinery nameplates.
-- Improved camera sensitivity, doorway collision, first-person interaction highlighting.
-- Measured PSP performance (polygon budget, draw calls and GPU cache behavior).
-- Separate instrument panel/console views where readability on 480x272 requires them.
+- Four principal engine-room platforms (L1-L4) plus the lowest tank-top access (L0), in a single world.
+- Multi-level main-engine mesh, open center well, four sets of partial catwalks with railings and grating.
+- ECR upper overlooking windows, deck 03 twin diesel generators, deck 01 pumps/strainer, lowest bilge access.
+- Two separated yellow ladder routes, floor openings and continuous vertical camera traverse.
+- Deck-aware equipment interaction and obstacle collision; expanded vertical camera pitch inputs.
+- Fixed PSP GU font atlas UV mapping to restore HUD readability.
+- Headless floor/shaft/ladder tests, native PSP EBOOT and desktop OpenGL checks.
+- New detailed source-backed layout document at `docs/multideck-engine-room-layout.md`.
+
+**Review gate:** Manually inspect PPSSPP Windows/Android visuals, deck transitions, FPS, HUD visibility, and both LO missions. Do not merge without approval.
+
+## v0.5 — machinery detail and interactivity
+
+- Better low-poly engine cylinder heads, turbocharger, gensets and auxiliary equipment.
+- Texture/label atlas for deck numbers, emergency paths and machinery nameplates.
+- Proper inclined staircase or ladder motion with a readable climbing animation.
+- Separate tooltips/console inspection views where 480x272 needs additional clarity.
+- Performance profiling and platform/visibility culling on actual PSP/PPSSPP hardware.
 
 ## v0.5 — operational machinery expansion
 
@@ -42,7 +55,7 @@
 
 ## v0.7+ — training and polish
 
-- Multi-deck navigation, ladders and detailed machinery arrangements.
+- Expanded spatial detail, equipment animations, maintenance platforms and new mission routes.
 - Scenario selection, assessments, save/load, integrated help and maintenance tasks.
 - Sound, equipment animations and more realistic process models once verified against an approved vessel reference.
 
