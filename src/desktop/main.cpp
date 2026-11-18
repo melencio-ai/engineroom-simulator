@@ -90,6 +90,7 @@ public:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         const enginewatch::Vec3& p=game.camera();
+        glRotatef(-game.pitch()*180.0f/3.141592653589793f,1,0,0);
         glRotatef(90.0f+game.yaw()*180.0f/3.141592653589793f,0,1,0);
         glTranslatef(-p.x,-p.y,-p.z);
         glBegin(GL_TRIANGLES);
@@ -191,12 +192,15 @@ int main(int,char**) {
         if(keys[SDL_SCANCODE_D]) in.strafe+=1.0f;
         if(keys[SDL_SCANCODE_LEFT]||keys[SDL_SCANCODE_Q]) in.turn-=1.0f;
         if(keys[SDL_SCANCODE_RIGHT]) in.turn+=1.0f;
+        if(keys[SDL_SCANCODE_I]||keys[SDL_SCANCODE_PAGEUP]) in.look+=1.0f;
+        if(keys[SDL_SCANCODE_K]||keys[SDL_SCANCODE_PAGEDOWN]) in.look-=1.0f;
         if(controller) {
             in.forward-=stick(SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_LEFTY));
             in.strafe+=stick(SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_LEFTX));
             in.turn+=stick(SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_RIGHTX));
-            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) in.turn-=1.0f;
-            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) in.turn+=1.0f;
+            in.look-=stick(SDL_GameControllerGetAxis(controller,SDL_CONTROLLER_AXIS_RIGHTY));
+            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) in.look-=1.0f;
+            if(SDL_GameControllerGetButton(controller,SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) in.look+=1.0f;
         }
         const Uint32 now=SDL_GetTicks();
         game.update(static_cast<float>(now-last)/1000.0f,in);
