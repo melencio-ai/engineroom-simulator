@@ -36,14 +36,15 @@ enum StationId {
     NoStation = 0,
     EcrConsoleStation,
     LoPumpStation,
-    StrainerStation,
-    MainLadderStation,
-    EscapeLadderStation
+    StrainerStation
 };
 
-struct Ladder3D {
-    float landing_x, landing_z; // Where the player interacts safely on a deck
-    float shaft_x, shaft_z;     // The visible, deck-cut-out ladder opening
+// An inclined stair repeats between adjacent floors, with landing loops around
+// the open stairwell so each flight has a real top and bottom entry.
+struct Stair3D {
+    float top_x, top_z;
+    float bottom_x, bottom_z;
+    float width;
     bool alternate_escape;
 };
 
@@ -56,19 +57,24 @@ public:
     static const char* deckName(int deck);
     static int cameraDeck(float eye_height);
 
-    // Deck-scoped collision: walkable platforms, machinery and shaft cut-outs.
+    // Deck-scoped collision: walkable platforms, machinery and stair openings.
     bool canStand(float x, float z, int deck, float radius=0.28f) const;
+    // Resolve the continuous walkable height of a flat or sloping stair surface.
+    // Call per horizontal movement step with the previous character foot height.
+    bool walkSurface(float x, float z, float feet_y, float& next_feet_y,
+                     float radius=0.25f) const;
+    bool onStair(float x, float z, float feet_y) const;
     bool isInEcr(float x, int deck) const { return deck==EcrDeck && x < -3.4f; }
 
     // Interactions are only reachable from their correct level.
     StationId lookAtStation(const Vec3& camera, float yaw) const;
-    const Ladder3D& ladder(int index) const { return ladders_[index==1 ? 1 : 0]; }
-    int ladderCount() const { return 2; }
+    const Stair3D& stair(int index) const { return stairs_[index==1 ? 1 : 0]; }
+    int stairCount() const { return 2; }
 
 private:
     std::vector<Vertex3D> vertices_;
     std::vector<Footprint> obstacles_;
-    Ladder3D ladders_[2];
+    Stair3D stairs_[2];
 
     void triangle(const Vec3& a, const Vec3& b, const Vec3& c, uint32_t color);
     void quad(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d, uint32_t color);
@@ -79,7 +85,12 @@ private:
     void obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask);
     void deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color);
     void railing(float x0,float x1,float z,float height,uint32_t color);
-    void ladderGeometry(const Ladder3D& ladder);
+    void stairGeometry(const Stair3D& stair);
+    void checkerTread(float x,float y,float z,uint32_t color);
+    void plateSeams(float x0,float x1,float z0,float z1,float y);
+    void lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color);
+    bool stairHeight(const Stair3D& stair,float x,float z,float feet_y,
+                     float& candidate_y,float radius) const;
     void build();
 };
 
