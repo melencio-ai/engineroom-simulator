@@ -345,6 +345,32 @@ void World3D::build() {
         }
     }
 
+    // Longitudinal stiffeners and small welded gusset details express actual
+    // ship structural continuity rather than unbroken industrial box walls.
+    for(float x=-1.35f;x<15.05f;x+=2.60f) {
+        for(int side=-1;side<=1;side+=2) {
+            const float z=side*6.73f;
+            box(x,8.15f,z,0.080f,8.22f,0.070f,shade(wall,0.82f));
+            for(int d=1;d<DeckCount;++d) {
+                const float y=floorHeight(d);
+                triangle(Vec3{x-0.36f,y+0.11f,z-side*0.02f},
+                         Vec3{x+0.36f,y+0.11f,z-side*0.02f},
+                         Vec3{x,y+0.55f,z-side*0.02f},shade(steel,0.96f));
+            }
+        }
+    }
+    // Luminaires suspended below deck beams: work areas stay visually bright.
+    for(int d=0;d<DeckCount;++d) {
+        const float y=floorHeight(d)+2.72f;
+        for(int side=-1;side<=1;side+=2) {
+            for(float x=0.5f;x<14.0f;x+=4.2f) {
+                box(x,y,side*5.74f,0.65f,0.045f,0.18f,bright);
+                box(x,y-0.05f,side*5.74f,0.56f,0.016f,0.13f,
+                    rgb(235,238,211));
+            }
+        }
+    }
+
     // One slow-speed six-cylinder main engine from foundation to top platform.
     box(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
     box(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
@@ -360,10 +386,24 @@ void World3D::build() {
         box(x,7.35f,-1.58f,0.33f,0.25f,0.09f,bright);
         box(x,9.20f,1.59f,0.32f,0.29f,0.10f,pipe);
     }
-    // Exhaust and cooling manifolds, flywheel and upper turbocharger.
-    cylinderX(4.25f,11.62f,13.62f,-0.87f,0.23f,12,red);
+    // Pipe bodies are mostly metallic or insulated; identification appears as
+    // service-colour bands (orange LO, blue freshwater, red heated exhaust).
+    // Their exact markings are illustrative, not vessel-specific ISO mapping.
+    const uint32_t loBand=rgb(209,128,62);
+    const uint32_t coolingBand=rgb(69,134,177);
+    const uint32_t exhaustBand=rgb(169,66,54);
+    cylinderX(4.25f,11.62f,13.62f,-0.87f,0.29f,10,bright);
     cylinderX(4.16f,11.60f,8.15f,1.66f,0.13f,10,pipe);
     cylinderX(4.03f,11.92f,2.03f,1.75f,0.13f,10,pipe);
+    for(int i=0;i<6;++i) {
+        const float x=4.80f+1.09f*i;
+        // Short flange collars and inspection/flow identification bands.
+        cylinderX(x,x+0.08f,13.62f,-0.87f,0.32f,10,exhaustBand);
+        cylinderX(x,x+0.07f,8.15f,1.66f,0.16f,8,coolingBand);
+        cylinderX(x,x+0.07f,2.03f,1.75f,0.16f,8,loBand);
+        for(int side=-1;side<=1;side+=2)
+            box(x,0.22f,side*1.89f,0.10f,0.14f,0.13f,steel);
+    }
     cylinderX(11.73f,12.15f,2.28f,0.0f,1.22f,16,steel);
     cylinderX(12.16f,12.29f,2.28f,0.0f,0.31f,12,yellow);
     cylinderX(11.16f,12.35f,11.42f,-0.45f,0.76f,14,steel);
@@ -427,6 +467,16 @@ void World3D::build() {
     box(1.68f,py+1.62f,-5.87f,0.36f,0.11f,0.36f,red);
     cylinderX(0.56f,2.51f,py+0.63f,-5.87f,0.09f,10,pipe);
     obstacle(1.20f,2.11f,-6.24f,-5.49f,1u<<PumpFlatDeck);
+
+    // Local pressure gauges, pump labels and bolted machinery stools.
+    for(int i=0;i<2;++i) {
+        const float z=i==0?-4.38f:2.75f;
+        cylinderY(0.32f,py+1.21f,py+1.57f,z,0.045f,8,steel);
+        cylinderX(0.20f,0.30f,py+1.62f,z,0.20f,10,wall);
+        box(0.14f,py+1.66f,z,0.024f,0.035f,0.08f,dark);
+        for(int side=-1;side<=1;side+=2)
+            box(0.10f,py+0.08f,z+side*0.56f,0.08f,0.08f,0.08f,steel);
+    }
 
     // L0 tank top, bilge well indicators and lower shaft direction.
     for(int side=-1;side<=1;side+=2) {
