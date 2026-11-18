@@ -250,7 +250,7 @@ void World3D::stairGeometry(const Stair3D& st) {
 }
 
 void World3D::build() {
-    vertices_.reserve(48000);
+    vertices_.reserve(85000);
     const unsigned all=(1u<<DeckCount)-1u;
     // No sealed stacked rooms: the central main-engine well is open through
     // four partial working flats. Below is a continuous tank top with engine seating.
@@ -258,19 +258,19 @@ void World3D::build() {
     for(int d=1;d<DeckCount;++d) {
         const float y=floorHeight(d);
         const uint32_t floor_col=(d%2==0)?shade(deck,1.08f):deck;
-        // Forward crosswalk with port-side ladder cut-out (X=-1.5..0, Z=4.12..5.83).
-        deckSlab(-2.85f,-1.52f,-6.65f,6.65f,y,floor_col);
-        deckSlab(-1.52f,-0.05f,-6.65f,4.12f,y,floor_col);
-        deckSlab(-1.52f,-0.05f,5.83f,6.65f,y,floor_col);
-        deckSlab(-0.05f,3.10f,-6.65f,6.65f,y,floor_col);
+        // Forward 50-degree service stair, recessed into an open partial deck.
+        deckSlab(-2.85f,-1.82f,-6.65f,6.65f,y,floor_col);
+        deckSlab(-1.82f,0.86f,-6.65f,4.34f,y,floor_col);
+        deckSlab(-1.82f,0.86f,5.66f,6.65f,y,floor_col);
+        deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
         // Two long catwalks. The omitted center is a vertical machinery well.
         deckSlab(3.10f,12.20f,-6.65f,-2.38f,y,floor_col);
         deckSlab(3.10f,12.20f,2.38f,6.65f,y,floor_col);
-        // Aft crosswalk with separate escape-ladder cut-out (X=12.76..14.23).
-        deckSlab(12.20f,12.76f,-6.65f,6.65f,y,floor_col);
-        deckSlab(12.76f,14.23f,-6.65f,-5.87f,y,floor_col);
-        deckSlab(12.76f,14.23f,-4.15f,6.65f,y,floor_col);
-        deckSlab(14.23f,15.30f,-6.65f,6.65f,y,floor_col);
+        // Aft escape stair runs athwartships (along Z) to preserve deck access.
+        deckSlab(12.20f,12.84f,-6.65f,6.65f,y,floor_col);
+        deckSlab(12.84f,14.16f,-6.65f,-4.54f,y,floor_col);
+        deckSlab(12.84f,14.16f,-1.88f,6.65f,y,floor_col);
+        deckSlab(14.16f,15.30f,-6.65f,6.65f,y,floor_col);
 
         // Readable deck grating and alternating stripe rhythm, without textures.
         for(float x=3.40f;x<12.06f;x+=1.10f) {
@@ -280,9 +280,15 @@ void World3D::build() {
         for(int side=-1;side<=1;side+=2) {
             for(float z=2.86f;z<6.56f;z+=1.07f)
                 box(7.66f,y+0.021f,side*z,4.41f,0.017f,0.020f,shade(bright,0.49f));
-            railing(3.16f,12.14f,side*2.38f,y,yellow);
+            railing(3.16f,12.14f,side*2.38f,y,handrail);
         }
-        // Real floor level identification: five distinct bands of structural lighting.
+        // Painted green checker plate is bordered by open side grating around
+        // machinery. Horizontal grating strips remain lighter and readable.
+        for(float x=3.45f;x<12.0f;x+=0.52f) {
+            for(int side=-1;side<=1;side+=2)
+                box(x,y+0.025f,side*2.76f,0.021f,0.020f,0.32f,shade(grating,1.05f));
+        }
+        // Structural lighting bands and bright exit-route marks.
         box(-2.65f,y+2.27f,-6.44f,0.07f,0.08f,0.31f,
             d==PumpFlatDeck?green:d==MainEngineDeck?yellow:d==AuxiliaryDeck?red:pipe);
         box(-2.65f,y+2.27f,6.44f,0.07f,0.08f,0.31f,bright);
@@ -370,16 +376,18 @@ void World3D::build() {
 
     // L3 auxiliary machinery: two generators, compressor bank, purifier/ workshop.
     const float ay=floorHeight(AuxiliaryDeck);
-    for(int side=-1;side<=1;side+=2) {
-        const float z=side*4.42f;
+    for(int gen=0;gen<2;++gen) {
+        // Keep the upper service stair landings clear; gensets use the
+        // opposite auxiliary-side bays rather than block the stair throat.
+        const float z=gen==0 ? -4.58f : 1.12f;
         box(1.52f,ay+0.20f,z,1.23f,0.20f,0.94f,dark);
         box(0.82f,ay+0.94f,z,0.76f,0.61f,0.67f,engineBlue);
         for(int i=0;i<3;++i)
             box(0.35f+i*0.44f,ay+1.60f,z,0.15f,0.14f,0.58f,machinery);
         cylinderX(1.36f,2.52f,ay+1.06f,z,0.62f,12,steel);
         cylinderX(2.53f,2.68f,ay+1.06f,z,0.32f,10,yellow);
-        cylinderX(0.35f,1.10f,ay+2.08f,z+0.40f*side,0.10f,8,red);
-        box(0.42f,ay+1.29f,z-side*1.03f,0.14f,0.31f,0.10f,green);
+        cylinderX(0.35f,1.10f,ay+2.08f,z+(gen==0?-0.40f:0.40f),0.10f,8,pipe);
+        box(0.42f,ay+1.29f,z+(gen==0?1.03f:-1.03f),0.14f,0.31f,0.10f,green);
         obstacle(0.10f,2.90f,z-1.03f,z+1.03f,1u<<AuxiliaryDeck);
     }
     for(int i=0;i<3;++i)
@@ -401,7 +409,7 @@ void World3D::build() {
     // L1 pump flat: maintain the existing LO mission interaction points.
     const float py=floorHeight(PumpFlatDeck);
     for(int i=0;i<2;++i) {
-        const float z=i==0?-4.38f:4.38f;
+        const float z=i==0?-4.38f:2.75f;
         box(0.55f,py+0.21f,z,0.87f,0.21f,0.68f,dark);
         cylinderX(-0.12f,0.92f,py+0.91f,z,0.45f,12,pipe);
         box(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
@@ -440,9 +448,10 @@ void World3D::build() {
         }
         cylinderX(-2.20f,13.80f,16.10f,side*5.95f,0.13f,8,pipe);
     }
-    // Key structural ladder trunks (service + alternate escape) reach every deck.
-    ladderGeometry(ladders_[0]);
-    ladderGeometry(ladders_[1]);
+    // Inclined, physically walkable steel stair flights with handrails and
+    // anti-slip treads, repeating between all deck levels.
+    stairGeometry(stairs_[0]);
+    stairGeometry(stairs_[1]);
 }
 
 bool World3D::canStand(float x,float z,int deck_id,float radius) const {
