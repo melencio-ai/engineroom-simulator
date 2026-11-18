@@ -142,7 +142,10 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     const Vec3& p=game.camera();
     const float yaw=game.yaw();
     ScePspFVector3 eye={p.x,p.y,p.z};
-    ScePspFVector3 center={p.x+std::cos(yaw),p.y,p.z+std::sin(yaw)};
+    const float pitch=game.pitch();
+    const float cp=std::cos(pitch);
+    ScePspFVector3 center={p.x+std::cos(yaw)*cp,p.y+std::sin(pitch),
+                            p.z+std::sin(yaw)*cp};
     ScePspFVector3 up={0.0f,1.0f,0.0f};
     sceGumMatrixMode(GU_VIEW);
     sceGumLoadIdentity();
