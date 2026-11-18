@@ -280,7 +280,7 @@ void World3D::build() {
     for(int i=0;i<3;++i)
         cylinderY(10.50f+i*0.68f,ay+0.20f,ay+1.95f,-4.86f,0.28f,10,steel);
     box(10.65f,ay+0.48f,-5.75f,1.12f,0.47f,0.39f,dark);
-    obstacle(10.20f,12.12f,-5.25f,-4.40f,1u<<AuxiliaryDeck);
+    obstacle(9.60f,11.77f,-5.25f,-4.40f,1u<<AuxiliaryDeck);
     box(13.94f,ay+0.91f,4.70f,0.39f,0.91f,1.25f,machinery);
 
     // L2 engine side service boards and cylinder maintenance walkways.
@@ -344,7 +344,7 @@ bool World3D::canStand(float x,float z,int deck_id,float radius) const {
     if(deck_id<0 || deck_id>=DeckCount || radius<0.0f || radius>0.65f) return false;
     if(!std::isfinite(x) || !std::isfinite(z)) return false;
     const float az=std::fabs(z);
-    if(deck_id==EcrDeck && x< -2.70f) {
+    if(deck_id==EcrDeck && x< -2.50f) {
         if(x< -9.75f+radius || az>3.93f-radius) return false;
         // Only the centre ECR doorway connects to the machinery upper platform.
         if(x> -3.54f-radius && az>1.12f-radius) return false;
