@@ -470,13 +470,13 @@ bool World3D::canStand(float x,float z,int deck_id,float radius) const {
     // The engine is not a floor: retain port/starboard catwalk openings at L1-L4.
     if(deck_id>TankTopDeck && x>3.10f-radius && x<12.20f+radius &&
        az<2.38f+radius) return false;
-    if(deck_id>TankTopDeck) {
-        // Deck plates are cut out around both ladder shafts. Enter only when climbing.
-        if(x> -1.52f-radius && x< -0.05f+radius &&
-           z>4.12f-radius && z<5.83f+radius) return false;
-        if(x>12.76f-radius && x<14.23f+radius &&
-           z> -5.87f-radius && z< -4.15f+radius) return false;
-    }
+    // Floor plates are cut away at each inclined flight. Unlike a simple
+    // ladder trigger, a player standing on the slope resolves their height
+    // from walkSurface(), not from a fake platform in the stair opening.
+    if(x>-1.82f-radius && x<0.86f+radius &&
+       z>4.34f-radius && z<5.66f+radius) return false;
+    if(x>12.84f-radius && x<14.16f+radius &&
+       z>-4.54f-radius && z<-1.88f+radius) return false;
     for(std::size_t i=0;i<obstacles_.size();++i) {
         const Footprint& b=obstacles_[i];
         if(!(b.deck_mask & (1u<<deck_id))) continue;
@@ -486,19 +486,79 @@ bool World3D::canStand(float x,float z,int deck_id,float radius) const {
     return true;
 }
 
+bool World3D::stairHeight(const Stair3D& st,float x,float z,float feet_y,
+                          float& candidate_y,float radius) const {
+    const float vx=st.bottom_x-st.top_x;
+    const float vz=st.bottom_z-st.top_z;
+    const float run2=vx*vx+vz*vz;
+    const float run=std::sqrt(run2);
+    const float ux=x-st.top_x,uz=z-st.top_z;
+    const float t=(ux*vx+uz*vz)/run2; // t=0 at upper landing, 1 lower
+    if(t < -0.17f || t > 1.17f) return false;
+    const float lateral=std::fabs(ux*vz-uz*vx)/run;
+    if(lateral>st.width*0.5f-radius*0.28f) return false;
+    // Clamp only beyond the tread run at a safe, level landing approach.
+    const float rise=1.0f-std::max(0.0f,std::min(1.0f,t));
+    float best=0.48f;
+    bool found=false;
+    for(int d=TankTopDeck;d<EcrDeck;++d) {
+        const float possible=floorHeight(d)+3.2f*rise;
+        const float diff=std::fabs(feet_y-possible);
+        if(diff<=best) {
+            best=diff;
+            candidate_y=possible;
+            found=true;
+        }
+    }
+    return found;
+}
+
+bool World3D::walkSurface(float x,float z,float feet_y,float& next_feet_y,
+                          float radius) const {
+    if(!std::isfinite(x) || !std::isfinite(z) || !std::isfinite(feet_y))
+        return false;
+    if(radius<0.0f || radius>0.65f) return false;
+    bool found=false;
+    float best=0.49f;
+    for(int d=TankTopDeck;d<DeckCount;++d) {
+        const float y=floorHeight(d);
+        const float diff=std::fabs(feet_y-y);
+        if(diff<best && canStand(x,z,d,radius)) {
+            best=diff;
+            next_feet_y=y;
+            found=true;
+        }
+    }
+    for(int i=0;i<stairCount();++i) {
+        float stair_y=0.0f;
+        if(stairHeight(stairs_[i],x,z,feet_y,stair_y,radius)) {
+            const float diff=std::fabs(feet_y-stair_y);
+            if(diff<=best+0.001f) {
+                best=diff;
+                next_feet_y=stair_y;
+                found=true;
+            }
+        }
+    }
+    return found;
+}
+
+bool World3D::onStair(float x,float z,float feet_y) const {
+    for(int i=0;i<stairCount();++i) {
+        float candidate=0.0f;
+        if(stairHeight(stairs_[i],x,z,feet_y,candidate,0.25f)
+           && std::fabs(feet_y-candidate)<0.30f) {
+            const Stair3D& st=stairs_[i];
+            const float vx=st.bottom_x-st.top_x,vz=st.bottom_z-st.top_z;
+            const float t=((x-st.top_x)*vx+(z-st.top_z)*vz)/(vx*vx+vz*vz);
+            if(t>0.02f && t<0.98f) return true;
+        }
+    }
+    return false;
+}
+
 StationId World3D::lookAtStation(const Vec3& camera,float yaw) const {
     const int deck_id=cameraDeck(camera.y);
-    // A ladder landing must be approachable without fine-grained look precision.
-    int closest=-1;
-    float best_ladder=1.20f*1.20f;
-    for(int i=0;i<2;++i) {
-        const float dx=ladders_[i].landing_x-camera.x;
-        const float dz=ladders_[i].landing_z-camera.z;
-        const float dist2=dx*dx+dz*dz;
-        if(dist2<best_ladder) { best_ladder=dist2;closest=i; }
-    }
-    if(closest>=0) return closest==0?MainLadderStation:EscapeLadderStation;
-
     struct Target { StationId id; int level; float x,z,range; };
     const Target targets[]={
         {EcrConsoleStation,EcrDeck,-9.18f,0.0f,2.70f},
