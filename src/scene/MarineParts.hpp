@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene/World3D.hpp"
+#include "scene/SceneGeometry.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -87,6 +87,14 @@ struct PartTransform {
                   float yaw=0.0f,float pitch=0.0f,float roll=0.0f)
         :position{x,y,z},scale{sx,sy,sz},
          yaw_rad(yaw),pitch_rad(pitch),roll_rad(roll) {}
+};
+
+struct MarinePartPlacement {
+    MarinePartId part;
+    MarineMaterialId finish;
+    PartTransform transform;
+    MarinePartPlacement(MarinePartId p,MarineMaterialId m,
+                        const PartTransform& t):part(p),finish(m),transform(t) {}
 };
 
 class MarinePartLibrary {
