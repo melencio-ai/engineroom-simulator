@@ -1,4 +1,4 @@
-name: Engine Watch 3D CI
+name: Engine Watch 3D Multi-Deck CI
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.3-native-3d
+          name: engine-watch-psp-v0.4-multideck
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.3-native-3d
+          name: engine-watch-psp-v0.4-multideck
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -108,6 +108,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-3d-screen-diagnostics
+          name: ppsspp-multideck-screen-diagnostics
           path: diagnostics/
           if-no-files-found: ignore
