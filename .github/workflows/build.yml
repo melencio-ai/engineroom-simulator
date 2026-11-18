@@ -1,23 +1,38 @@
-name: Engine Watch v0.2 CI
+name: Engine Watch 3D CI
 
 on:
   push:
     branches: [main, develop, 'feature/**']
   pull_request:
-    branches: [develop, main, feature/psp-v0.1]
+    branches: [develop, main, 'feature/**']
   workflow_dispatch:
 
 jobs:
-  simulation-tests:
+  scene-and-simulation-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Configure headless simulation tests
+      - name: Configure headless tests
         run: cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
       - name: Build
         run: cmake --build build/tests --parallel 2
-      - name: Test
+      - name: Test simulation and 3D world
         run: ctest --test-dir build/tests --output-on-failure
+
+  desktop-3d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2 and OpenGL development libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev libgl1-mesa-dev
+      - name: Configure desktop 3D preview
+        run: cmake -S . -B build/desktop -DENGINEWATCH_BUILD_GAME=ON -DBUILD_TESTING=ON
+      - name: Build 3D desktop application
+        run: cmake --build build/desktop --parallel 2
+      - name: Test
+        run: ctest --test-dir build/desktop --output-on-failure
 
   psp-eboot:
     runs-on: ubuntu-latest
@@ -25,18 +40,18 @@ jobs:
       image: pspdev/pspdev:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Configure PSP build
+      - name: Configure PSP native 3D build
         run: psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-      - name: Build EBOOT
+      - name: Compile PSP GU/GUM 3D executable
         run: cmake --build build/psp --parallel 2
-      - name: Package playable output
+      - name: Package EBOOT
         run: |
           test -f build/psp/EBOOT.PBP
           mkdir -p dist/PSP/GAME/ENGINEWATCH
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.2
+          name: engine-watch-psp-v0.3-native-3d
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -48,20 +63,20 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.2
+          name: engine-watch-psp-v0.3-native-3d
           path: game/
-      - name: Install virtual display and screenshot tools
+      - name: Install PPSSPP dependencies and screenshot utilities
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb imagemagick libgl1-mesa-dri pulseaudio pulseaudio-utils
-      - name: Get official PPSSPP AppImage
+      - name: Download official PPSSPP AppImage
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download v1.20.4 --repo hrydgard/ppsspp --pattern "PPSSPP-v1.20.4-anylinux-x86_64.AppImage" --dir /tmp
           chmod +x /tmp/PPSSPP-v1.20.4-anylinux-x86_64.AppImage
           /tmp/PPSSPP-v1.20.4-anylinux-x86_64.AppImage --appimage-extract >/dev/null
-      - name: Boot PPSSPP and capture framebuffer
+      - name: Boot 3D engine room and capture framebuffer
         shell: bash
         run: |
           mkdir -p diagnostics "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH"
@@ -80,16 +95,19 @@ jobs:
           '
           identify diagnostics/screen.png
           tail -n 100 diagnostics/ppsspp.log
-          if grep -q 'Boot failed' diagnostics/ppsspp.log; then echo 'PPSSPP could not boot EBOOT.PBP'; exit 1; fi
-          if ! grep -q 'Booted .*ENGINEWATCH/EBOOT.PBP' diagnostics/ppsspp.log; then echo 'Missing successful PSP boot marker'; exit 1; fi
-          # The game floor is RGB(22,48,61); neither a blank frame nor the PPSSPP menu draws it.
-          if ! convert diagnostics/screen.png -format %c histogram:info:- | grep -qF '(22,48,61)'; then
-            echo 'ENGINE WATCH graphics were not visible in the emulator screenshot.'
+          if grep -q 'Boot failed' diagnostics/ppsspp.log; then echo 'PPSSPP boot failed'; exit 1; fi
+          if ! grep -q 'Booted .*ENGINEWATCH/EBOOT.PBP' diagnostics/ppsspp.log; then
+            echo 'PPSSPP did not boot the PSP game'; exit 1
+          fi
+          unique_colors=$(identify -format '%k' diagnostics/screen.png)
+          if [ "$unique_colors" -lt 20 ]; then
+            echo '3D scene appears blank or has too few visible colours'
             exit 1
           fi
+          echo "3D smoke frame captured ($unique_colors unique colours)"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-screen-diagnostics
+          name: ppsspp-3d-screen-diagnostics
           path: diagnostics/
           if-no-files-found: ignore

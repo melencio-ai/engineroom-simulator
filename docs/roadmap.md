@@ -1,25 +1,51 @@
-# ENGINE WATCH — PSP Roadmap
+# ENGINE WATCH — PSP Development Roadmap
 
-## Validation completed
+## v0.1/v0.2 — completed 2D gameplay foundations
 
-- **v0.1.1:** Engine Control Room and walkable machinery platform, local LO pump controls, dynamic pressure and explicit ECR verification. PSPDEV cross-build passed, PPSSPP automated boot screenshot passed. User tested ECR and Mission 001 completion on Android PPSSPP.
+- Engine control room, machinery floor navigation and LO system UI.
+- Mission 001 pump start and ECR verification.
+- Mission 002 strainer restriction, standby changeover, isolation, pressure restoration, alarms.
+- Deterministic headless system tests and PSP/PPSSPP builds.
 
-## v0.2 — Current branch
+## v0.3 — first real 3D environment (current)
 
-- Two LO pumps, four isolation valves, developing suction-strainer restriction, main suction and strainer DP instrumentation, alarm acknowledgment and Mission 002 changeover/diagnosis.
-- Updated compact top objective and contextual bottom controls for handheld readability.
-- Mission 001 now requires explicit ECR verification. ECR **X** after pass advances to Mission 002.
-- Headless tests for the complete fault, changeover, isolation and verification lifecycle.
-- Pending: Android hands-on walkthrough, readability and controller mapping review.
+- **Native PSP GU/GUM perspective** rendering. No SDL2 2D game renderer on PSP.
+- Same 3D meshes and camera in desktop OpenGL preview.
+- One walkable ECR and main-engine-room space connected by a physical doorway.
+- Procedural main engine, two generator sets, local LO pumps, strainer, piping, grating, railings and overhead structures.
+- Collision against bulkheads and main machinery footprints.
+- Camera-facing/proximity interactions mapped into existing missions 001 and 002.
+- Shared HUD font atlas, crosshair, status/panel overlays.
+- 3D world tests, PSP EBOOT compilation, desktop preview compilation and PPSSPP boot/screenshot smoke.
 
-## Planned iterations
+**Review gate:** PPSSPP hardware/Android hands-on check for native 3D scene visibility, fonts, turning speed, walking controls and interactive station positioning before merging.
 
-- **v0.3:** Scalable fault/scenario definitions (JSON or compiled table), quick evaluation screen, scoring and save states; improve physical plausibility of LO system flow and temperature.
-- **v0.4:** Freshwater cooling and two electrically powered pumps, local/ECR dependency mapping.
-- **v0.5:** Starting-air compressors and receivers; main engine starting readiness checks and selected machinery alarms.
-- **v0.6:** First-aid-style engineering decision exercises, emergency conditions, generator trips and changeover.
-- **v0.7+:** 2.5D pre-rendered machinery environments with collision and better interaction proximity; sound effects; multiple deck navigation.
+## v0.4 — turn blockout into recognizable engine-room spaces
 
-## Engineering fidelity
+- Better low-polygon meshes for engine block, turbocharger, gensets and auxiliary equipment.
+- Texture atlas for labels, decks, bulkheads, and machinery nameplates.
+- Improved camera sensitivity, doorway collision, first-person interaction highlighting.
+- Measured PSP performance (polygon budget, draw calls and GPU cache behavior).
+- Separate instrument panel/console views where readability on 480x272 requires them.
 
-All pressures, response rates, delays, flags and alarms are currently illustrative. Do not use prototype data as actual marine engineering procedures. A manufacturer and vessel reference are required before claiming realistic quantitative operating behavior or training certification.
+## v0.5 — operational machinery expansion
+
+- Diesel-generator start/stop, electrical load-sharing and ECR mimic page.
+- Cooling-water pumps, seawater and freshwater loops, heat exchanger and alarms.
+- LO instrumentation mapped to physical pump/strainer locations.
+
+## v0.6 — engine operations
+
+- Compressed air system, compressors, receiver banks and start permissives.
+- Main engine readiness states and representative startup sequence.
+- Alarm logic, troubleshooting and mission scoring.
+
+## v0.7+ — training and polish
+
+- Multi-deck navigation, ladders and detailed machinery arrangements.
+- Scenario selection, assessments, save/load, integrated help and maintenance tasks.
+- Sound, equipment animations and more realistic process models once verified against an approved vessel reference.
+
+## Simulation disclaimer
+
+The figures, logic and operation steps are *illustrative educational game mechanics*, not manufacturer-approved or ship-specific operating instructions.
