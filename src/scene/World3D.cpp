@@ -566,11 +566,13 @@ void World3D::build() {
          PartTransform(2.20f,top+1.05f,-3.42f,1.8f,1.2f,1.0f));
     part(HandrailPost,OffWhiteCoatedSteel,
          PartTransform(2.88f,top+0.54f,3.33f,0.8f,1.04f,0.80f));
+    part(AngleSection,SafetyYellow,
+         PartTransform(3.05f,top+0.14f,-3.31f,0.62f,0.22f,0.48f));
     part(AccessCover,GreenEpoxy,
          PartTransform(-1.35f,0.070f,-4.38f,0.85f,0.60f,0.85f));
     part(AccessCover,GreenEpoxy,
          PartTransform(2.20f,0.070f,4.05f,1.2f,0.60f,0.85f));
-    part(CableTray,GalvanizedSteel,
+    part(CableTray,StainlessSteel,
          PartTransform(7.5f,13.72f,-6.55f,9.0f,0.55f,0.55f));
     part(CableTray,GalvanizedSteel,
          PartTransform(8.2f,10.60f,6.55f,7.5f,0.55f,0.55f));
