@@ -133,11 +133,9 @@ void World3D::plateSeams(float x0,float x1,float z0,float z1,float y) {
         quad(Vec3{x0,y+0.004f,z-0.011f},Vec3{x1,y+0.004f,z-0.011f},
              Vec3{x1,y+0.004f,z+0.011f},Vec3{x0,y+0.004f,z+0.011f},seam);
     }
-    for(float x=x0+0.42f;x<x1-0.22f;x+=0.74f) {
-        for(float z=z0+0.42f;z<z1-0.22f;z+=0.74f) {
-            checkerTread(x,y+0.007f,z,shade(deck,1.23f));
-        }
-    }
+    // Raised tread detail is now provided by placed CheckerPlate objects from
+    // MarinePartLibrary; drawing the legacy per-deck tread mesh as well would
+    // duplicate thousands of triangles and lose the reusable asset boundary.
 }
 void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
     if(x1<=x0 || z1<=z0) return;
