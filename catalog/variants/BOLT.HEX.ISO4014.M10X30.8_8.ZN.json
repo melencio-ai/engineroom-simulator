@@ -16,7 +16,7 @@
   "material": {
     "base_material": "carbon_steel",
     "grade": null,
-    "grade_standard": "ISO 898-1:2013 (property-class context only)"
+    "grade_standard": null
   },
   "coating_id": "COAT.ZINC.UNSPECIFIED",
   "insulation_id": null,
