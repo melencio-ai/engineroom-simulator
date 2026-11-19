@@ -42,7 +42,7 @@ The support framework is driven by `DeckPlan::gratingBands()`, and the inner-wel
 
 The reusable grating mesh spans only `-0.49..+0.49` in both horizontal local axes, so its true normalized width is **0.98**, not **1.00**. The previous object transform used the nominal panel size directly and left approximately **45.5 mm** total gap between two adjoining 2.275 m bays. G3 calculates each transform scale as **bay dimension / 0.98**; consecutive panels now meet exactly with no missing strip along the seam.
 
-This keeps the existing **16-bit PSP depth precision**, floor top elevations, 33 older reusable component archetypes, pump positions, machinery and mission simulation.
+This keeps the existing **16-bit PSP depth precision**, floor top elevations, 33 older reusable component archetypes, pump positions, machinery and mission simulation. To avoid shallow-angle depth conflicts in that 16-bit buffer, G3 removes the old **4-mm-above-floor decorative plate-seam quads**. Future panel seams should be represented by embedded/baked surface material details rather than competing near-coplanar floor polygons.
 
 ### Collision from the same source
 
