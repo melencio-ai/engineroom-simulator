@@ -493,7 +493,7 @@ void World3D::build() {
     panelizedBox(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,shade(wall,0.65f));
     cameraBlocker(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f);
     for(float x=-2.0f;x<15.0f;x+=3.0f) {
-        box(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
+        occludingBox(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
         for(int side=-1;side<=1;side+=2)
             occludingBox(x,8.40f,side*6.66f,0.16f,8.45f,0.12f,steel);
     }
@@ -532,11 +532,11 @@ void World3D::build() {
     }
 
     // One slow-speed six-cylinder main engine from foundation to top platform.
-    box(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
-    box(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
-    box(7.60f,5.72f,0.0f,3.63f,1.35f,1.49f,shade(engineBlue,1.06f));
-    box(7.60f,8.43f,0.0f,3.55f,1.42f,1.45f,machinery);
-    box(7.60f,10.82f,0.0f,3.53f,0.75f,1.35f,steel);
+    occludingBox(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
+    occludingBox(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
+    occludingBox(7.60f,5.72f,0.0f,3.63f,1.35f,1.49f,shade(engineBlue,1.06f));
+    occludingBox(7.60f,8.43f,0.0f,3.55f,1.42f,1.45f,machinery);
+    occludingBox(7.60f,10.82f,0.0f,3.53f,0.75f,1.35f,steel);
     for(int i=0;i<6;++i) {
         const float x=4.70f+i*1.14f;
         box(x,11.76f,0.0f,0.48f,0.48f,1.14f,engineBlue);
@@ -612,7 +612,7 @@ void World3D::build() {
         const float z=i==0?-4.38f:2.75f;
         box(0.55f,py+0.21f,z,0.87f,0.21f,0.68f,dark);
         cylinderX(-0.12f,0.92f,py+0.91f,z,0.45f,12,pipe);
-        box(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
+        occludingBox(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
         box(0.90f,py+1.39f,z,0.43f,0.055f,0.31f,yellow);
         cylinderY(1.25f,py+0.96f,py+1.17f,z,0.22f,10,red);
         cylinderX(-0.40f,1.30f,py+1.20f,z+0.56f,0.09f,10,pipe);
@@ -628,7 +628,7 @@ void World3D::build() {
         }
         obstacle(-0.45f,1.58f,z-0.78f,z+0.78f,1u<<PumpFlatDeck);
     }
-    box(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
+    occludingBox(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
     box(1.67f,py+1.32f,-2.83f,0.033f,0.42f,0.40f,dark);
     box(1.62f,py+1.44f,-2.98f,0.024f,0.07f,0.085f,green);
     box(1.62f,py+1.44f,-2.67f,0.024f,0.07f,0.085f,yellow);
