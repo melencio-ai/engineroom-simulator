@@ -133,7 +133,7 @@ Hud3D Game3D::hud() const {
     h.paused=paused_;
     h.alarm=s.lo_pressure_alarm;
     h.climbing=climbing_;
-    std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D  |  %s",World3D::deckName(deck_));
+    std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D - %s",World3D::deckName(deck_));
     std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR   MAIN %s   STBY %s",
                   s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump));
     if(s.mission==1) {
