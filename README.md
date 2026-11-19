@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.5 — Marine engineer character and camera (stacked preview)
+
+The [G3.5 player prototype](docs/g35-marine-engineer-player.md) adds a procedural low-poly marine engineer with boiler suit, helmet and gloves, travel-driven walking/climbing animations, first-person hands, and a collision-aware third-person trailing camera. Press **SELECT** on PSP/PPSSPP (including phones), or **V** on desktop, to toggle views. ECR and LO pump operations trigger reach/inspection poses. Runtime avatar triangles remain separate from the static G3 scene. GitHub CI produces a playable **G3.5 PSP preview** and six portable OBJ character-pose files; the current rig and PPE remain illustrative, not a smooth-skinned or approved safety model.
+
 ## G3 — Deck constructor shared with collision (stacked draft)
 
 The [G3 deck-construction blueprint](docs/g3-deck-constructor.md) now drives **all five levels from one `DeckPlan`**: 79 physical steel/grating/cover cells, 12 shaft/well openings, eight supported grating bands and both inclined stair paths. Visible floor surfaces, steel supports, open-well railings and circular player collision all derive from the SAME source instead of separate hard-coded coordinates. Grating bays are now sized to fill the real mesh footprint (0.98 local units), closing 45-mm between-panel gaps. New `engine-watch-deck-constructor-g3` artifact exports five **SVG deck schematics** and the physical layout JSON. A separate **G3 PPSSPP preview** installer permits Windows verification before merging; the gameplay's LO mission code remains unchanged.

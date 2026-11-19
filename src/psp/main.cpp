@@ -63,6 +63,7 @@ int main(int, char**) {
         in.back=(pressed & PSP_CTRL_CIRCLE)!=0;
         in.help=(pressed & PSP_CTRL_TRIANGLE)!=0;
         in.pause=(pressed & PSP_CTRL_START)!=0;
+        in.toggle_view=(pressed & PSP_CTRL_SELECT)!=0;
         in.up=(pressed & PSP_CTRL_UP)!=0;
         in.down=(pressed & PSP_CTRL_DOWN)!=0;
 

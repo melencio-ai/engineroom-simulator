@@ -1,4 +1,4 @@
-name: Engine Watch G3 Shared Deck Constructor and PSP CI
+name: Engine Watch G3.5 Marine Engineer Player and PSP CI
 
 on:
   push:
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure portable marine 3D OBJ exporter
-        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON -DENGINEWATCH_EXPORT_DECKPLAN=ON
+        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON -DENGINEWATCH_EXPORT_DECKPLAN=ON -DENGINEWATCH_EXPORT_CHARACTER=ON
       - name: Build native 3D component exporter
         run: cmake --build build/objects --parallel 2
       - name: Export 33 separate OBJ/MTL meshes
@@ -125,6 +125,37 @@ jobs:
               assert sum(c["deck"]==deck for c in data["cells"])>0
           print("G3 export check: 79 floor cells, 12 declared cutouts, 8 grating bands, 5 valid SVG plans")
           PY
+      - name: Generate low-poly marine engineer and six inspection poses
+        run: |
+          mkdir -p dist/marine-engineer
+          ./build/objects/enginewatch_export_character dist/marine-engineer
+      - name: Verify standalone human mesh exports and runtime constraints
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path("dist/marine-engineer")
+          profile=json.loads((root/"profile.json").read_text())
+          poses=sorted(root.glob("*.obj"))
+          assert len(poses)==6,poses
+          assert profile["body_height_m"]>profile["eye_height_m"]
+          assert profile["max_runtime_vertices"]==1800
+          assert profile["idle_body_triangles"]*3 <=1800
+          assert profile["first_person_hand_triangles"]*3 <=1800
+          assert (root/"marine_engineer.mtl").exists()
+          for pose in poses:
+              txt=pose.read_text()
+              assert "mtllib marine_engineer.mtl" in txt
+              assert sum(line.startswith("v ") for line in txt.splitlines())>100
+              assert "usemtl" in txt
+          print("G3.5: six OBJ poses, colours/PPE and transient character budget PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-marine-engineer-character-g35
+          path: dist/marine-engineer/
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: engine-watch-deck-constructor-g3
@@ -185,7 +216,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g3-deck-constructor-preview
+          name: engine-watch-psp-g35-marine-engineer-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -197,7 +228,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g3-deck-constructor-preview
+          name: engine-watch-psp-g35-marine-engineer-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -242,6 +273,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-g3-deck-constructor-preview-diagnostics
+          name: ppsspp-g35-marine-engineer-preview-diagnostics
           path: diagnostics/
           if-no-files-found: ignore

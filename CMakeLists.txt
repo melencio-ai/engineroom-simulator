@@ -13,6 +13,7 @@ add_library(enginewatch_scene STATIC
     src/scene/MarineParts.cpp
     src/scene/World3D.cpp
     src/scene/Game3D.cpp
+    src/scene/PlayerCharacter.cpp
     src/scene/FontAtlas.cpp
 )
 target_include_directories(enginewatch_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -37,7 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH G3 PREVIEW"
+            TITLE "ENGINE WATCH G3.5 PLAYER"
             VERSION 01.00
         )
     endif()
@@ -69,6 +70,14 @@ if(ENGINEWATCH_EXPORT_ASSETS AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(enginewatch_export_parts PRIVATE enginewatch_scene)
 endif()
 
+# G3.5: native OBJ snapshots of the same procedural character that
+# animates in PSP and desktop. Native-only, never bundled into PSP EBOOT.
+option(ENGINEWATCH_EXPORT_CHARACTER "Export low-poly marine-engineer character poses" OFF)
+if(ENGINEWATCH_EXPORT_CHARACTER AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(enginewatch_export_character tools/export_player_character.cpp)
+    target_link_libraries(enginewatch_export_character PRIVATE enginewatch_scene)
+endif()
+
 # G3: native constructor exporter reads the very same DeckPlan as the
 # playable C++ engine to generate physical layout JSON and vector deck maps.
 option(ENGINEWATCH_EXPORT_DECKPLAN "Export shared deck layout JSON and SVG blueprints" OFF)
@@ -90,6 +99,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_deck_tests tests/DeckLayoutTests.cpp)
     target_link_libraries(enginewatch_deck_tests PRIVATE enginewatch_scene)
     add_test(NAME constructed_deck_geometry_and_collision COMMAND enginewatch_deck_tests)
+
+    add_executable(enginewatch_player_tests tests/PlayerCharacterTests.cpp)
+    target_link_libraries(enginewatch_player_tests PRIVATE enginewatch_scene)
+    add_test(NAME marine_engineer_character_and_camera COMMAND enginewatch_player_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)
