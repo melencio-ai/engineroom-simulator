@@ -73,7 +73,7 @@
   "generator": {
     "name": "pipe_spool",
     "version": "0.1.0",
-    "implementation_status": "planned"
+    "implementation_status": "available"
   },
   "lod_policy": {
     "master": "parametric_cad",
