@@ -42,7 +42,21 @@ The support framework is driven by `DeckPlan::gratingBands()`, and the inner-wel
 
 The reusable grating mesh spans only `-0.49..+0.49` in both horizontal local axes, so its true normalized width is **0.98**, not **1.00**. The previous object transform used the nominal panel size directly and left approximately **45.5 mm** total gap between two adjoining 2.275 m bays. G3 calculates each transform scale as **bay dimension / 0.98**; consecutive panels now meet exactly with no missing strip along the seam.
 
-This keeps the existing **16-bit PSP depth precision**, floor top elevations, 33 older reusable component archetypes, pump positions, machinery and mission simulation. To avoid shallow-angle depth conflicts in that 16-bit buffer, G3 removes the old **4-mm-above-floor decorative plate-seam quads**. Future panel seams should be represented by embedded/baked surface material details rather than competing near-coplanar floor polygons.
+This keeps the existing **16-bit PSP depth precision**, floor top elevations, 33 older reusable component archetypes, pump positions, machinery and mission simulation.
+
+## PSP renderer camera-cutout fix — November 19
+
+The first G3 screenshot review showed **entire walls and broad green deck faces disappearing when the player walked or turned close to machinery**. The cause involves PSP hardware clipping in addition to the physical deck layout.
+
+- **Near-plane enable:** The PSP renderer was missing `sceGuEnable(GU_CLIP_PLANES)`. Without it, PSP can discard a triangle in its entirety if any vertex passes behind the camera. G3 now explicitly enables that state during GE initialization AND every 3D frame.
+- **Guard-band-safe shell panels:** PSP only implements near clipping in hardware, not full left/right/top/bottom clipping. A giant wall or floor triangle whose projected vertex escapes screen coordinates 0..4096 can disappear even with near clipping enabled. The new `panelizedBox()` subdivides only six exposed outer faces of oversized hull/ceiling/steel-deck boxes into approximately 2-m squares. It does not add overlapping interior faces.
+- **No collision-model change:** DeckPlan, pump/stair routes, vertex colour layout, reversed 16-bit depth, 0.25-m near plane and the 60-m far plane are preserved.
+- **Regression coverage:** `tools/verify_psp_render_state.py` asserts near clipping stays enabled before initialization and each 3D draw. `tests/World3DTests.cpp` checks that the major structural wall/ceiling planes are covered by short triangles rather than oversized guard-band-risk faces.
+
+**Limit:** Automated native geometry tests and PPSSPP boot smoke cannot prove the rendering issue is gone at every viewpoint. A real camera sweep along the Pump Flat walls, beneath the upper decks, and at the ECR stair landing is still required before merging.
+
+References: [PPSSPP GE clipping behavior](https://www.ppsspp.org/docs/psp-hardware/gpu/ge-vertex-pipeline/) and [PSPSDK GE states](https://pspdev.github.io/pspsdk/group__GU.html).
+ To avoid shallow-angle depth conflicts in that 16-bit buffer, G3 removes the old **4-mm-above-floor decorative plate-seam quads**. Future panel seams should be represented by embedded/baked surface material details rather than competing near-coplanar floor polygons.
 
 ### Collision from the same source
 
