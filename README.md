@@ -1,10 +1,16 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
-**v0.6 feature build: reusable parametric 3D shipbuilding components**
+**v0.7 feature build: Pump Flat realism, stair/headroom collision and existing modular shipbuilding components**
 
 This is a first-person, multi-deck PSP/PPSSPP marine engine-room simulator in C++11, with a matching SDL2/OpenGL desktop preview. The environment is now built in part from an independent library of **33 reusable 3D marine components**, with **16 separate material/finish types**. Each component can be resized, rotated, placed in the engine room or exported as an individual **OBJ + MTL** asset for Blender and other 3D tools.
 
 The game is a *fictional merchant cargo ship composite*. The geometry and process simulation are representative; it is not approved naval-architecture documentation or shipboard operating guidance.
+
+## v0.7 — Pump Flat and navigation
+
+This update builds **on top of v0.6**. It adds segmented, collision-checked walking, a dedicated stair headroom test, more complete low-poly pump/motor assemblies and a visually connected overhead LO discharge manifold made from the existing reusable marine 3D component library. During Mission 001 the HUD now distinguishes MAIN STARTING, MAIN RUNNING/pressure build and returning to ECR. Mission 002 and the existing 33 component archetypes remain.
+
+**[Implementation details, limitations and Windows PPSSPP QA checklist](docs/v0.7-pump-flat-navigation.md)**
 
 ## Reusable shipbuilding object library
 
@@ -49,9 +55,9 @@ The world also records each stamped part in `World3D::parts()` for future select
 
 ## Get 33 separate OBJ files
 
-Open a **successful** v0.6 GitHub Actions run of [Engine Watch 3D Shipbuilding Components CI](https://github.com/melencio-ai/engineroom-simulator/actions/workflows/build.yml).
+Open a **successful** v0.7 GitHub Actions run of [Engine Watch 3D Shipbuilding Components CI](https://github.com/melencio-ai/engineroom-simulator/actions/workflows/build.yml).
 
-Under **Artifacts**, download `engine-watch-reusable-3d-objects-v0.6`. Its ZIP contains **33 separate `.obj` models and 33 companion `.mtl` files**, together with the object catalog. Each object is independent and can be imported into Blender or another mesh application.
+Under **Artifacts**, download `engine-watch-reusable-3d-objects-v0.7`. Its ZIP contains **33 separate `.obj` models and 33 companion `.mtl` files**, together with the object catalog. Each object is independent and can be imported into Blender or another mesh application.
 
 Generate the same assets locally on Linux/macOS/Windows with CMake and a C++ compiler:
 
@@ -87,13 +93,13 @@ New reusable pieces enhance green marine checker plating, partial grating, struc
 - Cross (X): interact with machinery. **No Cross is required to climb the stairs.**
 - Circle: close; Triangle: help; Start: pause/reset.
 
-## Windows PPSSPP — install the new game
+## Windows PPSSPP — install the v0.7 game
 
-1. From a successful v0.6 CI run, download `engine-watch-psp-v0.6-modular-engine-room` into `D:\Downloads`.
+1. From a successful v0.7 CI run, download `engine-watch-psp-v0.7-pump-flat-navigation` into `D:\Downloads`.
 2. Extract the ZIP. Inside it, find `PSP\GAME\ENGINEWATCH\EBOOT.PBP`.
 3. Close PPSSPP and back up your current EBOOT.
 4. Replace `C:\Users\Melencio\Documents\PPSSPP\PSP\GAME\ENGINEWATCH\EBOOT.PBP` with the extracted executable.
-5. Open PPSSPP → **Homebrew & Demos** → **ENGINE WATCH**; use a fresh launch, not a savestate from v0.5.
+5. Open PPSSPP → **Homebrew & Demos** → **ENGINE WATCH**; use a fresh launch, not a savestate from an earlier version.
 
 **No GitHub CLI is needed** when downloading artifacts through the browser.
 
