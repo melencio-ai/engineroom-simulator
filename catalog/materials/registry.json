@@ -8,6 +8,14 @@
       "grade_standard": null,
       "engineering_status": "unspecified",
       "warning": "A bolt property class is not a steel material grade"
+    },
+    {
+      "id": "MAT.GASKET.FIBER.UNSPECIFIED",
+      "base_material": "fiber_sheet",
+      "grade": null,
+      "grade_standard": null,
+      "engineering_status": "unspecified",
+      "warning": "Illustrative sheet gasket not qualified for fuel/LO media, pressure or temperature"
     }
   ],
   "coatings": [

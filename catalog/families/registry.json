@@ -5,7 +5,7 @@
       "id": "fastener.hex_bolt",
       "domain": "mechanical",
       "generator": "hex_bolt",
-      "implementation_status": "planned",
+      "implementation_status": "available",
       "required_numeric_parameters": [
         "nominal_diameter_mm",
         "length_mm",
@@ -20,7 +20,7 @@
       "id": "piping.pipe_spool",
       "domain": "fluid",
       "generator": "pipe_spool",
-      "implementation_status": "planned",
+      "implementation_status": "available",
       "required_numeric_parameters": [
         "outside_diameter_mm",
         "wall_thickness_mm",
@@ -31,6 +31,74 @@
         "pipe_end"
       ],
       "notes": "Nominal DN does not fix OD or wall thickness; source-driven selection required"
+    },
+    {
+      "id": "fastener.hex_nut",
+      "domain": "mechanical",
+      "generator": "hex_nut",
+      "implementation_status": "available",
+      "required_numeric_parameters": [
+        "nominal_diameter_mm",
+        "thread_pitch_mm",
+        "nut_thickness_mm",
+        "across_flats_mm",
+        "bore_diameter_mm"
+      ],
+      "required_ports": [
+        "thread"
+      ],
+      "notes": "Helical internal thread visual approximation only; not ISO fit verified"
+    },
+    {
+      "id": "fastener.flat_washer",
+      "domain": "mechanical",
+      "generator": "flat_washer",
+      "implementation_status": "available",
+      "required_numeric_parameters": [
+        "inner_diameter_mm",
+        "outer_diameter_mm",
+        "thickness_mm"
+      ],
+      "required_ports": [
+        "mount"
+      ],
+      "notes": "Nominal sizes unverified; hole clearance is illustrative"
+    },
+    {
+      "id": "piping.weld_neck_flange",
+      "domain": "fluid",
+      "generator": "weld_neck_flange",
+      "implementation_status": "available",
+      "required_numeric_parameters": [
+        "outside_diameter_mm",
+        "flange_thickness_mm",
+        "bore_diameter_mm",
+        "bolt_circle_diameter_mm",
+        "bolt_hole_count",
+        "bolt_hole_diameter_mm",
+        "hub_length_mm",
+        "neck_outside_diameter_mm"
+      ],
+      "required_ports": [
+        "flange",
+        "pipe_end"
+      ],
+      "notes": "Illustrative geometry with genuine bolt-hole voids and tapered neck; not a pressure-rated flange"
+    },
+    {
+      "id": "piping.ring_gasket",
+      "domain": "fluid",
+      "generator": "ring_gasket",
+      "implementation_status": "available",
+      "required_numeric_parameters": [
+        "inner_diameter_mm",
+        "outer_diameter_mm",
+        "thickness_mm"
+      ],
+      "required_ports": [
+        "flange"
+      ],
+      "notes": "Illustrative gasket ring only; no material/temperature/pressure compatibility claim"
     }
   ]
 }
