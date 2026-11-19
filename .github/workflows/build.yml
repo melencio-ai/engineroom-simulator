@@ -148,6 +148,10 @@ jobs:
         run: cmake --build build/tests --parallel 2
       - name: Test simulation and 3D world
         run: ctest --test-dir build/tests --output-on-failure
+      - name: Enforce PSP near-plane clipping render contract
+        run: python3 tools/verify_psp_render_state.py
+      - name: Print scene mesh budget for PSP guardband analysis
+        run: build/tests/enginewatch_world_tests 2>&1 | grep -E 'PSP mesh budget|vertices /|raised deck'
 
   desktop-3d:
     runs-on: ubuntu-latest
