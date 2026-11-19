@@ -178,8 +178,11 @@ void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t
     // 16-bit PSP depth conflicts. Physical tile edges are real boundaries;
     // finer seams should be in a future baked surface material, not layered
     // coplanar geometry in the walkable scene.
+    // The camera stands at least 1.65 m above its deck: larger 3-m
+    // surface panels remain safely inside the GE guardband and save the
+    // PSP vertex budget for 2-m wall/ceiling panels near the viewpoint.
     panelizedBox((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
-                 (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
+                 (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color,3.0f);
 }
 void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     if(x1<=x0) return;
