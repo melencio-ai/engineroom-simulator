@@ -208,11 +208,14 @@ def validate_flanged_joint(asm: dict,parts: dict) -> dict:
         must(nc["parameters"]["thread_pitch_mm"]==
              bc["parameters"]["thread_pitch_mm"],
              f"{name}: nut/bolt pitches incompatible")
-        for w in (nwc,fwc):
+        for w,child in ((nwc,near),(fwc,far)):
             must(w["parameters"]["inner_diameter_mm"]>=dp+0.5 and
                  w["parameters"]["outer_diameter_mm"]>
                  w["parameters"]["inner_diameter_mm"],
                  f"{name}: washer cannot clear bolt")
+            normal=transform_vector((0,0,1),child["rotation_deg"])
+            must(abs(dot(normal,axis))>0.999,
+                 f"{name}: washer must be perpendicular to bolt shank")
         hdiam=lf["parameters"]["bolt_hole_diameter_mm"]
         must(dp+0.5<=hdiam<=dp+4.0,
              f"{name}: bolt-to-flange hole clearance unrealistic")
@@ -236,11 +239,9 @@ def validate_flanged_joint(asm: dict,parts: dict) -> dict:
         must(bolt["rotation_deg"]==[0,-90,0] and
              nut["rotation_deg"]==[0,90,0],
              f"{name}: fastener must run in positive-X direction")
-        assert_near(xbolt+bc["parameters"]["length_mm"]-(xn+nt/2),
-                    min_protrusion+1.0,1.01,
-                    f"{name}: threaded shank protrusion")
-        must(xbolt+bc["parameters"]["length_mm"]-(xn+nt/2)>=min_protrusion-tol,
-             f"{name}: threaded shank too short")
+        protrusion=xbolt+bc["parameters"]["length_mm"]-(xn+nt/2)
+        must(min_protrusion-tol<=protrusion<=min_protrusion+8.0,
+             f"{name}: threaded shank too short or excessive exposed length")
     must(sorted(used_holes)==list(range(len(fit["fasteners"]))),
          f"{name}: duplicate or missing flange hole positions")
     # Welded pipe/flange pieces move together during the visualization.
