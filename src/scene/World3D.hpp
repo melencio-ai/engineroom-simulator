@@ -83,6 +83,7 @@ private:
     void obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask);
     void deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color);
     void railing(float x0,float x1,float z,float height,uint32_t color);
+    void railingZ(float z0,float z1,float x,float height,uint32_t color);
     void stairGeometry(const Stair3D& stair);
     void part(MarinePartId type,MarineMaterialId finish,const PartTransform& position);
     void checkerTread(float x,float y,float z,uint32_t color);
