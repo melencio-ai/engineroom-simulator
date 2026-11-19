@@ -9,6 +9,7 @@ add_library(enginewatch_core STATIC src/core/EngineSimulation.cpp)
 target_include_directories(enginewatch_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 add_library(enginewatch_scene STATIC
+    src/scene/DeckLayout.cpp
     src/scene/MarineParts.cpp
     src/scene/World3D.cpp
     src/scene/Game3D.cpp
@@ -77,6 +78,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_world_tests tests/World3DTests.cpp)
     target_link_libraries(enginewatch_world_tests PRIVATE enginewatch_scene)
     add_test(NAME world_geometry_and_navigation COMMAND enginewatch_world_tests)
+
+    add_executable(enginewatch_deck_tests tests/DeckLayoutTests.cpp)
+    target_link_libraries(enginewatch_deck_tests PRIVATE enginewatch_scene)
+    add_test(NAME constructed_deck_geometry_and_collision COMMAND enginewatch_deck_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)
