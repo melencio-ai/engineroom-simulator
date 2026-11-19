@@ -44,17 +44,28 @@ void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
     const float speed=world_.onStair(camera_.x,camera_.z,feet) ? 1.60f:2.55f;
     const float dx=(cs*forward-sn*strafe)*dt*speed;
     const float dz=(sn*forward+cs*strafe)*dt*speed;
-    // Every move checks the current foot height against actual steel plates
-    // or an inclined stair. This permits continuous walkable deck-to-deck
-    // transitions, without snapping through missing floors or engine voids.
-    float surface=feet;
-    if(world_.walkSurface(camera_.x+dx,camera_.z,feet,surface)) {
-        camera_.x+=dx;
-        camera_.y=surface+1.65f;
-    }
-    if(world_.walkSurface(camera_.x,camera_.z+dz,camera_.y-1.65f,surface)) {
-        camera_.z+=dz;
-        camera_.y=surface+1.65f;
+    // Swept movement approximated by short, independent horizontal steps.
+    // This stops diagonal movement from skipping the narrow ladder landing
+    // and the colliders around valve stations, while retaining wall sliding.
+    // walkSurface also rejects camera/head intersections below a stair.
+    const float travel=std::sqrt(dx*dx+dz*dz);
+    const int steps=std::max(1,std::min(8,
+        static_cast<int>(std::ceil(travel/0.065f))));
+    for(int step_index=0;step_index<steps;++step_index) {
+        float surface=camera_.y-1.65f;
+        const float step_x=dx/static_cast<float>(steps);
+        const float step_z=dz/static_cast<float>(steps);
+        if(world_.walkSurface(camera_.x+step_x,camera_.z,
+                              camera_.y-1.65f,surface)) {
+            camera_.x+=step_x;
+            camera_.y=surface+1.65f;
+        }
+        surface=camera_.y-1.65f;
+        if(world_.walkSurface(camera_.x,camera_.z+step_z,
+                              camera_.y-1.65f,surface)) {
+            camera_.z+=step_z;
+            camera_.y=surface+1.65f;
+        }
     }
     deck_=World3D::cameraDeck(camera_.y);
     climbing_=world_.onStair(camera_.x,camera_.z,camera_.y-1.65f);
@@ -129,6 +140,9 @@ Hud3D Game3D::hud() const {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
             s.objective_complete?"001 DONE - VERIFY ECR TO ADVANCE":
             s.lo_pressure_bar>=3.0f?"RETURN TO DECK 04 ECR AND VERIFY":
+            s.main_pump.running?"001: MAIN LO PUMP RUNNING - WATCH PRESSURE":
+            s.main_pump.requested?"001: MAIN LO PUMP STARTING":
+            deck_==PumpFlatDeck?"001: USE LOCAL LO PANEL TO START MAIN PUMP":
             "001: DESCEND TO DECK 01 AND START MAIN LO PUMP");
     } else {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
@@ -174,11 +188,14 @@ Hud3D Game3D::hud() const {
             onOff(s.main_pump.suction_open),onOff(s.main_pump.discharge_open),
             onOff(s.standby_pump.suction_open),onOff(s.standby_pump.discharge_open)
         };
-        h.panel_count=6;
+        h.panel_count=7;
         h.selected_row=selected_;
         for(int i=0;i<6;++i)
             std::snprintf(h.panel_rows[i],sizeof(h.panel_rows[i]),"%c %-19s %s",
                           selected_==i?'>':' ',names[i],values[i]);
+        std::snprintf(h.panel_rows[6],sizeof(h.panel_rows[6]),
+                      "LO HEADER %.2f BAR | BUS %s",
+                      s.lo_pressure_bar,s.electrical_bus_energized?"LIVE":"OFF");
     } else if(panel_==Console) {
         std::snprintf(h.panel_title,sizeof(h.panel_title),"DECK 04 | ECR LO SYSTEM MONITOR");
         std::snprintf(h.panel_rows[0],sizeof(h.panel_rows[0]),
