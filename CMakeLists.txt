@@ -37,7 +37,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH 3D v0.7.1"
+            TITLE "ENGINE WATCH G3 PREVIEW"
             VERSION 01.00
         )
     endif()
