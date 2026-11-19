@@ -212,6 +212,11 @@ void stairCameraChecks() {
                    && std::isfinite(view.eye.z));
             assert(view.fov_degrees>=76.0f && view.fov_degrees<=91.0f);
             if(view.constrained) sawClose=true;
+            const Vec3 sight{
+                game.camera().x,game.camera().y+0.15f,game.camera().z
+            };
+            assert(world.cameraRayFraction(sight,view.eye,0.10f)>0.990f &&
+                   "3P camera cannot look through stair treads or columns");
             assert(std::strstr(game.hud().status,"VIEW 3P")!=nullptr &&
                    "The displayed camera mode must agree with rendered geometry");
             if(game.isClimbing()) sawStairs=true;
@@ -222,6 +227,90 @@ void stairCameraChecks() {
     assert(sawClose && "The camera must detect constrained bridge/stair geometry");
     assert(game.currentDeck()==AuxiliaryDeck);
     assert(game.renderCamera().show_body);
+}
+
+float distance3(const Vec3& a,const Vec3& b) {
+    const float dx=a.x-b.x,dy=a.y-b.y,dz=a.z-b.z;
+    return std::sqrt(dx*dx+dy*dy+dz*dz);
+}
+
+void smartVisibilityChecks() {
+    World3D world;
+    // The camera must know about opaque structures absent from the *flat*
+    // foot collision model. The authored treads supply 128 genuine boxes,
+    // plus the ECR/hull/column/machinery proxies.
+    assert(world.cameraOccluderCount()>=155u);
+
+    const float nohit=world.cameraRayFraction(
+        Vec3{-4.40f,14.60f,0.0f},Vec3{-2.45f,14.60f,0.0f},0.05f);
+    assert(nohit>0.999f &&
+           "The actual clear ECR doorway must stay camera-visible");
+    const float console=world.cameraRayFraction(
+        Vec3{-7.35f,14.55f,0.0f},Vec3{-9.70f,14.55f,0.0f},0.06f);
+    assert(console>0.05f && console<0.90f &&
+           "Tall ECR control cabinet must stop the chase camera ray");
+    const float jamb=world.cameraRayFraction(
+        Vec3{-4.50f,14.80f,1.32f},Vec3{-2.65f,14.80f,1.32f},0.08f);
+    assert(jamb<0.95f && "ECR doorway frame is a real 3D occluder");
+
+    const float hull=world.cameraRayFraction(
+        Vec3{7.0f,6.0f,5.65f},Vec3{7.0f,6.0f,7.60f},0.10f);
+    assert(hull>0.01f && hull<0.95f &&
+           "A side bulkhead must prevent camera penetration");
+
+    const float deck=world.cameraRayFraction(
+        Vec3{-6.50f,13.35f,0.0f},Vec3{-6.50f,12.20f,0.0f},0.06f);
+    assert(deck>0.01f && deck<0.90f &&
+           "G3 physical deck must prevent seeing through solid flooring");
+
+    const Stair3D& st=world.stair(0);
+    const float t=8.5f/16.0f;
+    const float sx=st.bottom_x+(st.top_x-st.bottom_x)*t;
+    const float sz=st.bottom_z+(st.top_z-st.bottom_z)*t;
+    const float sy=World3D::floorHeight(AuxiliaryDeck)+3.2f*t;
+    const float tread=world.cameraRayFraction(
+        Vec3{sx,sy+0.70f,sz},Vec3{sx,sy-0.70f,sz},0.055f);
+    assert(tread>0.05f && tread<0.95f &&
+           "Individual inclined steel treads must be camera occluders");
+
+    const float impossible=world.cameraRayFraction(
+        Vec3{0,0,0},Vec3{0,0,0},0.50f);
+    assert(impossible==0.0f && "Invalid camera radius is rejected");
+}
+
+void smartThirdPersonChecks() {
+    World3D world;
+    Game3D game(world);
+    Input3D toggle;toggle.toggle_view=true;
+    game.update(0.05f,toggle);
+    const CameraView3D initial=game.renderCamera();
+    assert(initial.show_body);
+    // A lateral escape around the ECR cabinet should provide more space
+    // than a camera forced into the engineer's helmet.
+    const float start_distance=distance3(initial.eye,game.camera());
+    assert(start_distance>1.40f && "ECR start camera must clear helmet");
+    const Vec3 from{game.camera().x,game.camera().y+0.15f,game.camera().z};
+    assert(world.cameraRayFraction(from,initial.eye,0.10f)>0.995f &&
+           "The initial camera needs an unobstructed character sightline");
+
+    // Rotate in place by 180 degrees to exercise structural-column
+    // occlusion and shoulder reassignment without walking the player
+    // into a bulkhead. Rotation may shift the shoulder but cannot make
+    // the camera penetrate the authored ECR control wall.
+    Input3D turning;turning.turn=1.0f;
+    bool saw_shift=false;
+    for(int i=0;i<59;++i) {
+        game.update(0.05f,turning);
+        const CameraView3D v=game.renderCamera();
+        assert(v.show_body);
+        assert(std::isfinite(v.eye.x)&&std::isfinite(v.eye.y)&&std::isfinite(v.eye.z));
+        assert(world.cameraRayFraction(from,v.eye,0.10f)>0.994f &&
+               "A smoothed shoulder must not cross an opaque ECR console");
+        if(v.shifted) saw_shift=true;
+    }
+    assert(saw_shift && "The smart camera must use a shoulder alternative");
+    assert(game.isThirdPerson());
+    assert(std::strstr(game.hud().status,"VIEW 3P")!=nullptr);
 }
 
 void gameChecks() {
@@ -245,8 +334,12 @@ void gameChecks() {
     const CameraView3D third=game.renderCamera();
     assert(third.show_body &&
            "ECR starting point should allow a visible third-person engineer");
-    assert(third.eye.x<game.camera().x);
-    assert(std::fabs(third.eye.x-first.eye.x)>0.5f);
+    // A narrow ECR console can force a side-shoulder camera without
+    // making X displacement large. Test actual 3D separation instead.
+    const float dx3=third.eye.x-game.camera().x;
+    const float dy3=third.eye.y-game.camera().y;
+    const float dz3=third.eye.z-game.camera().z;
+    assert(std::sqrt(dx3*dx3+dy3*dy3+dz3*dz3)>1.30f);
     assert(third.eye.y>game.camera().y);
     game.buildCharacterGeometry(third,dynamic);
     assert(finiteMesh(dynamic));
@@ -310,6 +403,8 @@ int main() {
     animationChecks();
     polishedHandChecks();
     gameChecks();
+    smartVisibilityChecks();
+    smartThirdPersonChecks();
     stairCameraChecks();
     std::puts("G3.5 PASS: low-poly marine engineer, real-travel gait, PPE, "
               "first-person gloves, 3P chase camera, pump/ECR animation and mission preservation");
