@@ -98,6 +98,21 @@ class CatalogContractTests(unittest.TestCase):
         with self.assertRaisesRegex(contract.CatalogError, "source ID and reviewer"):
             contract.validate_component(record, self.ctx)
 
+    def test_fictitious_verified_source_cannot_approve_part(self) -> None:
+        record = copy.deepcopy(self.bolt)
+        record["status"] = "catalog_documented"
+        record["provenance"]["verified"] = True
+        record["provenance"]["source_id"] = "FAKE.OEM.DATASHEET.1"
+        record["provenance"]["reviewer"] = "test-reviewer"
+        with self.assertRaisesRegex(contract.CatalogError, "unregistered verified evidence"):
+            contract.validate_component(record, self.ctx)
+
+    def test_standard_url_cannot_be_substituted(self) -> None:
+        record = copy.deepcopy(self.bolt)
+        record["standards"][0]["url"] = "https://example.com/claim"
+        with self.assertRaisesRegex(contract.CatalogError, "standard URL differs"):
+            contract.validate_component(record, self.ctx)
+
     def test_numeric_parameters_must_use_units(self) -> None:
         record = copy.deepcopy(self.bolt)
         record["parameters"]["unlabeled_length"] = 12
