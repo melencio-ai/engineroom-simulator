@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "id": "FLUID.MGO.GRADE_UNASSIGNED",
+  "display_name": "Marine gas oil - grade not selected",
+  "family": "distillate_fuel",
+  "commercial_label": "MGO",
+  "standard_grade": null,
+  "reference": "ISO 8217:2024 category only; no bunker analysis",
+  "properties": {
+    "density_vs_temperature": {
+      "model": "unknown",
+      "samples": [],
+      "unit": "kg/m3",
+      "source_verified": false
+    },
+    "viscosity_vs_temperature": {
+      "model": "unknown",
+      "samples": [],
+      "unit": "mm2/s",
+      "source_verified": false
+    },
+    "flash_point_c": null,
+    "sulfur_mass_percent": null
+  },
+  "status": "illustrative"
+}
