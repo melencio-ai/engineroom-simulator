@@ -29,7 +29,13 @@ def verify(section: str, label: str, last: str) -> None:
 verify(init,"initial GE render state","sceGuFinish();")
 verify(draw,"per-frame 3D render state","sceGumDrawArray(")
 
-assert "sceGumPerspective(68.0f,480.0f/272.0f,0.25f,60.0f);" in draw
+# G3.5.1 preserves the near/far planes while using the same adaptive
+# per-camera FOV as desktop (68deg first person, 76..91deg third person).
+assert "sceGumPerspective(camera.fov_degrees,480.0f/272.0f,0.25f,60.0f);" in draw
+game=(root/"src/scene/Game3D.cpp").read_text(encoding="utf-8")
+assert "view.fov_degrees=68.0f;" in game
+assert "view.fov_degrees=clamp(76.0f+" in game
+assert "view.show_body=true;" in game
 assert "sceGuDisable(GU_CULL_FACE);" in init
 assert "GU_DEPTH_TEST" in draw
 print("PSP GE rendering contract PASS: clipping ON before initial and every 3D draw")
