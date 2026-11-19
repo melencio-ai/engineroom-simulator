@@ -11,7 +11,11 @@
     "thread_pitch_mm": 1.5,
     "property_class": "8.8",
     "thread_tolerance": "candidate_6g",
-    "geometry_verified": false
+    "geometry_verified": false,
+    "head_across_flats_mm": 16,
+    "head_height_mm": 7,
+    "thread_length_mm": 22,
+    "thread_depth_mm": 0.5
   },
   "material": {
     "base_material": "carbon_steel",
@@ -61,7 +65,7 @@
   "generator": {
     "name": "hex_bolt",
     "version": "0.1.0",
-    "implementation_status": "planned"
+    "implementation_status": "available"
   },
   "lod_policy": {
     "master": "parametric_cad",
