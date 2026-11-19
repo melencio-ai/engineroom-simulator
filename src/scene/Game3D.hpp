@@ -2,6 +2,7 @@
 
 #include "core/EngineSimulation.hpp"
 #include "scene/World3D.hpp"
+#include "scene/PlayerCharacter.hpp"
 
 namespace enginewatch {
 
@@ -13,6 +14,15 @@ struct Input3D {
     float look=0.0f;
     // Edge-triggered actions: do not repeat while held.
     bool interact=false,back=false,help=false,pause=false,up=false,down=false;
+    bool toggle_view=false; // PSP SELECT; desktop V; gamepad Back
+};
+
+// Camera is resolved by the game so both renderers share exactly the same
+// first/third-person projection and collision-aware chase-camera fallback.
+struct CameraView3D {
+    Vec3 eye;
+    Vec3 target;
+    bool show_body=false;
 };
 
 struct Hud3D {
@@ -44,6 +54,11 @@ public:
     bool isClimbing() const { return climbing_; }
     bool isPaused() const { return paused_; }
     const EngineSimulation& simulation() const { return sim_; }
+    bool isThirdPerson() const { return third_person_; }
+    const CharacterPose& characterPose() const { return character_animator_.pose(); }
+    CameraView3D renderCamera() const;
+    void buildCharacterGeometry(const CameraView3D& view,
+                                std::vector<Vertex3D>& out) const;
 
 private:
     enum Panel { Closed, Console, Pumps, Strainer, Help };
@@ -59,6 +74,9 @@ private:
 
     // Updated directly from physical slope collision; no teleport / ladder UI.
     bool climbing_=false;
+    bool third_person_=false;
+    float travel_this_frame_=0.0f;
+    CharacterAnimator character_animator_;
 
     void use();
     void operate();
