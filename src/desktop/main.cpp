@@ -87,7 +87,7 @@ public:
         const float nearPlane=0.25f;
         const float top=std::tan(68.0f*3.141592653589793f/360.0f)*nearPlane;
         const float right=top*static_cast<float>(w)/std::max(h,1);
-        glFrustum(-right,right,-top,top,nearPlane,80.0);
+        glFrustum(-right,right,-top,top,nearPlane,60.0);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         const enginewatch::Vec3& p=game.camera();
