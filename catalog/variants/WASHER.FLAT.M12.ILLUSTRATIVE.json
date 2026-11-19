@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0.0",
+  "id": "WASHER.FLAT.M12.ILLUSTRATIVE",
+  "family": "fastener.flat_washer",
+  "name": "Illustrative M12 flat washer, clearance bore",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "inner_diameter_mm": 13.5,
+    "outer_diameter_mm": 24,
+    "thickness_mm": 2.5,
+    "nominal_diameter_mm": 12
+  },
+  "material": {
+    "base_material": "carbon_steel",
+    "grade": null,
+    "grade_standard": null
+  },
+  "coating_id": "COAT.NONE",
+  "insulation_id": null,
+  "standards": [],
+  "ports": [
+    {
+      "id": "hole",
+      "kind": "mount",
+      "interface": "FASTENER:M12:CLEARANCE",
+      "position_mm": [
+        0,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "service": null
+    }
+  ],
+  "generator": {
+    "name": "flat_washer",
+    "version": "0.2.0",
+    "implementation_status": "available"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "omit"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": []
+  }
+}
