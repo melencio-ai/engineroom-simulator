@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "families": [
+    {
+      "id": "fastener.hex_bolt",
+      "domain": "mechanical",
+      "generator": "hex_bolt",
+      "implementation_status": "planned",
+      "required_numeric_parameters": [
+        "nominal_diameter_mm",
+        "length_mm",
+        "thread_pitch_mm"
+      ],
+      "required_ports": [
+        "thread"
+      ],
+      "notes": "ISO/metric semantics require licensed dimensional verification before engineering-use meshes"
+    },
+    {
+      "id": "piping.pipe_spool",
+      "domain": "fluid",
+      "generator": "pipe_spool",
+      "implementation_status": "planned",
+      "required_numeric_parameters": [
+        "outside_diameter_mm",
+        "wall_thickness_mm",
+        "inside_diameter_mm",
+        "length_mm"
+      ],
+      "required_ports": [
+        "pipe_end"
+      ],
+      "notes": "Nominal DN does not fix OD or wall thickness; source-driven selection required"
+    }
+  ]
+}
