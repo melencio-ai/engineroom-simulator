@@ -241,8 +241,29 @@ def viewer_payload(asm: dict,meshes: dict,records: dict) -> dict:
             "parameters":records[comp_id]["parameters"]
         }
     steps={s["instance_id"]:s for s in asm["exploded_steps"]}
+    # Fit the initial orbit camera to actual assembled-world geometry. Without
+    # this, a 60-mm bolt kit is almost invisible using a 2-metre pipe-camera.
+    low=[float("inf")]*3
+    high=[float("-inf")]*3
+    for child in asm["children"]:
+        a,b=meshes[child["component_id"]].bounds()
+        for x in (a[0],b[0]):
+            for y in (a[1],b[1]):
+                for z in (a[2],b[2]):
+                    world=local_to_world((x,y,z),child)
+                    for i in range(3):
+                        low[i]=min(low[i],world[i])
+                        high[i]=max(high[i],world[i])
+    center=[(a+b)/2 for a,b in zip(low,high)]
+    extent=max(b-a for a,b in zip(low,high))
+    camera={
+        "target":center,
+        "distance":max(160,extent*1.50),
+        "min_distance":max(32,extent*0.12),
+        "max_distance":max(600,extent*5.0)
+    }
     return {
-        "assembly":asm["id"],"title":asm["name"],
+        "assembly":asm["id"],"title":asm["name"],"camera":camera,
         "notice":DISCLAIMER,
         "parts":out,
         "instances":[{
