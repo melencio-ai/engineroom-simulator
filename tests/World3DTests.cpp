@@ -123,6 +123,50 @@ static void stairSlopeChecks(const World3D& w) {
     }
 }
 
+static void screenshotGeometryChecks(const World3D& w) {
+    // Screenshot-driven guard: the machinery's upper forward bays must
+    // contain bulkhead geometry, not unbounded background clear-colour.
+    int forward_upper_panels=0,bridge_rail_left=0,bridge_rail_right=0;
+    const float top=World3D::floorHeight(EcrDeck);
+    for(const Vertex3D& v : w.vertices()) {
+        if(std::fabs(v.x+2.98f)<0.16f &&
+           std::fabs(v.z)>4.20f && std::fabs(v.z)<6.88f &&
+           v.y>top+0.40f && v.y<top+4.10f)
+            ++forward_upper_panels;
+        if(v.x>-3.34f && v.x<-2.83f && v.y>top+0.40f &&
+           v.y<top+1.21f) {
+            if(v.z<-1.08f && v.z>-1.21f) ++bridge_rail_left;
+            if(v.z>1.08f && v.z<1.21f) ++bridge_rail_right;
+        }
+    }
+    assert(forward_upper_panels>=30);
+    assert(bridge_rail_left>=10 && bridge_rail_right>=10);
+
+    // Four contiguous actual grating bays on BOTH sides of each working flat,
+    // aligned above the engine well rather than decoratively floating over
+    // unbroken deck slabs.
+    for(int deck=PumpFlatDeck;deck<=EcrDeck;++deck) {
+        const float y=World3D::floorHeight(deck);
+        for(int side=-1;side<=1;side+=2) {
+            for(int bay=0;bay<4;++bay) {
+                const float x=4.2375f+bay*2.275f;
+                float surface=-100.0f;
+                assert(w.canStand(x,side*2.80f,deck));
+                assert(w.walkSurface(x,side*2.80f,y,surface));
+                assert(std::fabs(surface-y)<0.03f);
+                int grate_mesh=0;
+                for(const Vertex3D& v:w.vertices()) {
+                    if(std::fabs(v.x-x)<0.90f &&
+                       std::fabs(v.y-y)<0.095f &&
+                       std::fabs(v.z-side*2.80f)<0.37f)
+                        ++grate_mesh;
+                }
+                assert(grate_mesh>=40);
+            }
+        }
+    }
+}
+
 static void headroomChecks(const World3D& w) {
     assert(w.hasHeadroom(-7.35f,0.0f,World3D::floorHeight(EcrDeck)));
     assert(w.hasHeadroom(3.5f,4.0f,World3D::floorHeight(PumpFlatDeck)));
@@ -159,6 +203,7 @@ static void gameplayChecks(const World3D& world) {
     assert(game.camera().y>14.40f && game.camera().y<14.50f);
     assert(game.pitch()<0.0f);
     assert(std::strstr(game.hud().title,"ECR / UPPER"));
+    assert(!std::strchr(game.hud().title,'?')); // Unsupported '|' formerly rendered '?'
     assert(!game.hud().panel_visible);
     assert(world.canStand(game.camera().x,game.camera().z,game.currentDeck()));
 
@@ -233,6 +278,7 @@ int main() {
     geometryChecks(world);
     deckChecks(world);
     stairSlopeChecks(world);
+    screenshotGeometryChecks(world);
     headroomChecks(world);
     stationChecks(world);
     gameplayChecks(world);
