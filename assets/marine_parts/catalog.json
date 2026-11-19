@@ -1,0 +1,454 @@
+{
+  "schema_version": "1.0",
+  "library": "ENGINE WATCH 3D Marine Parts",
+  "description": "Reusable game-ready 3D prototypes. Visual only; NOT certified shipbuilding, marine engineering CAD, a pressure-rating model, or an approved construction detail.",
+  "scale_units": "conceptual metres",
+  "geometry_format": "separate OBJ/MTL generated from C++ mesh prototypes",
+  "object_template_count": 33,
+  "finish_count": 16,
+  "data_rules": {
+    "standard_dimension_status": "Normalized base geometry. Instance scaling is visual only; never interpret sizes as matching ASME nominal dimensions or flange classes.",
+    "steel_grade_status": "Hull steel grade is separate from surface finish; grades require class-approved material certification and actual drawings.",
+    "dynamic_physics_status": "No engineering structural analysis, pressure design or material performance in this asset pack.",
+    "pipeline_id_status": "Colour bands are placeholders until vessel-specific ISO 14726 sub-colours and labels are configured."
+  },
+  "standards": {
+    "ship_class_structural_reference": "https://www.imorules.com/LRMAT_CH3_3.html",
+    "asme_pipe_dimensional_reference": "https://www.asme.org/codes-standards/find-codes-standards/welded-and-seamless-wrought-steel-pipe",
+    "asme_flange_reference": "https://www.asme.org/codes-standards/find-codes-standards/b16-5-pipe-flanges-flanged-fittings-nps-1-2-nps-24-metric-inch-standard/2025",
+    "asme_pipe_fittings_reference": "https://www.asme.org/codes-standards/find-codes-standards/b16-9-factory-made-wrought-buttwelding-fittings",
+    "pipe_identification_reference": "https://www.iso.org/standard/44744.html",
+    "hardware_visual_reference": "Representative geometry only; obtain manufacturer drawings for exact bolts, nuts and washers.",
+    "equipment_vendor_reference": "Representative geometry only; replace with pump/valve/instrument manufacturer model for actual specification."
+  },
+  "finishes": [
+    {
+      "id": "GreenEpoxy",
+      "color_hex": "#285D43",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "GreenGrating",
+      "color_hex": "#417152",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "OffWhiteCoatedSteel",
+      "color_hex": "#D5DCD3",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "GalvanizedSteel",
+      "color_hex": "#9EACA7",
+      "appearance_type": "metallic finish",
+      "certification": "visual_only"
+    },
+    {
+      "id": "StructuralSteelGrey",
+      "color_hex": "#879790",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "MachineryBlue",
+      "color_hex": "#456974",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "PipeInsulation",
+      "color_hex": "#ABB1AA",
+      "appearance_type": "cladding",
+      "certification": "visual_only"
+    },
+    {
+      "id": "CastIron",
+      "color_hex": "#4D5453",
+      "appearance_type": "bare/painted body",
+      "certification": "visual_only"
+    },
+    {
+      "id": "StainlessSteel",
+      "color_hex": "#BECAC7",
+      "appearance_type": "metallic",
+      "certification": "visual_only"
+    },
+    {
+      "id": "BronzeInstrument",
+      "color_hex": "#C2A45C",
+      "appearance_type": "metallic",
+      "certification": "visual_only"
+    },
+    {
+      "id": "SafetyYellow",
+      "color_hex": "#E5B43F",
+      "appearance_type": "coating",
+      "certification": "visual_only"
+    },
+    {
+      "id": "LubricatingOilOrange",
+      "color_hex": "#D1803E",
+      "appearance_type": "pipe marking",
+      "certification": "visual_only"
+    },
+    {
+      "id": "CoolingWaterBlue",
+      "color_hex": "#4586B1",
+      "appearance_type": "pipe marking",
+      "certification": "visual_only"
+    },
+    {
+      "id": "FireSystemRed",
+      "color_hex": "#A94236",
+      "appearance_type": "pipe marking",
+      "certification": "visual_only"
+    },
+    {
+      "id": "RubberGasket",
+      "color_hex": "#2E312F",
+      "appearance_type": "elastomer",
+      "certification": "visual_only"
+    },
+    {
+      "id": "WorkLightWhite",
+      "color_hex": "#EEEFD6",
+      "appearance_type": "diffuser",
+      "certification": "visual_only"
+    }
+  ],
+  "parts": [
+    {
+      "id": "SteelPlate",
+      "cpp_enum": 0,
+      "category": "flooring",
+      "default_finish": "GreenEpoxy",
+      "obj_file": "steel_plate.obj",
+      "mtl_file": "steel_plate.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "CheckerPlate",
+      "cpp_enum": 1,
+      "category": "flooring",
+      "default_finish": "GreenEpoxy",
+      "obj_file": "checker_plate.obj",
+      "mtl_file": "checker_plate.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "OpenSteelGrating",
+      "cpp_enum": 2,
+      "category": "flooring",
+      "default_finish": "GreenGrating",
+      "obj_file": "open_grating.obj",
+      "mtl_file": "open_grating.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "IBeam",
+      "cpp_enum": 3,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "i_beam.obj",
+      "mtl_file": "i_beam.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "ChannelSection",
+      "cpp_enum": 4,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "channel_section.obj",
+      "mtl_file": "channel_section.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "AngleSection",
+      "cpp_enum": 5,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "angle_section.obj",
+      "mtl_file": "angle_section.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "BulbFlat",
+      "cpp_enum": 6,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "bulb_flat.obj",
+      "mtl_file": "bulb_flat.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "FlatBar",
+      "cpp_enum": 7,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "flat_bar.obj",
+      "mtl_file": "flat_bar.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "GussetBracket",
+      "cpp_enum": 8,
+      "category": "structural steel",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "gusset_bracket.obj",
+      "mtl_file": "gusset_bracket.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "StairTread",
+      "cpp_enum": 9,
+      "category": "access and guardrails",
+      "default_finish": "GreenEpoxy",
+      "obj_file": "stair_tread.obj",
+      "mtl_file": "stair_tread.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "HandrailPost",
+      "cpp_enum": 10,
+      "category": "access and guardrails",
+      "default_finish": "OffWhiteCoatedSteel",
+      "obj_file": "handrail_post.obj",
+      "mtl_file": "handrail_post.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "HandrailSpan",
+      "cpp_enum": 11,
+      "category": "access and guardrails",
+      "default_finish": "OffWhiteCoatedSteel",
+      "obj_file": "handrail_span.obj",
+      "mtl_file": "handrail_span.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeSpool",
+      "cpp_enum": 12,
+      "category": "pipe geometry",
+      "default_finish": "PipeInsulation",
+      "obj_file": "pipe_spool.obj",
+      "mtl_file": "pipe_spool.mtl",
+      "basis": "asme_pipe_fittings_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeElbow90",
+      "cpp_enum": 13,
+      "category": "pipe geometry",
+      "default_finish": "PipeInsulation",
+      "obj_file": "90_degree_pipe_elbow.obj",
+      "mtl_file": "90_degree_pipe_elbow.mtl",
+      "basis": "asme_pipe_fittings_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeTee",
+      "cpp_enum": 14,
+      "category": "pipe geometry",
+      "default_finish": "PipeInsulation",
+      "obj_file": "pipe_tee.obj",
+      "mtl_file": "pipe_tee.mtl",
+      "basis": "asme_pipe_fittings_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "ConcentricReducer",
+      "cpp_enum": 15,
+      "category": "pipe geometry",
+      "default_finish": "PipeInsulation",
+      "obj_file": "concentric_reducer.obj",
+      "mtl_file": "concentric_reducer.mtl",
+      "basis": "asme_pipe_fittings_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "WeldNeckFlange",
+      "cpp_enum": 16,
+      "category": "flange/gasket",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "weld_neck_flange.obj",
+      "mtl_file": "weld_neck_flange.mtl",
+      "basis": "asme_flange_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "BlindFlange",
+      "cpp_enum": 17,
+      "category": "flange/gasket",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "blind_flange.obj",
+      "mtl_file": "blind_flange.mtl",
+      "basis": "asme_flange_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeGasket",
+      "cpp_enum": 18,
+      "category": "flange/gasket",
+      "default_finish": "RubberGasket",
+      "obj_file": "flange_gasket.obj",
+      "mtl_file": "flange_gasket.mtl",
+      "basis": "asme_pipe_fittings_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "HexBolt",
+      "cpp_enum": 19,
+      "category": "fastener",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "hex_bolt.obj",
+      "mtl_file": "hex_bolt.mtl",
+      "basis": "hardware_visual_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "HexNut",
+      "cpp_enum": 20,
+      "category": "fastener",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "hex_nut.obj",
+      "mtl_file": "hex_nut.mtl",
+      "basis": "hardware_visual_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "FlatWasher",
+      "cpp_enum": 21,
+      "category": "fastener",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "flat_washer.obj",
+      "mtl_file": "flat_washer.mtl",
+      "basis": "hardware_visual_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "GateValve",
+      "cpp_enum": 22,
+      "category": "valves and instruments",
+      "default_finish": "MachineryBlue",
+      "obj_file": "gate_valve.obj",
+      "mtl_file": "gate_valve.mtl",
+      "basis": "equipment_vendor_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "GlobeValve",
+      "cpp_enum": 23,
+      "category": "valves and instruments",
+      "default_finish": "MachineryBlue",
+      "obj_file": "globe_valve.obj",
+      "mtl_file": "globe_valve.mtl",
+      "basis": "equipment_vendor_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "ButterflyValve",
+      "cpp_enum": 24,
+      "category": "valves and instruments",
+      "default_finish": "CastIron",
+      "obj_file": "butterfly_valve.obj",
+      "mtl_file": "butterfly_valve.mtl",
+      "basis": "equipment_vendor_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "YStrainer",
+      "cpp_enum": 25,
+      "category": "valves and instruments",
+      "default_finish": "CastIron",
+      "obj_file": "y_strainer.obj",
+      "mtl_file": "y_strainer.mtl",
+      "basis": "equipment_vendor_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PressureGauge",
+      "cpp_enum": 26,
+      "category": "valves and instruments",
+      "default_finish": "BronzeInstrument",
+      "obj_file": "pressure_gauge.obj",
+      "mtl_file": "pressure_gauge.mtl",
+      "basis": "equipment_vendor_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeClamp",
+      "cpp_enum": 27,
+      "category": "pipe/cable supports",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "pipe_clamp.obj",
+      "mtl_file": "pipe_clamp.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "PipeSupport",
+      "cpp_enum": 28,
+      "category": "pipe/cable supports",
+      "default_finish": "StructuralSteelGrey",
+      "obj_file": "pipe_support.obj",
+      "mtl_file": "pipe_support.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "CableTray",
+      "cpp_enum": 29,
+      "category": "pipe/cable supports",
+      "default_finish": "StainlessSteel",
+      "obj_file": "cable_tray.obj",
+      "mtl_file": "cable_tray.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "AccessCover",
+      "cpp_enum": 30,
+      "category": "flooring",
+      "default_finish": "GreenEpoxy",
+      "obj_file": "access_cover.obj",
+      "mtl_file": "access_cover.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "WorkLightFixture",
+      "cpp_enum": 31,
+      "category": "lighting",
+      "default_finish": "WorkLightWhite",
+      "obj_file": "work_light.obj",
+      "mtl_file": "work_light.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    },
+    {
+      "id": "Ubolt",
+      "cpp_enum": 32,
+      "category": "fastener",
+      "default_finish": "GalvanizedSteel",
+      "obj_file": "u_bolt.obj",
+      "mtl_file": "u_bolt.mtl",
+      "basis": "ship_class_structural_reference",
+      "size_model": "scale_x_y_z_then_yaw_pitch_roll"
+    }
+  ]
+}

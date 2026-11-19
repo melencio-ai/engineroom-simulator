@@ -1,0 +1,137 @@
+name: Engine Watch 3D Pump Flat Navigation CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [develop, main, 'feature/**']
+  workflow_dispatch:
+
+jobs:
+  marine-component-objects:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure portable marine 3D OBJ exporter
+        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON
+      - name: Build native 3D component exporter
+        run: cmake --build build/objects --parallel 2
+      - name: Export 33 separate OBJ/MTL meshes
+        run: |
+          mkdir -p dist/marine-objects
+          ./build/objects/enginewatch_export_parts dist/marine-objects
+          test "$(find dist/marine-objects -name '*.obj' | wc -l)" -eq 33
+          test "$(find dist/marine-objects -name '*.mtl' | wc -l)" -eq 33
+          cp docs/marine-asset-catalog.md dist/marine-objects/README.md
+          cp assets/marine_parts/catalog.json dist/marine-objects/catalog.json
+          python3 -c 'import json,os; p="dist/marine-objects/"; d=json.load(open(p+"catalog.json")); assert len(d["parts"])==33; assert len(d["finishes"])==16; assert all(os.path.isfile(p+x["obj_file"]) and os.path.isfile(p+x["mtl_file"]) for x in d["parts"]); print("33 OBJ+MTL models and 16 finishes verified")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-reusable-3d-objects-v0.7
+          path: dist/marine-objects/
+          if-no-files-found: error
+          retention-days: 14
+
+  scene-and-simulation-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure headless tests
+        run: cmake -S . -B build/tests -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build/tests --parallel 2
+      - name: Test simulation and 3D world
+        run: ctest --test-dir build/tests --output-on-failure
+
+  desktop-3d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2 and OpenGL development libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-dev libgl1-mesa-dev
+      - name: Configure desktop 3D preview
+        run: cmake -S . -B build/desktop -DENGINEWATCH_BUILD_GAME=ON -DBUILD_TESTING=ON
+      - name: Build 3D desktop application
+        run: cmake --build build/desktop --parallel 2
+      - name: Test
+        run: ctest --test-dir build/desktop --output-on-failure
+
+  psp-eboot:
+    runs-on: ubuntu-latest
+    container:
+      image: pspdev/pspdev:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure PSP native 3D build
+        run: psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+      - name: Compile PSP GU/GUM 3D marine materials executable
+        run: cmake --build build/psp --parallel 2
+      - name: Package EBOOT
+        run: |
+          test -f build/psp/EBOOT.PBP
+          mkdir -p dist/PSP/GAME/ENGINEWATCH
+          cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-psp-v0.7-pump-flat-navigation
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  ppsspp-smoke:
+    runs-on: ubuntu-latest
+    needs: psp-eboot
+    timeout-minutes: 12
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-watch-psp-v0.7-pump-flat-navigation
+          path: game/
+      - name: Install PPSSPP dependencies and screenshot utilities
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb imagemagick libgl1-mesa-dri pulseaudio pulseaudio-utils
+      - name: Download official PPSSPP AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v1.20.4 --repo hrydgard/ppsspp --pattern "PPSSPP-v1.20.4-anylinux-x86_64.AppImage" --dir /tmp
+          chmod +x /tmp/PPSSPP-v1.20.4-anylinux-x86_64.AppImage
+          /tmp/PPSSPP-v1.20.4-anylinux-x86_64.AppImage --appimage-extract >/dev/null
+      - name: Boot 3D engine room and capture framebuffer
+        shell: bash
+        run: |
+          mkdir -p diagnostics "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH"
+          cp game/PSP/GAME/ENGINEWATCH/EBOOT.PBP "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/EBOOT.PBP"
+          xvfb-run -a -s "-screen 0 1280x720x24" bash -c '
+            export LIBGL_ALWAYS_SOFTWARE=1
+            pulseaudio --start --exit-idle-time=-1 >/tmp/pulse-start.log 2>&1 || true
+            pactl load-module module-null-sink sink_name=ppsspp_ci_sink >/tmp/pulse-sink.log 2>&1 || true
+            export SDL_AUDIODRIVER=pulseaudio
+            ./squashfs-root/AppRun --windowed "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/EBOOT.PBP" >diagnostics/ppsspp.log 2>&1 &
+            pid=$!
+            sleep 14
+            import -window root diagnostics/screen.png
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" || true
+          '
+          identify diagnostics/screen.png
+          tail -n 100 diagnostics/ppsspp.log
+          if grep -q 'Boot failed' diagnostics/ppsspp.log; then echo 'PPSSPP boot failed'; exit 1; fi
+          if ! grep -q 'Booted .*ENGINEWATCH/EBOOT.PBP' diagnostics/ppsspp.log; then
+            echo 'PPSSPP did not boot the PSP game'; exit 1
+          fi
+          unique_colors=$(identify -format '%k' diagnostics/screen.png)
+          if [ "$unique_colors" -lt 20 ]; then
+            echo '3D scene appears blank or has too few visible colours'
+            exit 1
+          fi
+          echo "3D smoke frame captured ($unique_colors unique colours)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ppsspp-v0.7-pump-flat-diagnostics
+          path: diagnostics/
+          if-no-files-found: ignore

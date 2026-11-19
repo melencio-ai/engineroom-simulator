@@ -1,0 +1,22 @@
+name: PSP 3D Source Sanity
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm native 3D simulator sources
+        run: |
+          test -f src/psp/main.cpp
+          test -f src/psp/PspRenderer3D.cpp
+          test -f src/scene/Game3D.cpp
+          test -f src/scene/World3D.cpp
+          grep -q 'sceGumPerspective' src/psp/PspRenderer3D.cpp
+          grep -q 'GU_DEPTH_TEST' src/psp/PspRenderer3D.cpp
+      - name: Confirm no old 2D renderer is compiled on PSP
+        run: |
+          if grep -q 'src/ui/GameApp.cpp' CMakeLists.txt; then
+            echo '2D UI must not be part of v0.3 build'
+            exit 1
+          fi

@@ -1,0 +1,9 @@
+# Build artifacts
+build/
+build-*/
+*.o
+*.elf
+*.pbp
+*.PBP
+.DS_Store
+.vscode/
