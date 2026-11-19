@@ -174,10 +174,26 @@ float World3D::cameraRayFraction(const Vec3& from,const Vec3& to,
     if(sq<0.0000001f) return 1.0f;
     float earliest=1.0f;
     const float epsilon=0.000001f;
+    // Broadphase: almost all columns and treads are far outside a 3-m
+    // chase-camera ray. Reject them without any divisions or slab math.
+    // This matters for PSP's CPU, where queries run every 3P frame.
+    const float ray_lo[3]={
+        std::min(from.x,to.x)-radius,
+        std::min(from.y,to.y)-radius,
+        std::min(from.z,to.z)-radius
+    };
+    const float ray_hi[3]={
+        std::max(from.x,to.x)+radius,
+        std::max(from.y,to.y)+radius,
+        std::max(from.z,to.z)+radius
+    };
     // Each box is checked with the same conservative radius inflation.
     // No dynamic allocations, spatial tree or per-triangle GPU reads.
     const auto test=[&](float xmin,float xmax,float ymin,float ymax,
                         float zmin,float zmax) {
+        if(xmax<ray_lo[0] || xmin>ray_hi[0] ||
+           ymax<ray_lo[1] || ymin>ray_hi[1] ||
+           zmax<ray_lo[2] || zmin>ray_hi[2]) return;
         const float lows[3]={xmin-radius,ymin-radius,zmin-radius};
         const float highs[3]={xmax+radius,ymax+radius,zmax+radius};
         float enter=0.0f,exit=earliest;
