@@ -42,6 +42,10 @@ PspRenderer3D::PspRenderer3D() {
     sceGuScissor(0,0,480,272);
     sceGuEnable(GU_SCISSOR_TEST);
     sceGuEnable(GU_DEPTH_TEST);
+    // PSP GE has a near-plane clipper only when GU_CLIP_PLANES is enabled.
+    // Without it, a wall/deck TRIANGLE containing a vertex behind the camera
+    // is discarded in its entirety while walking near the surface.
+    sceGuEnable(GU_CLIP_PLANES);
     sceGuDisable(GU_CULL_FACE);
     sceGuDisable(GU_LIGHTING);
     sceGuDisable(GU_TEXTURE_2D);
@@ -138,6 +142,10 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     sceGuClearDepth(0);
     sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
     sceGuEnable(GU_DEPTH_TEST);
+    // Explicitly restore near-plane clipping for each 3D frame. PSP clips
+    // only the near plane in hardware; this prevents faces popping away when
+    // the player's viewpoint crosses a large wall/floor triangle boundary.
+    sceGuEnable(GU_CLIP_PLANES);
     sceGuDisable(GU_TEXTURE_2D);
     sceGumMatrixMode(GU_PROJECTION);
     sceGumLoadIdentity();
