@@ -9,6 +9,7 @@ add_library(enginewatch_core STATIC src/core/EngineSimulation.cpp)
 target_include_directories(enginewatch_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 add_library(enginewatch_scene STATIC
+    src/scene/DeckLayout.cpp
     src/scene/MarineParts.cpp
     src/scene/World3D.cpp
     src/scene/Game3D.cpp
@@ -36,7 +37,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH 3D v0.7.1"
+            TITLE "ENGINE WATCH G3 PREVIEW"
             VERSION 01.00
         )
     endif()
@@ -68,6 +69,14 @@ if(ENGINEWATCH_EXPORT_ASSETS AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(enginewatch_export_parts PRIVATE enginewatch_scene)
 endif()
 
+# G3: native constructor exporter reads the very same DeckPlan as the
+# playable C++ engine to generate physical layout JSON and vector deck maps.
+option(ENGINEWATCH_EXPORT_DECKPLAN "Export shared deck layout JSON and SVG blueprints" OFF)
+if(ENGINEWATCH_EXPORT_DECKPLAN AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(enginewatch_export_deckplan tools/export_deck_plan.cpp)
+    target_link_libraries(enginewatch_export_deckplan PRIVATE enginewatch_scene)
+endif()
+
 include(CTest)
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_tests tests/EngineSimulationTests.cpp)
@@ -77,6 +86,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_world_tests tests/World3DTests.cpp)
     target_link_libraries(enginewatch_world_tests PRIVATE enginewatch_scene)
     add_test(NAME world_geometry_and_navigation COMMAND enginewatch_world_tests)
+
+    add_executable(enginewatch_deck_tests tests/DeckLayoutTests.cpp)
+    target_link_libraries(enginewatch_deck_tests PRIVATE enginewatch_scene)
+    add_test(NAME constructed_deck_geometry_and_collision COMMAND enginewatch_deck_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)

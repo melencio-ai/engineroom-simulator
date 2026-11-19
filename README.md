@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3 — Deck constructor shared with collision (stacked draft)
+
+The [G3 deck-construction blueprint](docs/g3-deck-constructor.md) now drives **all five levels from one `DeckPlan`**: 79 physical steel/grating/cover cells, 12 shaft/well openings, eight supported grating bands and both inclined stair paths. Visible floor surfaces, steel supports, open-well railings and circular player collision all derive from the SAME source instead of separate hard-coded coordinates. Grating bays are now sized to fill the real mesh footprint (0.98 local units), closing 45-mm between-panel gaps. New `engine-watch-deck-constructor-g3` artifact exports five **SVG deck schematics** and the physical layout JSON. A separate **G3 PPSSPP preview** installer permits Windows verification before merging; the gameplay's LO mission code remains unchanged.
+
 ## G2b — Bolted flange joint and exploded assembly inspector (stacked draft)
 
 The [G2b assembly builder](docs/catalog-g2b-assembly-builder.md) combines reused catalog items into a **21-part DN50 flange joint** (two welded spools with flanges, a gasket, and four M16 bolt/nut/two-washer sets) and a **4-part M16 fastening kit**. The library validates pipe/flange/gasket mating, washer seating, bolt drilling and threaded engagement; rejects incorrect joint layouts; and exports assembled/exploded GLBs, named OBJ meshes, PSP vertex batches, source-hashed BOMs and **standalone offline HTML 3D inspectors with searchable parts and an exploded slider**. The specifications remain **illustrative and not certified**, and the v0.7.1 PSP game is unaffected.

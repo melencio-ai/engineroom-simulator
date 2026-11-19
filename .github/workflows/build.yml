@@ -1,4 +1,4 @@
-name: Engine Watch G2b Marine Assembly and PSP CI
+name: Engine Watch G3 Shared Deck Constructor and PSP CI
 
 on:
   push:
@@ -88,7 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure portable marine 3D OBJ exporter
-        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON
+        run: cmake -S . -B build/objects -DENGINEWATCH_BUILD_GAME=OFF -DBUILD_TESTING=OFF -DENGINEWATCH_EXPORT_ASSETS=ON -DENGINEWATCH_EXPORT_DECKPLAN=ON
       - name: Build native 3D component exporter
         run: cmake --build build/objects --parallel 2
       - name: Export 33 separate OBJ/MTL meshes
@@ -100,6 +100,37 @@ jobs:
           cp docs/marine-asset-catalog.md dist/marine-objects/README.md
           cp assets/marine_parts/catalog.json dist/marine-objects/catalog.json
           python3 -c 'import json,os; p="dist/marine-objects/"; d=json.load(open(p+"catalog.json")); assert len(d["parts"])==33; assert len(d["finishes"])==16; assert all(os.path.isfile(p+x["obj_file"]) and os.path.isfile(p+x["mtl_file"]) for x in d["parts"]); print("33 OBJ+MTL models and 16 finishes verified")'
+      - name: Export G3 shared-deck JSON and five SVG construction plans
+        run: |
+          mkdir -p dist/deck-constructor
+          ./build/objects/enginewatch_export_deckplan dist/deck-constructor
+      - name: Verify deck cells, grating coverage and readable SVG layouts
+        run: |
+          python3 - <<'PY'
+          import collections,json,pathlib,xml.etree.ElementTree as XML
+          root=pathlib.Path("dist/deck-constructor")
+          data=json.load(open(root/"deck-constructor.json"))
+          assert data["format"]=="engine-watch-deckplan/1"
+          assert len(data["decks"])==5
+          assert len(data["cells"])==79
+          assert len(data["openings"])==12
+          assert len(data["grating_bands"])==8
+          kinds=collections.Counter(c["surface"] for c in data["cells"])
+          assert kinds=={"solid_steel_plate":46,"open_steel_grating":32,"inset_service_cover":1},kinds
+          for deck in range(5):
+              path=root/f"deck-0{deck}.svg"
+              assert path.is_file()
+              doc=XML.parse(path)
+              assert doc.getroot().tag.endswith("svg")
+              assert sum(c["deck"]==deck for c in data["cells"])>0
+          print("G3 export check: 79 floor cells, 12 declared cutouts, 8 grating bands, 5 valid SVG plans")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-deck-constructor-g3
+          path: dist/deck-constructor/
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: engine-watch-reusable-3d-objects-v0.7.1
@@ -117,6 +148,10 @@ jobs:
         run: cmake --build build/tests --parallel 2
       - name: Test simulation and 3D world
         run: ctest --test-dir build/tests --output-on-failure
+      - name: Enforce PSP near-plane clipping render contract
+        run: python3 tools/verify_psp_render_state.py
+      - name: Print scene mesh budget for PSP guardband analysis
+        run: build/tests/enginewatch_world_tests 2>&1 | grep -E 'PSP mesh budget|vertices /|raised deck'
 
   desktop-3d:
     runs-on: ubuntu-latest
@@ -150,7 +185,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.7.1-screenshot-cleanup
+          name: engine-watch-psp-g3-deck-constructor-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -162,7 +197,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.7.1-screenshot-cleanup
+          name: engine-watch-psp-g3-deck-constructor-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -207,6 +242,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-v0.7.1-screenshot-diagnostics
+          name: ppsspp-g3-deck-constructor-preview-diagnostics
           path: diagnostics/
           if-no-files-found: ignore

@@ -233,6 +233,93 @@ static void screenshotGeometryChecks(const World3D& w) {
     }
 }
 
+// PSP GU has no complete X/Y clipper. Huge triangles projected beyond its
+// 4096px guard band can disappear even with near-plane clipping enabled.
+// These fixtures ensure the exposed hull/roof faces are actually tiled and
+// that each test-view wall point is covered by physical, small triangles.
+static bool coveredShellPoint(const World3D& w,int axis,float plane,
+                              float u,float v,int& found,float& largest) {
+    bool hit=false;
+    const std::vector<Vertex3D>& verts=w.vertices();
+    for(std::size_t i=0;i+2<verts.size();i+=3) {
+        const Vertex3D& a=verts[i],&b=verts[i+1],&c=verts[i+2];
+        const float coord[3]={a.x,a.y,a.z};
+        const float coordB[3]={b.x,b.y,b.z};
+        const float coordC[3]={c.x,c.y,c.z};
+        if(std::fabs(coord[axis]-plane)>0.0006f ||
+           std::fabs(coordB[axis]-plane)>0.0006f ||
+           std::fabs(coordC[axis]-plane)>0.0006f) continue;
+        const int i1=(axis+1)%3,i2=(axis+2)%3;
+        const float p=(coordB[i1]-coord[i1])*(v-coord[i2])-
+                      (coordB[i2]-coord[i2])*(u-coord[i1]);
+        const float q=(coordC[i1]-coordB[i1])*(v-coordB[i2])-
+                      (coordC[i2]-coordB[i2])*(u-coordB[i1]);
+        const float t=(coord[i1]-coordC[i1])*(v-coordC[i2])-
+                      (coord[i2]-coordC[i2])*(u-coordC[i1]);
+        const float side1=std::fmax(std::fmax(coord[i1],coordB[i1]),coordC[i1])-
+                          std::fmin(std::fmin(coord[i1],coordB[i1]),coordC[i1]);
+        const float side2=std::fmax(std::fmax(coord[i2],coordB[i2]),coordC[i2])-
+                          std::fmin(std::fmin(coord[i2],coordB[i2]),coordC[i2]);
+        if(side1>0.03f && side2>0.03f) {
+            ++found;
+            // Only bound the triangle at this particular sample point.
+            // Other foreground steel objects can share the same X/Y/Z
+            // plane, and some have deliberately long faces unrelated to
+            // the tiled hull enclosure being checked here.
+            if((p>=-0.0001f && q>=-0.0001f && t>=-0.0001f) ||
+               (p<=0.0001f && q<=0.0001f && t<=0.0001f)) {
+                hit=true;
+                largest=std::fmax(largest,std::fmax(side1,side2));
+            }
+        }
+    }
+    return hit;
+}
+
+static void guardbandShellChecks(const World3D& w) {
+    // For a constant Z plane (hull), the free coordinates are X and Y.
+    for(int side=-1;side<=1;side+=2) {
+        const float z=side*6.75f;
+        for(int ix=0;ix<5;++ix) {
+            for(int iy=0;iy<4;++iy) {
+                const float x=-1.5f+3.73f*ix;
+                const float y=1.1f+4.8f*iy;
+                int faces=0;float largest=0.0f;
+                assert(coveredShellPoint(w,2,z,x,y,faces,largest));
+                assert(faces>=60);
+                assert(largest<2.02f &&
+                       "PSP hull polygons must fit inside 2-m guardband panels");
+            }
+        }
+    }
+    // Constant X planes: free coordinates Y,Z.
+    for(int ix=0;ix<2;++ix) {
+        const float x=ix==0?-2.84f:15.36f;
+        for(int iy=0;iy<3;++iy) {
+            for(int iz=0;iz<3;++iz) {
+                const float y=1.0f+4.2f*iy;
+                const float z=-5.2f+4.3f*iz;
+                int faces=0;float largest=0.0f;
+                assert(coveredShellPoint(w,0,x,y,z,faces,largest));
+                assert(faces>=45);
+                assert(largest<2.02f);
+            }
+        }
+    }
+    // Constant Y overhead face: free coordinates Z, X. The extremely
+    // long old roof triangles also exceeded the PSP guard band near beams.
+    for(int ix=0;ix<3;++ix) {
+        const float x=-1.0f+7.0f*ix;
+        for(int iz=0;iz<3;++iz) {
+            const float z=-5.0f+5.0f*iz;
+            int faces=0;float largest=0.0f;
+            assert(coveredShellPoint(w,1,16.97f,z,x,faces,largest));
+            assert(faces>=80);
+            assert(largest<2.02f);
+        }
+    }
+}
+
 static void headroomChecks(const World3D& w) {
     assert(w.hasHeadroom(-7.35f,0.0f,World3D::floorHeight(EcrDeck)));
     assert(w.hasHeadroom(3.5f,4.0f,World3D::floorHeight(PumpFlatDeck)));
@@ -346,6 +433,7 @@ int main() {
     stairSlopeChecks(world);
     physicalFloorChecks(world);
     screenshotGeometryChecks(world);
+    guardbandShellChecks(world);
     headroomChecks(world);
     stationChecks(world);
     gameplayChecks(world);
