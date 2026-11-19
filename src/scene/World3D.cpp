@@ -123,27 +123,15 @@ void World3D::checkerTread(float x,float y,float z,uint32_t color) {
              Vec3{cx+0.052f,y+0.014f,cz+0.066f},color);
     }
 }
-void World3D::plateSeams(float x0,float x1,float z0,float z1,float y) {
-    const uint32_t seam=shade(deck,0.72f);
-    for(float x=std::ceil(x0/2.0f)*2.0f;x<x1;x+=2.0f) {
-        quad(Vec3{x-0.011f,y+0.004f,z0},Vec3{x+0.011f,y+0.004f,z0},
-             Vec3{x+0.011f,y+0.004f,z1},Vec3{x-0.011f,y+0.004f,z1},seam);
-    }
-    for(float z=std::ceil(z0/2.0f)*2.0f;z<z1;z+=2.0f) {
-        quad(Vec3{x0,y+0.004f,z-0.011f},Vec3{x1,y+0.004f,z-0.011f},
-             Vec3{x1,y+0.004f,z+0.011f},Vec3{x0,y+0.004f,z+0.011f},seam);
-    }
-    // Raised tread detail is now provided by placed CheckerPlate objects from
-    // MarinePartLibrary; drawing the legacy per-deck tread mesh as well would
-    // duplicate thousands of triangles and lose the reusable asset boundary.
-}
 void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color) {
     if(x1<=x0 || z1<=z0) return;
-    // Marine-painted steel plate with visible thickness, 2 m panel joints
-    // and small embossed tread features. No expensive full-screen texture.
+    // One thick steel plate has one definitive top surface. Thin "weld
+    // seam" overlay quads 4 mm proud of the plate caused shallow-angle
+    // 16-bit PSP depth conflicts. Physical tile edges are real boundaries;
+    // finer seams should be in a future baked surface material, not layered
+    // coplanar geometry in the walkable scene.
     box((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
         (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
-    plateSeams(x0,x1,z0,z1,height);
 }
 void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     if(x1<=x0) return;
