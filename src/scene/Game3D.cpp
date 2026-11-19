@@ -157,7 +157,12 @@ CameraView3D Game3D::renderCamera() const {
     const Vec3 first_target{
         camera_.x+cs*cp,camera_.y+sp,camera_.z+sn*cp
     };
-    CameraView3D view{camera_,first_target,false};
+    // C++11: CameraView3D has default member initializers, so assign
+    // explicitly instead of relying on C++14 aggregate initialization.
+    CameraView3D view;
+    view.eye=camera_;
+    view.target=first_target;
+    view.show_body=false;
     if(!third_person_) return view;
 
     // Small shoulder offset and trailing camera behind the engineer. We
