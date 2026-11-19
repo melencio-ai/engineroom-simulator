@@ -141,6 +141,89 @@ void animationChecks() {
     assert(anim.pose().action==CharacterIdle);
 }
 
+void polishedHandChecks() {
+    const Vec3 eye{0,1.65f,0};
+    CharacterPose idle;
+    std::vector<Vertex3D> hands,working;
+    PlayerCharacter::buildFirstPersonHands(eye,0,0,idle,hands);
+    assert(finiteMesh(hands));
+    // Six distinct gloved segments per hand (palm + four finger pads +
+    // thumb) should be visibly richer than the previous 72-triangle blocks.
+    assert(hands.size()>=320 && hands.size()<=720);
+
+    // With the standard 68-degree vertical FOV, the main glove/palm is
+    // positioned in the lower-middle screen, not behind the 226px HUD and
+    // not on top of the crosshair at (240,136).
+    // Test the center of each glove from its three-dimensional vertices:
+    const float t=std::tan(68.0f*PI/360.0f);
+    int visible_lower=0,blocked_crosshair=0;
+    for(std::size_t i=0;i<hands.size();++i) {
+        const Vertex3D& p=hands[i];
+        if(p.x<=0.26f) continue;
+        const float screenX=240.0f+136.0f*(p.z/p.x)/t;
+        const float screenY=136.0f-136.0f*((p.y-eye.y)/p.x)/t;
+        if(screenY>139 && screenY<226 &&
+           screenX>30 && screenX<450)++visible_lower;
+        if(std::fabs(screenX-240.0f)<18.0f &&
+           std::fabs(screenY-136.0f)<18.0f)++blocked_crosshair;
+    }
+    assert(visible_lower>140 && "Hands must be visible above the bottom HUD");
+    assert(blocked_crosshair==0 && "Working gloves must leave the reticle clear");
+
+    CharacterPose reaching=idle;
+    reaching.action=CharacterPressControl;
+    reaching.action_progress=0.5f;
+    PlayerCharacter::buildFirstPersonHands(eye,0,0,reaching,working);
+    assert(finiteMesh(working) && working.size()==hands.size());
+    assert(changedMesh(hands,working));
+}
+
+void stairCameraChecks() {
+    World3D world;
+    Game3D game(world);
+    Input3D toggle;toggle.toggle_view=true;
+    game.update(0.05f,toggle);
+    assert(game.isThirdPerson());
+    assert(game.renderCamera().show_body);
+    assert(game.renderCamera().fov_degrees>=76.0f);
+    assert(game.renderCamera().fov_degrees<=91.0f);
+
+    // Walk the actual ECR bridge and descend one full inclined ladder.
+    // The previous renderer switched to FP arms while still displaying 3P
+    // as soon as its chasing camera encountered the open stair well.
+    const float goals[3][2]={{-2.35f,0.0f},{-2.35f,5.0f},{1.35f,5.0f}};
+    bool sawStairs=false;
+    bool sawClose=false;
+    for(int goal=0;goal<3;++goal) {
+        bool arrived=false;
+        for(int frame=0;frame<550;++frame) {
+            const float dx=goals[goal][0]-game.camera().x;
+            const float dz=goals[goal][1]-game.camera().z;
+            const float dist=std::sqrt(dx*dx+dz*dz);
+            if(dist<0.07f) {arrived=true;break;}
+            Input3D motion;
+            motion.forward=dx/dist;
+            motion.strafe=dz/dist;  // Start view facing positive X.
+            game.update(0.05f,motion);
+            const CameraView3D view=game.renderCamera();
+            assert(view.show_body &&
+                   "Inclined stairs must not silently switch 3P into FP");
+            assert(std::isfinite(view.eye.x) && std::isfinite(view.eye.y)
+                   && std::isfinite(view.eye.z));
+            assert(view.fov_degrees>=76.0f && view.fov_degrees<=91.0f);
+            if(view.constrained) sawClose=true;
+            assert(std::strstr(game.hud().status,"VIEW 3P")!=nullptr &&
+                   "The displayed camera mode must agree with rendered geometry");
+            if(game.isClimbing()) sawStairs=true;
+        }
+        assert(arrived && "ECR to first stair failed navigation");
+    }
+    assert(sawStairs && "The camera walk test must include actual stair motion");
+    assert(sawClose && "The camera must detect constrained bridge/stair geometry");
+    assert(game.currentDeck()==AuxiliaryDeck);
+    assert(game.renderCamera().show_body);
+}
+
 void gameChecks() {
     World3D world;
     const std::size_t static_before=world.vertices().size();
@@ -225,7 +308,9 @@ void gameChecks() {
 int main() {
     geometryChecks();
     animationChecks();
+    polishedHandChecks();
     gameChecks();
+    stairCameraChecks();
     std::puts("G3.5 PASS: low-poly marine engineer, real-travel gait, PPE, "
               "first-person gloves, 3P chase camera, pump/ECR animation and mission preservation");
     return 0;
