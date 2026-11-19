@@ -81,7 +81,8 @@ const el=id=>document.getElementById(id);
 el("title").textContent=SCENE.title;
 el("count").textContent=SCENE.instances.length+" installed parts · "+SCENE.bom.length+" unique variants · "+SCENE.connections.length+" links";
 let selected=-1;
-let yaw=1.15,pitch=0.40,distance=2200;
+let yaw=1.15,pitch=0.40,distance=SCENE.camera.distance;
+const target=SCENE.camera.target;
 let percentage=0,dragging=false,last=[0,0],down=[0,0],wasDrag=false;
 const canvas=el("canvas");
 const gl=canvas.getContext("webgl",{antialias:true,alpha:false,depth:true,preserveDrawingBuffer:false});
@@ -167,8 +168,13 @@ function draw(picking){
  resize();
  gl.clearColor(.055,.091,.117,1);
  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- const cp=Math.cos(pitch),eye=[cp*Math.cos(yaw)*distance,Math.sin(pitch)*distance,cp*Math.sin(yaw)*distance];
- const vp=mult(persp(48,canvas.width/canvas.height,10,10000),view(eye,[0,0,0]));
+ const cp=Math.cos(pitch),eye=[
+  target[0]+cp*Math.cos(yaw)*distance,
+  target[1]+Math.sin(pitch)*distance,
+  target[2]+cp*Math.sin(yaw)*distance
+ ];
+ const vp=mult(persp(48,canvas.width/canvas.height,3,
+                     Math.max(10000,SCENE.camera.max_distance*3)),view(eye,target));
  const shader=picking?pickProgram:renderProgram;
  gl.useProgram(shader.p);
  gl.uniformMatrix4fv(shader.vp,false,new Float32Array(vp));
@@ -240,7 +246,7 @@ function setPercent(p){
 el("explode").oninput=e=>setPercent(e.target.value);
 el("assembled").onclick=()=>setPercent(0);
 el("exploded").onclick=()=>setPercent(100);
-el("reset").onclick=()=>{yaw=1.15;pitch=.4;distance=2200;render();};
+el("reset").onclick=()=>{yaw=1.15;pitch=.4;distance=SCENE.camera.distance;render();};
 el("search").oninput=renderList;
 canvas.addEventListener("pointerdown",e=>{dragging=true;wasDrag=false;down=[e.clientX,e.clientY];last=down;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener("pointermove",e=>{
@@ -265,7 +271,10 @@ canvas.addEventListener("pointerup",e=>{
  dragging=false;
 });
 canvas.addEventListener("wheel",e=>{
- e.preventDefault();distance=Math.max(300,Math.min(8000,distance*Math.exp(e.deltaY*.001)));render();
+ e.preventDefault();
+ distance=Math.max(SCENE.camera.min_distance,
+                   Math.min(SCENE.camera.max_distance,distance*Math.exp(e.deltaY*.001)));
+ render();
 },{passive:false});
 window.addEventListener("resize",render);
 renderList();render();
