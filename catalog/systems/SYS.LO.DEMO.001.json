@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "id": "SYS.LO.DEMO.001",
+  "name": "Illustrative LO circulation route (not OEM P&ID)",
+  "status": "illustrative",
+  "domain": "fluid",
+  "nodes": [
+    {
+      "id": "sump",
+      "role": "tank",
+      "assembly_instance": null,
+      "port": "outlet"
+    },
+    {
+      "id": "main_pump",
+      "role": "pump",
+      "assembly_instance": "lo_main",
+      "port": "suction"
+    },
+    {
+      "id": "header",
+      "role": "header",
+      "assembly_instance": "lo_discharge",
+      "port": "in"
+    }
+  ],
+  "edges": [
+    {
+      "id": "lo_supply",
+      "from": "sump",
+      "to": "main_pump",
+      "kind": "fluid",
+      "medium_id": "FLUID.LO.UNKNOWN"
+    },
+    {
+      "id": "lo_delivery",
+      "from": "main_pump",
+      "to": "header",
+      "kind": "fluid",
+      "medium_id": "FLUID.LO.UNKNOWN"
+    }
+  ],
+  "provenance": {
+    "verified": false,
+    "reference": null
+  }
+}

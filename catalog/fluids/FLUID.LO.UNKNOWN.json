@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "id": "FLUID.LO.UNKNOWN",
+  "display_name": "Lubricating oil - product not selected",
+  "family": "lubricating_oil",
+  "commercial_label": "LO",
+  "standard_grade": null,
+  "reference": "Maker specification and lab analysis pending",
+  "properties": {
+    "density_vs_temperature": {
+      "model": "unknown",
+      "samples": [],
+      "unit": "kg/m3",
+      "source_verified": false
+    },
+    "viscosity_vs_temperature": {
+      "model": "unknown",
+      "samples": [],
+      "unit": "mm2/s",
+      "source_verified": false
+    },
+    "flash_point_c": null,
+    "sulfur_mass_percent": null
+  },
+  "status": "illustrative"
+}

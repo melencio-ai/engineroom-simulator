@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "materials": [
+    {
+      "id": "MAT.CARBON_STEEL.UNSPECIFIED",
+      "base_material": "carbon_steel",
+      "grade": null,
+      "grade_standard": null,
+      "engineering_status": "unspecified",
+      "warning": "A bolt property class is not a steel material grade"
+    }
+  ],
+  "coatings": [
+    {
+      "id": "COAT.ZINC.UNSPECIFIED",
+      "name": "Illustrative zinc plating",
+      "coating_process": null,
+      "thickness_micrometre": null,
+      "verified": false
+    },
+    {
+      "id": "COAT.NONE",
+      "name": "Uncoated or finish pending",
+      "coating_process": null,
+      "thickness_micrometre": null,
+      "verified": false
+    }
+  ],
+  "visual_finishes": [
+    {
+      "id": "VIS.GREEN_EPOXY",
+      "name": "Illustrative green epoxy",
+      "hex_rgb": "#285D43",
+      "material_grade_id": null
+    },
+    {
+      "id": "VIS.NEUTRAL_STEEL",
+      "name": "Illustrative neutral grey steel",
+      "hex_rgb": "#879790",
+      "material_grade_id": null
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enginewatch.local/schemas/fluid.schema.json",
+  "title": "Engine Watch fluid grade/profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "display_name",
+    "family",
+    "commercial_label",
+    "standard_grade",
+    "reference",
+    "properties",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 4
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 4
+    },
+    "family": {
+      "enum": [
+        "residual_fuel",
+        "distillate_fuel",
+        "lubricating_oil",
+        "hydraulic_oil",
+        "water",
+        "water_mix",
+        "gas",
+        "steam",
+        "sludge",
+        "other"
+      ]
+    },
+    "commercial_label": {
+      "type": "string"
+    },
+    "standard_grade": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "density_vs_temperature",
+        "viscosity_vs_temperature",
+        "flash_point_c",
+        "sulfur_mass_percent"
+      ],
+      "properties": {
+        "density_vs_temperature": {
+          "$ref": "#/$defs/curve"
+        },
+        "viscosity_vs_temperature": {
+          "$ref": "#/$defs/curve"
+        },
+        "flash_point_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sulfur_mass_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "illustrative",
+        "catalog_documented",
+        "project_approved",
+        "simulation_calibrated"
+      ]
+    }
+  },
+  "$defs": {
+    "curve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "samples",
+        "unit",
+        "source_verified"
+      ],
+      "properties": {
+        "model": {
+          "enum": [
+            "unknown",
+            "tabulated",
+            "correlation"
+          ]
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "temperature_c",
+              "value"
+            ],
+            "properties": {
+              "temperature_c": {
+                "type": "number"
+              },
+              "value": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_verified": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

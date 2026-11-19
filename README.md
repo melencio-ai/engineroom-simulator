@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## Marine Component Master Library — G1 foundation (feature branch)
+
+The [G1 catalog contracts](docs/catalog-v1-foundation.md) introduce four JSON Schemas, provenance-checked ISO/ASME reference metadata, physical material/coating separation, two illustrative metric bolt variants, an illustrative pipe spool, fluid/LO assembly examples, and automated semantic/negative tests. **No PSP meshes or machinery logic were changed**, and the sample dimensions are **not manufacturer-certified**. The next gate (G2) will implement real parametric mesh generators from controlled source data.
+
 **v0.7 feature build: Pump Flat realism, stair/headroom collision and existing modular shipbuilding components**
 
 This is a first-person, multi-deck PSP/PPSSPP marine engine-room simulator in C++11, with a matching SDL2/OpenGL desktop preview. The environment is now built in part from an independent library of **33 reusable 3D marine components**, with **16 separate material/finish types**. Each component can be resized, rotated, placed in the engine room or exported as an individual **OBJ + MTL** asset for Blender and other 3D tools.
