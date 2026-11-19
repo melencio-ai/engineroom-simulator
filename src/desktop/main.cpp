@@ -167,7 +167,7 @@ int main(int,char**) {
     }
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,24);
-    SDL_Window* window=SDL_CreateWindow("Engine Watch G3.5 Marine Engineer",SDL_WINDOWPOS_CENTERED,
+    SDL_Window* window=SDL_CreateWindow("Engine Watch G3.5.1 Character Polish",SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,960,544,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(!window) { std::fprintf(stderr,"%s\n",SDL_GetError());SDL_Quit();return 1; }
     SDL_GLContext ctx=SDL_GL_CreateContext(window);
