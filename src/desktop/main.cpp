@@ -83,7 +83,8 @@ public:
         glDisable(GL_CULL_FACE);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        const float nearPlane=0.12f;
+        // Match PSP near/far clipping when previewing deck-surface overlaps.
+        const float nearPlane=0.25f;
         const float top=std::tan(68.0f*3.141592653589793f/360.0f)*nearPlane;
         const float right=top*static_cast<float>(w)/std::max(h,1);
         glFrustum(-right,right,-top,top,nearPlane,80.0);
