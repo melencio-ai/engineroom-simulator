@@ -261,11 +261,16 @@ static bool coveredShellPoint(const World3D& w,int axis,float plane,
         const float side2=std::fmax(std::fmax(coord[i2],coordB[i2]),coordC[i2])-
                           std::fmin(std::fmin(coord[i2],coordB[i2]),coordC[i2]);
         if(side1>0.03f && side2>0.03f) {
-            largest=std::fmax(largest,std::fmax(side1,side2));
             ++found;
+            // Only bound the triangle at this particular sample point.
+            // Other foreground steel objects can share the same X/Y/Z
+            // plane, and some have deliberately long faces unrelated to
+            // the tiled hull enclosure being checked here.
             if((p>=-0.0001f && q>=-0.0001f && t>=-0.0001f) ||
-               (p<=0.0001f && q<=0.0001f && t<=0.0001f))
+               (p<=0.0001f && q<=0.0001f && t<=0.0001f)) {
                 hit=true;
+                largest=std::fmax(largest,std::fmax(side1,side2));
+            }
         }
     }
     return hit;
