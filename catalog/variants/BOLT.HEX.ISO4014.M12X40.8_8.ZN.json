@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0.0",
+  "id": "BOLT.HEX.ISO4014.M12X40.8_8.ZN",
+  "family": "fastener.hex_bolt",
+  "name": "Illustrative M12 x 40 mm hex-head bolt, class 8.8",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "nominal_diameter_mm": 12,
+    "length_mm": 40,
+    "thread_pitch_mm": 1.75,
+    "property_class": "8.8",
+    "thread_tolerance": "candidate_6g",
+    "geometry_verified": false
+  },
+  "material": {
+    "base_material": "carbon_steel",
+    "grade": null,
+    "grade_standard": "ISO 898-1:2013 (property-class context only)"
+  },
+  "coating_id": "COAT.ZINC.UNSPECIFIED",
+  "insulation_id": null,
+  "standards": [
+    {
+      "code": "ISO 4014",
+      "edition": "2022",
+      "scope": "Hexagon-head bolt family and characteristics",
+      "url": "https://www.iso.org/standard/72579.html"
+    },
+    {
+      "code": "ISO 261",
+      "edition": "1998",
+      "scope": "Metric screw thread general plan",
+      "url": "https://www.iso.org/standard/4165.html"
+    },
+    {
+      "code": "ISO 898-1",
+      "edition": "2013",
+      "scope": "Property classes; not equivalent to a specific steel grade",
+      "url": "https://www.iso.org/standard/60610.html"
+    }
+  ],
+  "ports": [
+    {
+      "id": "male_thread",
+      "kind": "thread",
+      "interface": "METRIC:M12x1.75:external",
+      "position_mm": [
+        0,
+        0,
+        -40
+      ],
+      "axis": [
+        0,
+        0,
+        -1
+      ],
+      "service": null
+    }
+  ],
+  "generator": {
+    "name": "hex_bolt",
+    "version": "0.1.0",
+    "implementation_status": "planned"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "omit"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": [
+      {
+        "parameter": "nominal_diameter_mm",
+        "source_id": "STD.ISO.4014.2022",
+        "verification": "metadata_only"
+      },
+      {
+        "parameter": "thread_pitch_mm",
+        "source_id": "STD.ISO.261.1998",
+        "verification": "metadata_only"
+      }
+    ]
+  }
+}
