@@ -74,6 +74,11 @@ class MarineAssemblyTests(unittest.TestCase):
         with self.assertRaisesRegex(AssemblyFitError,"off-axis fastener centerline|bolt circle"):
             validate_mated_assembly(self.asm,self.parts)
 
+    def test_washer_face_cannot_be_rotated_out_of_plane(self):
+        self.child("washer_near_0")["rotation_deg"]=[0,0,0]
+        with self.assertRaisesRegex(AssemblyFitError,"washer must be perpendicular"):
+            validate_mated_assembly(self.asm,self.parts)
+
     def test_mismatched_thread_pitch_rejected(self):
         self.parts["NUT.HEX.M16.ILLUSTRATIVE"]["ports"][0]["interface"]="METRIC:M16x2.5:internal"
         with self.assertRaisesRegex(AssemblyFitError,"thread nominal diameter/pitch"):
@@ -149,6 +154,16 @@ class MarineAssemblyTests(unittest.TestCase):
                     self.assertEqual(len(data),12+header[2]*16)
                 html=(path/"viewer.html").read_text(encoding="utf-8")
                 self.assertIn("const SCENE=",html)
+                payload=html.split("const SCENE=",1)[1].split(";\\n",1)[0]
+                if payload==html.split("const SCENE=",1)[1]:
+                    payload=payload.split(";\n",1)[0]
+                viewer=json.loads(payload)
+                self.assertGreater(viewer["camera"]["distance"],
+                                   viewer["camera"]["min_distance"])
+                if rec["instances"]==4:
+                    self.assertLess(viewer["camera"]["distance"],500)
+                else:
+                    self.assertGreater(viewer["camera"]["distance"],1500)
                 self.assertNotIn("__ENGINEWATCH_ASSEMBLY_DATA__",html)
                 self.assertIn('getContext("webgl"',html)
                 self.assertIn("ILLUSTRATIVE",html)
