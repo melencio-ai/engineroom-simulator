@@ -123,6 +123,116 @@ static void stairSlopeChecks(const World3D& w) {
     }
 }
 
+// Triangle-projected deck checks catch holes that collision-only tests miss.
+// A walkable logical surface must have actual horizontal polygons underneath it.
+static bool visibleFlatFloorAt(const World3D& w,float x,float z,float height) {
+    const std::vector<Vertex3D>& vertices=w.vertices();
+    for(std::size_t i=0;i+2<vertices.size();i+=3) {
+        const Vertex3D& a=vertices[i],&b=vertices[i+1],&c=vertices[i+2];
+        if(std::fabs(a.y-height)>0.001f ||
+           std::fabs(b.y-height)>0.001f ||
+           std::fabs(c.y-height)>0.001f) continue;
+        const float area=(b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
+        if(std::fabs(area)<0.000001f) continue;
+        const float p=(b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x);
+        const float q=(c.x-b.x)*(z-b.z)-(c.z-b.z)*(x-b.x);
+        const float t=(a.x-c.x)*(z-c.z)-(a.z-c.z)*(x-c.x);
+        if((p>=-0.0001f && q>=-0.0001f && t>=-0.0001f) ||
+           (p<=0.0001f && q<=0.0001f && t<=0.0001f)) return true;
+    }
+    return false;
+}
+
+static void physicalFloorChecks(const World3D& w) {
+    // The original repeated checkerplate meshes were raised by 8 cm and
+    // separated by 0.55 m gaps. Only a single inset maintenance cover remains.
+    int checker_covers=0,working_grates=0;
+    for(const MarinePartPlacement& p:w.parts()) {
+        const Vec3& pos=p.transform.position;
+        if(p.part==CheckerPlate) {
+            ++checker_covers;
+            assert(std::fabs(pos.x-2.40f)<0.001f);
+            assert(std::fabs(pos.z+0.20f)<0.001f);
+            const float cover_top=pos.y+0.035f*p.transform.scale.y;
+            assert(std::fabs(cover_top-World3D::floorHeight(PumpFlatDeck))<0.001f);
+        }
+        if(p.part==OpenSteelGrating) {
+            ++working_grates;
+            // Every grate is a working-level panel, not a phantom panel
+            // laid over the Level 00 steel tank top.
+            const float top=pos.y+0.030f*p.transform.scale.y;
+            const int level=World3D::cameraDeck(top+1.65f);
+            assert(level>=PumpFlatDeck && level<=EcrDeck);
+            assert(std::fabs(top-World3D::floorHeight(level))<0.001f);
+            assert(std::fabs(std::fabs(pos.z)-2.79f)<0.001f);
+        }
+    }
+    assert(checker_covers==1);
+    assert(working_grates==4*2*4);
+
+    // A continuous physical top surface exists below the main solid side
+    // galleries at every deck. A rendered hole here is not a valid stairwell.
+    const float samples[]={3.45f,4.65f,6.55f,8.45f,10.35f,11.65f};
+    for(int d=TankTopDeck;d<DeckCount;++d) {
+        const float floor=World3D::floorHeight(d);
+        for(int side=-1;side<=1;side+=2)
+            for(unsigned j=0;j<sizeof(samples)/sizeof(samples[0]);++j)
+                assert(visibleFlatFloorAt(w,samples[j],side*4.85f,floor));
+    }
+    // The dedicated chequer access plate replaces (not overlaps) the one
+    // 0.60 x 1.00 metre Pump Flat floor cutout.
+    assert(visibleFlatFloorAt(w,2.40f,-0.20f,
+                             World3D::floorHeight(PumpFlatDeck)));
+}
+
+static void screenshotGeometryChecks(const World3D& w) {
+    // Screenshot-driven guard: the machinery's upper forward bays must
+    // contain bulkhead geometry, not unbounded background clear-colour.
+    int forward_upper_panels=0,bridge_rail_left=0,bridge_rail_right=0;
+    const float top=World3D::floorHeight(EcrDeck);
+    for(const Vertex3D& v : w.vertices()) {
+        if(std::fabs(v.x+2.98f)<0.16f &&
+           std::fabs(v.z)>4.20f && std::fabs(v.z)<6.88f &&
+           v.y>top+0.40f && v.y<top+4.10f)
+            ++forward_upper_panels;
+        if(v.x>-3.34f && v.x<-2.83f && v.y>top+0.40f &&
+           v.y<top+1.21f) {
+            if(v.z<-1.08f && v.z>-1.21f) ++bridge_rail_left;
+            if(v.z>1.08f && v.z<1.21f) ++bridge_rail_right;
+        }
+    }
+    assert(forward_upper_panels>=30);
+    assert(bridge_rail_left>=10 && bridge_rail_right>=10);
+
+    // Four contiguous actual grating bays on BOTH sides of each working flat,
+    // aligned above the engine well rather than decoratively floating over
+    // unbroken deck slabs.
+    for(int deck=PumpFlatDeck;deck<=EcrDeck;++deck) {
+        const float y=World3D::floorHeight(deck);
+        for(int side=-1;side<=1;side+=2) {
+            for(int bay=0;bay<4;++bay) {
+                const float x=4.2375f+bay*2.275f;
+                float surface=-100.0f;
+                assert(w.canStand(x,side*2.80f,deck));
+                assert(w.walkSurface(x,side*2.80f,y,surface));
+                assert(std::fabs(surface-y)<0.03f);
+                int grate_mesh=0;
+                for(const Vertex3D& v:w.vertices()) {
+                    // Grating bars span nearly the full panel width:
+                    // x half-length is 1.1375 m and z half-width 0.41 m.
+                    // Count all support/bar edge vertices, not only a small
+                    // central patch (the latter accidentally excluded them).
+                    if(std::fabs(v.x-x)<1.15f &&
+                       std::fabs(v.y-y)<0.095f &&
+                       std::fabs(v.z-side*2.80f)<0.43f)
+                        ++grate_mesh;
+                }
+                assert(grate_mesh>=40);
+            }
+        }
+    }
+}
+
 static void headroomChecks(const World3D& w) {
     assert(w.hasHeadroom(-7.35f,0.0f,World3D::floorHeight(EcrDeck)));
     assert(w.hasHeadroom(3.5f,4.0f,World3D::floorHeight(PumpFlatDeck)));
@@ -159,6 +269,7 @@ static void gameplayChecks(const World3D& world) {
     assert(game.camera().y>14.40f && game.camera().y<14.50f);
     assert(game.pitch()<0.0f);
     assert(std::strstr(game.hud().title,"ECR / UPPER"));
+    assert(!std::strchr(game.hud().title,'?')); // Unsupported '|' formerly rendered '?'
     assert(!game.hud().panel_visible);
     assert(world.canStand(game.camera().x,game.camera().z,game.currentDeck()));
 
@@ -233,6 +344,8 @@ int main() {
     geometryChecks(world);
     deckChecks(world);
     stairSlopeChecks(world);
+    physicalFloorChecks(world);
+    screenshotGeometryChecks(world);
     headroomChecks(world);
     stationChecks(world);
     gameplayChecks(world);

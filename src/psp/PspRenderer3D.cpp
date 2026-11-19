@@ -141,7 +141,10 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     sceGuDisable(GU_TEXTURE_2D);
     sceGumMatrixMode(GU_PROJECTION);
     sceGumLoadIdentity();
-    sceGumPerspective(68.0f,480.0f/272.0f,0.12f,80.0f);
+    // Improve 16-bit PSP depth precision for shallow floor viewing angles.
+    // The whole engine space fits within 60 m of the player; 0.25 m near
+    // plane keeps more precision than the previous 0.12..80 range.
+    sceGumPerspective(68.0f,480.0f/272.0f,0.25f,60.0f);
     const Vec3& p=game.camera();
     const float yaw=game.yaw();
     ScePspFVector3 eye={p.x,p.y,p.z};
