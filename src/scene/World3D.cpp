@@ -60,6 +60,54 @@ void World3D::box(float x, float y, float z, float hx, float hy, float hz, uint3
     quad(Vec3{x0,y0,z1}, Vec3{x0,y0,z0}, Vec3{x0,y1,z0}, Vec3{x0,y1,z1}, shade(c,0.75f));
     quad(Vec3{x1,y0,z0}, Vec3{x1,y0,z1}, Vec3{x1,y1,z1}, Vec3{x1,y1,z0}, shade(c,1.02f));
 }
+void World3D::panelizedBox(float x,float y,float z,
+                           float hx,float hy,float hz,uint32_t c,
+                           float max_span) {
+    // PSP GE near-plane clipping does not include full X/Y frustum clipping.
+    // A single 18 x 17 m wall can be discarded when a projected vertex
+    // escapes the 4096-pixel guard band as the player approaches it.
+    // Divide just the SIX EXPOSED FACES into regular 2-m-ish panels. Never
+    // call box() for every grid cell: that would add internal coincident walls
+    // and waste thousands of PSP vertices/depth precision.
+    const float x0=x-hx,x1=x+hx,y0=y-hy,y1=y+hy,z0=z-hz,z1=z+hz;
+    const int nx=std::max(1,std::min(32,
+        static_cast<int>(std::ceil((x1-x0)/max_span))));
+    const int ny=std::max(1,std::min(32,
+        static_cast<int>(std::ceil((y1-y0)/max_span))));
+    const int nz=std::max(1,std::min(32,
+        static_cast<int>(std::ceil((z1-z0)/max_span))));
+    for(int ix=0;ix<nx;++ix) {
+        const float a=x0+(x1-x0)*ix/nx,b=x0+(x1-x0)*(ix+1)/nx;
+        for(int iz=0;iz<nz;++iz) {
+            const float u=z0+(z1-z0)*iz/nz,v=z0+(z1-z0)*(iz+1)/nz;
+            quad(Vec3{a,y1,u},Vec3{b,y1,u},Vec3{b,y1,v},
+                 Vec3{a,y1,v},shade(c,1.28f));
+            quad(Vec3{a,y0,v},Vec3{b,y0,v},Vec3{b,y0,u},
+                 Vec3{a,y0,u},shade(c,0.58f));
+        }
+    }
+    for(int ix=0;ix<nx;++ix) {
+        const float a=x0+(x1-x0)*ix/nx,b=x0+(x1-x0)*(ix+1)/nx;
+        for(int iy=0;iy<ny;++iy) {
+            const float lo=y0+(y1-y0)*iy/ny,hi=y0+(y1-y0)*(iy+1)/ny;
+            quad(Vec3{a,lo,z0},Vec3{b,lo,z0},Vec3{b,hi,z0},
+                 Vec3{a,hi,z0},shade(c,0.80f));
+            quad(Vec3{b,lo,z1},Vec3{a,lo,z1},Vec3{a,hi,z1},
+                 Vec3{b,hi,z1},shade(c,0.95f));
+        }
+    }
+    for(int iz=0;iz<nz;++iz) {
+        const float a=z0+(z1-z0)*iz/nz,b=z0+(z1-z0)*(iz+1)/nz;
+        for(int iy=0;iy<ny;++iy) {
+            const float lo=y0+(y1-y0)*iy/ny,hi=y0+(y1-y0)*(iy+1)/ny;
+            quad(Vec3{x0,lo,b},Vec3{x0,lo,a},Vec3{x0,hi,a},
+                 Vec3{x0,hi,b},shade(c,0.75f));
+            quad(Vec3{x1,lo,a},Vec3{x1,lo,b},Vec3{x1,hi,b},
+                 Vec3{x1,hi,a},shade(c,1.02f));
+        }
+    }
+}
+
 void World3D::cylinderX(float x0, float x1, float y, float z, float r, int n, uint32_t c) {
     for (int i=0; i<n; ++i) {
         const float a=2.0f*PI*i/n, b=2.0f*PI*(i+1)/n;
@@ -130,8 +178,8 @@ void World3D::deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t
     // 16-bit PSP depth conflicts. Physical tile edges are real boundaries;
     // finer seams should be in a future baked surface material, not layered
     // coplanar geometry in the walkable scene.
-    box((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
-        (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
+    panelizedBox((x0+x1)*0.5f,height-0.11f,(z0+z1)*0.5f,
+                 (x1-x0)*0.5f,0.11f,(z1-z0)*0.5f,color);
 }
 void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     if(x1<=x0) return;
@@ -318,10 +366,10 @@ void World3D::build() {
     railing(-3.32f,-2.86f,-1.15f,top,handrail);
     railing(-3.32f,-2.86f, 1.15f,top,handrail);
     // A coated steel ECR overhead, not a near-black open sky panel.
-    box(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,shade(wall,0.71f));
+    panelizedBox(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,shade(wall,0.71f));
     box(-10.02f,top+1.98f,0.0f,0.16f,2.02f,4.06f,wall);
-    box(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f,wall);
-    box(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f,wall);
+    panelizedBox(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f,wall);
+    panelizedBox(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f,wall);
     // ECR-front bulkhead with two clear look-through windows and central door.
     for(int side=-1;side<=1;side+=2) {
         const float z=side*2.65f;
@@ -347,16 +395,16 @@ void World3D::build() {
     obstacle(-9.75f,-8.70f,-2.35f,2.35f,1u<<EcrDeck);
 
     // Hull, stern bulkhead, forward machinery boundary, roof beams and framing.
-    box(6.24f,8.48f,-6.91f,9.28f,8.53f,0.16f,wall);
-    box(6.24f,8.48f, 6.91f,9.28f,8.53f,0.16f,wall);
-    box(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f,wall);
-    box(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f,wall);
+    panelizedBox(6.24f,8.48f,-6.91f,9.28f,8.53f,0.16f,wall);
+    panelizedBox(6.24f,8.48f, 6.91f,9.28f,8.53f,0.16f,wall);
+    panelizedBox(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f,wall);
+    panelizedBox(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f,wall);
     // Above the lower forward bulkhead the ECR occupies only the central
     // eight metres. Close the two flanking bays with white-coated structure:
     // formerly they opened directly onto the dark clear colour.
     for(int side=-1;side<=1;side+=2)
         box(-2.98f,top+2.02f,side*5.46f,0.14f,2.04f,1.40f,wall);
-    box(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,shade(wall,0.65f));
+    panelizedBox(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,shade(wall,0.65f));
     for(float x=-2.0f;x<15.0f;x+=3.0f) {
         box(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
         for(int side=-1;side<=1;side+=2)
