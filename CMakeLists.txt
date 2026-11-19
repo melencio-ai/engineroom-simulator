@@ -69,6 +69,14 @@ if(ENGINEWATCH_EXPORT_ASSETS AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(enginewatch_export_parts PRIVATE enginewatch_scene)
 endif()
 
+# G3: native constructor exporter reads the very same DeckPlan as the
+# playable C++ engine to generate physical layout JSON and vector deck maps.
+option(ENGINEWATCH_EXPORT_DECKPLAN "Export shared deck layout JSON and SVG blueprints" OFF)
+if(ENGINEWATCH_EXPORT_DECKPLAN AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(enginewatch_export_deckplan tools/export_deck_plan.cpp)
+    target_link_libraries(enginewatch_export_deckplan PRIVATE enginewatch_scene)
+endif()
+
 include(CTest)
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_tests tests/EngineSimulationTests.cpp)
