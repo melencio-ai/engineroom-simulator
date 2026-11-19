@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "policy": "Only authorized, licensed manufacturer/vessel/standard value sources may upgrade numeric fields from illustrative to verified. Public metadata landing pages do not qualify.",
+  "records": [],
+  "admission_requirements": [
+    "source_id",
+    "source_type",
+    "document_revision",
+    "permitted_use",
+    "reviewer",
+    "scope",
+    "evidence_locator",
+    "verification_record"
+  ]
+}
