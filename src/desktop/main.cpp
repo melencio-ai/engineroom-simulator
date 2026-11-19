@@ -83,14 +83,15 @@ public:
         glDisable(GL_CULL_FACE);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        // Match PSP near/far clipping when previewing deck-surface overlaps.
+        // Both renderers consume the exact same camera position and adaptive
+        // FOV so a desktop preview matches third-person framing in PPSSPP.
+        const enginewatch::CameraView3D view=game.renderCamera();
         const float nearPlane=0.25f;
-        const float top=std::tan(68.0f*3.141592653589793f/360.0f)*nearPlane;
+        const float top=std::tan(view.fov_degrees*3.141592653589793f/360.0f)*nearPlane;
         const float right=top*static_cast<float>(w)/std::max(h,1);
         glFrustum(-right,right,-top,top,nearPlane,60.0);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        const enginewatch::CameraView3D view=game.renderCamera();
         const float dx=view.target.x-view.eye.x;
         const float dy=view.target.y-view.eye.y;
         const float dz=view.target.z-view.eye.z;
@@ -166,7 +167,7 @@ int main(int,char**) {
     }
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,24);
-    SDL_Window* window=SDL_CreateWindow("Engine Watch G3.5 Marine Engineer",SDL_WINDOWPOS_CENTERED,
+    SDL_Window* window=SDL_CreateWindow("Engine Watch G3.5.1 Character Polish",SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,960,544,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(!window) { std::fprintf(stderr,"%s\n",SDL_GetError());SDL_Quit();return 1; }
     SDL_GLContext ctx=SDL_GL_CreateContext(window);

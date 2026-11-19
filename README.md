@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.5.1 — Third-person camera continuity and glove polish (draft preview)
+
+The [G3.5.1 polish branch](docs/g351-character-camera-polish.md) keeps the engineer visible on inclined ladders instead of abruptly falling back to first-person hands while the HUD says 3P. It adds time-smoothed chase camera positioning, adaptive FOV, aim offset beyond the helmet, faceted head/tapered suit, and low-poly gloves with palms, thumbs and four fingers. **SELECT** still switches camera views on PSP/PPSSPP/phone. The existing engine-room static scene and LO pump simulation remain unchanged.
+
 ## G3.5 — Marine engineer character and camera (stacked preview)
 
 The [G3.5 player prototype](docs/g35-marine-engineer-player.md) adds a procedural low-poly marine engineer with boiler suit, helmet and gloves, travel-driven walking/climbing animations, first-person hands, and a collision-aware third-person trailing camera. Press **SELECT** on PSP/PPSSPP (including phones), or **V** on desktop, to toggle views. ECR and LO pump operations trigger reach/inspection poses. Runtime avatar triangles remain separate from the static G3 scene. GitHub CI produces a playable **G3.5 PSP preview** and six portable OBJ character-pose files; the current rig and PPE remain illustrative, not a smooth-skinned or approved safety model.

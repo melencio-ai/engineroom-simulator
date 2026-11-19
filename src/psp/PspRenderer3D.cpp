@@ -153,8 +153,8 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     // Improve 16-bit PSP depth precision for shallow floor viewing angles.
     // The whole engine space fits within 60 m of the player; 0.25 m near
     // plane keeps more precision than the previous 0.12..80 range.
-    sceGumPerspective(68.0f,480.0f/272.0f,0.25f,60.0f);
     const CameraView3D camera=game.renderCamera();
+    sceGumPerspective(camera.fov_degrees,480.0f/272.0f,0.25f,60.0f);
     ScePspFVector3 eye={
         camera.eye.x,camera.eye.y,camera.eye.z
     };
