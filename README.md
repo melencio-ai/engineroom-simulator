@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G2b — Bolted flange joint and exploded assembly inspector (stacked draft)
+
+The [G2b assembly builder](docs/catalog-g2b-assembly-builder.md) combines reused catalog items into a **21-part DN50 flange joint** (two welded spools with flanges, a gasket, and four M16 bolt/nut/two-washer sets) and a **4-part M16 fastening kit**. The library validates pipe/flange/gasket mating, washer seating, bolt drilling and threaded engagement; rejects incorrect joint layouts; and exports assembled/exploded GLBs, named OBJ meshes, PSP vertex batches, source-hashed BOMs and **standalone offline HTML 3D inspectors with searchable parts and an exploded slider**. The specifications remain **illustrative and not certified**, and the v0.7.1 PSP game is unaffected.
+
 ## G2 — Parametric marine components (stacked feature branch)
 
 The [G2 procedural component generators](docs/catalog-g2-generators.md) build **six generator families / seven variants** from the G1 inventory: hex-head bolts with 3D helical threads, nuts with hollow threaded bores, washers, pipe spools, bolt-drilled weld-neck flanges and ring gaskets. Artifacts are exported independently as inspection **GLB and OBJ/MTL** plus low-triangle PSP **EW3D ABGR+XYZ** meshes. This stage **does not yet replace the v0.7.1 world geometry** and illustrative sizes are **not certified manufacturing dimensions**.
