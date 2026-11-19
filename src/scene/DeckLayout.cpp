@@ -203,12 +203,24 @@ bool DeckPlan::validate() const {
            b.bay_count<1 || b.bay_count>8 ||
            !finite(b.x0,b.x1,b.z0,b.z1) ||
            b.x1<=b.x0 || b.z1<=b.z0) return false;
+        // Verify exact contiguous bay coverage, not merely the number of
+        // grating objects: a missing 20-mm strip must fail validation.
         int count=0;
-        for(std::size_t j=0;j<cells_.size();++j) {
-            const DeckCell& c=cells_[j];
-            if(c.level!=b.level || c.surface!=OpenSteelGrate) continue;
-            if(c.x0>=b.x0-EPS && c.x1<=b.x1+EPS &&
-               c.z0>=b.z0-EPS && c.z1<=b.z1+EPS) ++count;
+        for(int bay=0;bay<b.bay_count;++bay) {
+            const float expected_x0=b.x0+(b.x1-b.x0)*bay/b.bay_count;
+            const float expected_x1=b.x0+(b.x1-b.x0)*(bay+1)/b.bay_count;
+            int matches=0;
+            for(std::size_t j=0;j<cells_.size();++j) {
+                const DeckCell& c=cells_[j];
+                if(c.level!=b.level || c.surface!=OpenSteelGrate) continue;
+                if(std::fabs(c.x0-expected_x0)<0.0002f &&
+                   std::fabs(c.x1-expected_x1)<0.0002f &&
+                   std::fabs(c.z0-b.z0)<0.0002f &&
+                   std::fabs(c.z1-b.z1)<0.0002f)
+                    ++matches;
+            }
+            if(matches!=1) return false;
+            ++count;
         }
         if(count!=b.bay_count) return false;
     }
