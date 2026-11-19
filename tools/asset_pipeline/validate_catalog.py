@@ -49,11 +49,13 @@ def check_unique(items: list[str], description: str) -> None:
 
 def context_from(root: Path) -> dict:
     sources = read_json(root / "catalog/standards/registry.json")["records"]
+    evidence = read_json(root / "catalog/standards/evidence_registry.json")["records"]
     materials = read_json(root / "catalog/materials/registry.json")
     families = read_json(root / "catalog/families/registry.json")["families"]
     policy = read_json(root / "catalog/standards/confidence_policy.json")
     for kind, items in (
         ("standards source ID", [s["id"] for s in sources]),
+        ("approved evidence ID", [e["source_id"] for e in evidence]),
         ("physical material ID", [m["id"] for m in materials["materials"]]),
         ("coating ID", [m["id"] for m in materials["coatings"]]),
         ("visual finish ID", [m["id"] for m in materials["visual_finishes"]]),
@@ -66,6 +68,7 @@ def context_from(root: Path) -> dict:
             "Starter source registry may only claim metadata-level provenance")
     return {
         "standards": {s["id"]: s for s in sources},
+        "evidence": {e["source_id"]: e for e in evidence},
         "materials": {m["base_material"]: m for m in materials["materials"]},
         "coatings": {m["id"]: m for m in materials["coatings"]},
         "families": {f["id"]: f for f in families},
@@ -119,8 +122,12 @@ def validate_component(part: dict, ctx: dict) -> None:
                 f"{ident}.{port['id']}: port position invalid")
     source_index = {(s["code"], s["edition"]): s for s in ctx["standards"].values()}
     for ref in part["standards"]:
-        require((ref["code"], ref["edition"]) in source_index,
+        index_key = (ref["code"], ref["edition"])
+        require(index_key in source_index,
                 f"{ident}: unregistered standard {ref['code']}:{ref['edition']}")
+        registered = source_index[index_key]
+        require(ref["url"] == registered["url"],
+                f"{ident}: standard URL differs from registered official metadata")
     prov = part["provenance"]
     for field in prov["field_sources"]:
         require(field["parameter"] in params, f"{ident}: unknown sourced parameter")
@@ -131,8 +138,12 @@ def validate_component(part: dict, ctx: dict) -> None:
     if part["status"] in APPROVED:
         require(prov["verified"] and prov["source_id"] and prov["reviewer"],
                 f"{ident}: approved status requires source ID and reviewer")
-        require(prov["source_id"] not in ctx["standards"],
-                f"{ident}: a standards landing page is not verified field evidence")
+        require(prov["source_id"] in ctx["evidence"],
+                f"{ident}: unregistered verified evidence ID; a public metadata page is not enough")
+        evidence_record = ctx["evidence"][prov["source_id"]]
+        require(evidence_record.get("permitted_use") == "approved_catalog_values"
+                and evidence_record.get("reviewer") == prov["reviewer"],
+                f"{ident}: engineering claims require approved use rights and matching reviewer")
     else:
         require(not prov["verified"], f"{ident}: illustrative part cannot claim verification")
     if family_id == "fastener.hex_bolt":
