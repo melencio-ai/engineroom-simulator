@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "id": "PIPE.SPOOL.DN50.L800.ILLUSTRATIVE",
+  "family": "piping.pipe_spool",
+  "name": "Illustrative DN50 lubricating-oil steel pipe spool, nominal 800 mm length",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "nominal_size": "DN50",
+    "outside_diameter_mm": 60,
+    "wall_thickness_mm": 4,
+    "inside_diameter_mm": 52,
+    "length_mm": 800,
+    "schedule_designation": null,
+    "service": "lubricating_oil",
+    "geometry_verified": false
+  },
+  "material": {
+    "base_material": "carbon_steel",
+    "grade": null,
+    "grade_standard": null
+  },
+  "coating_id": "COAT.NONE",
+  "insulation_id": null,
+  "standards": [
+    {
+      "code": "ASME B36.10",
+      "edition": "2026",
+      "scope": "Welded and seamless steel pipe dimensions and schedules",
+      "url": "https://www.asme.org/codes-standards/find-codes-standards/welded-and-seamless-wrought-steel-pipe"
+    },
+    {
+      "code": "ISO 14726",
+      "edition": "2008",
+      "scope": "Shipboard pipe contents identification; not pipe material",
+      "url": "https://www.iso.org/standard/44744.html"
+    }
+  ],
+  "ports": [
+    {
+      "id": "inlet",
+      "kind": "pipe_end",
+      "interface": "PIPE:OD60:T4:BW",
+      "position_mm": [
+        -400,
+        0,
+        0
+      ],
+      "axis": [
+        -1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    },
+    {
+      "id": "outlet",
+      "kind": "pipe_end",
+      "interface": "PIPE:OD60:T4:BW",
+      "position_mm": [
+        400,
+        0,
+        0
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    }
+  ],
+  "generator": {
+    "name": "pipe_spool",
+    "version": "0.1.0",
+    "implementation_status": "planned"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "low_mesh"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": [
+      {
+        "parameter": "nominal_size",
+        "source_id": "STD.ASME.B36.10.2026",
+        "verification": "metadata_only"
+      }
+    ]
+  }
+}
