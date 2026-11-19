@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "id": "FLANGE.WN.DN50.ILLUSTRATIVE",
+  "family": "piping.weld_neck_flange",
+  "name": "Illustrative DN50 weld-neck flange with real through bolt holes",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "nominal_size": "DN50",
+    "outside_diameter_mm": 165,
+    "flange_thickness_mm": 18,
+    "bore_diameter_mm": 54,
+    "bolt_circle_diameter_mm": 125,
+    "bolt_hole_count": 4,
+    "bolt_hole_diameter_mm": 18,
+    "hub_length_mm": 35,
+    "neck_outside_diameter_mm": 60,
+    "pressure_class": "unassigned"
+  },
+  "material": {
+    "base_material": "carbon_steel",
+    "grade": null,
+    "grade_standard": null
+  },
+  "coating_id": "COAT.NONE",
+  "insulation_id": null,
+  "standards": [],
+  "ports": [
+    {
+      "id": "gasket_face",
+      "kind": "flange",
+      "interface": "FLANGE:ILLUSTRATIVE:DN50:RF",
+      "position_mm": [
+        0,
+        0,
+        0
+      ],
+      "axis": [
+        -1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    },
+    {
+      "id": "weld_end",
+      "kind": "pipe_end",
+      "interface": "PIPE:OD60:T4:BW",
+      "position_mm": [
+        53,
+        0,
+        0
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    }
+  ],
+  "generator": {
+    "name": "weld_neck_flange",
+    "version": "0.2.0",
+    "implementation_status": "available"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "low_mesh"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": []
+  }
+}
