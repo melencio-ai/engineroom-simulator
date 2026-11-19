@@ -1,4 +1,4 @@
-name: Engine Watch G2 Marine Catalog and PSP CI
+name: Engine Watch G2b Marine Assembly and PSP CI
 
 on:
   push:
@@ -29,6 +29,34 @@ jobs:
           mkdir -p build/catalog
           g++ -std=c++11 -Wall -Wextra -pedantic -Isrc tools/asset_pipeline/verify_ewmesh.cpp -o build/catalog/verify_ewmesh
           build/catalog/verify_ewmesh dist/parametric-catalog/psp/*.ewmesh
+      - name: Export independent assembled and exploded marine joints
+        run: python tools/asset_pipeline/export_assemblies.py --out dist/marine-assemblies
+      - name: Validate assembly C++11 PSP geometry batches
+        run: build/catalog/verify_ewmesh dist/marine-assemblies/*/psp/*.ewmesh
+      - name: Confirm resolved assemblies, per-instance GLBs and standalone viewers
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          root=pathlib.Path("dist/marine-assemblies")
+          data=json.load(open(root/"assemblies.json"))
+          assert len(data["generated"])==2
+          assert data["deferred_unresolved"]==["ASM.LO.PUMP.SKID.DEMO.001"]
+          for rec in data["generated"]:
+              path=root/rec["id"]
+              manifest=json.load(open(path/"manifest.json"))
+              assert path.joinpath("viewer.html").is_file()
+              assert path.joinpath("assembled.glb").is_file()
+              assert path.joinpath("exploded.glb").is_file()
+              assert manifest["instance_count"]==rec["instances"]
+              assert all(chunk["triangles"]<=1800 for chunk in manifest["psp_chunks"])
+          print("G2b assembled/exploded GLB, interactive viewers and PSP batches: PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-marine-assemblies-g2b
+          path: dist/marine-assemblies/
+          if-no-files-found: error
+          retention-days: 14
       - name: Check complete catalog artifact and illustrative source status
         run: |
           python -c 'import json,pathlib; d=json.load(open("dist/parametric-catalog/manifest.json")); assert d["component_count"]==10; assert all(not p["engineering_verified"] and p["psp_triangles"]<=1800 for p in d["components"]); assert len(list(pathlib.Path("dist/parametric-catalog/inspection").glob("*.glb")))==10; print("G2 inspection and PSP assets validated")'
