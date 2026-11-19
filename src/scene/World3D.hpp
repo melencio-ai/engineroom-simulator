@@ -1,6 +1,7 @@
 #pragma once
 
 #include "scene/MarineParts.hpp"
+#include "scene/DeckLayout.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -14,29 +15,11 @@ struct Footprint {
     unsigned deck_mask;
 };
 
-enum DeckId {
-    TankTopDeck = 0,
-    PumpFlatDeck = 1,
-    MainEngineDeck = 2,
-    AuxiliaryDeck = 3,
-    EcrDeck = 4,
-    DeckCount = 5
-};
-
 enum StationId {
     NoStation = 0,
     EcrConsoleStation,
     LoPumpStation,
     StrainerStation
-};
-
-// An inclined stair repeats between adjacent floors, with landing loops around
-// the open stairwell so each flight has a real top and bottom entry.
-struct Stair3D {
-    float top_x, top_z;
-    float bottom_x, bottom_z;
-    float width;
-    bool alternate_escape;
 };
 
 class World3D {
@@ -45,6 +28,7 @@ public:
 
     const std::vector<Vertex3D>& vertices() const { return vertices_; }
     const std::vector<MarinePartPlacement>& parts() const { return parts_; }
+    const DeckPlan& deckPlan() const { return deck_plan_; }
     const MarinePartLibrary& partCatalog() const { return parts_library_; }
     static float floorHeight(int deck);
     static const char* deckName(int deck);
@@ -71,6 +55,7 @@ private:
     std::vector<Vertex3D> vertices_;
     std::vector<MarinePartPlacement> parts_;
     MarinePartLibrary parts_library_;
+    DeckPlan deck_plan_;
     std::vector<Footprint> obstacles_;
     Stair3D stairs_[2];
 
