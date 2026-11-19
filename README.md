@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G2 — Parametric marine components (stacked feature branch)
+
+The [G2 procedural component generators](docs/catalog-g2-generators.md) build **six generator families / seven variants** from the G1 inventory: hex-head bolts with 3D helical threads, nuts with hollow threaded bores, washers, pipe spools, bolt-drilled weld-neck flanges and ring gaskets. Artifacts are exported independently as inspection **GLB and OBJ/MTL** plus low-triangle PSP **EW3D ABGR+XYZ** meshes. This stage **does not yet replace the v0.7.1 world geometry** and illustrative sizes are **not certified manufacturing dimensions**.
+
 ## Marine Component Master Library — G1 foundation (feature branch)
 
 The [G1 catalog contracts](docs/catalog-v1-foundation.md) introduce four JSON Schemas, provenance-checked ISO/ASME reference metadata, physical material/coating separation, two illustrative metric bolt variants, an illustrative pipe spool, fluid/LO assembly examples, and automated semantic/negative tests. **No PSP meshes or machinery logic were changed**, and the sample dimensions are **not manufacturer-certified**. The next gate (G2) will implement real parametric mesh generators from controlled source data.
