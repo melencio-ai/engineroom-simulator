@@ -21,16 +21,20 @@ Game3D::Game3D(const World3D& world):world_(world) { reset(); }
 void Game3D::reset() {
     sim_.reset();
     deck_=EcrDeck;
-    camera_=Vec3{-7.35f,World3D::floorHeight(deck_)+1.65f,0.0f};
+    camera_=Vec3{-7.35f,World3D::floorHeight(deck_)+PlayerCharacter::EyeHeight,0.0f};
     yaw_=0.0f; // Start facing the real upper-level ECR doorway.
     pitch_=-0.16f;
     panel_=Closed;
     selected_=0;
     paused_=false;
     climbing_=false;
+    third_person_=false;
+    travel_this_frame_=0.0f;
+    character_animator_.reset();
 }
 
 void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
+    const float initial_x=camera_.x,initial_z=camera_.z;
     yaw_+=clamp(turn,-1.0f,1.0f)*dt*2.15f;
     if(yaw_>6.28318530718f) yaw_-=6.28318530718f;
     if(yaw_<-6.28318530718f) yaw_+=6.28318530718f;
@@ -68,7 +72,10 @@ void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
         }
     }
     deck_=World3D::cameraDeck(camera_.y);
-    climbing_=world_.onStair(camera_.x,camera_.z,camera_.y-1.65f);
+    climbing_=world_.onStair(camera_.x,camera_.z,
+                            camera_.y-PlayerCharacter::EyeHeight);
+    const float xmove=camera_.x-initial_x,zmove=camera_.z-initial_z;
+    travel_this_frame_=std::sqrt(xmove*xmove+zmove*zmove);
 }
 
 void Game3D::operate() {
@@ -86,8 +93,13 @@ void Game3D::operate() {
 
 void Game3D::use() {
     if(panel_==Help || panel_==Strainer) { panel_=Closed;return; }
-    if(panel_==Pumps) { operate();return; }
+    if(panel_==Pumps) {
+        character_animator_.trigger(CharacterPressControl);
+        operate();
+        return;
+    }
     if(panel_==Console) {
+        character_animator_.trigger(CharacterPressControl);
         const MachineryState& s=sim_.state();
         if(s.mission==1) {
             if(s.objective_complete) {
@@ -101,9 +113,18 @@ void Game3D::use() {
     }
     const StationId station=world_.lookAtStation(camera_,yaw_);
     switch(station) {
-    case EcrConsoleStation:panel_=Console;break;
-    case LoPumpStation:panel_=Pumps;selected_=0;break;
-    case StrainerStation:sim_.inspectStrainer();panel_=Strainer;break;
+    case EcrConsoleStation:
+        panel_=Console;
+        character_animator_.trigger(CharacterInspectInstrument);
+        break;
+    case LoPumpStation:
+        panel_=Pumps;selected_=0;
+        character_animator_.trigger(CharacterInspectInstrument);
+        break;
+    case StrainerStation:
+        sim_.inspectStrainer();panel_=Strainer;
+        character_animator_.trigger(CharacterInspectInstrument);
+        break;
     default:break;
     }
 }
@@ -116,6 +137,7 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     }
     if(!(dt_seconds>0.0f) || !std::isfinite(dt_seconds)) return;
     const float dt=clamp(dt_seconds,0.0f,0.05f);
+    if(in.toggle_view) third_person_=!third_person_;
     sim_.step(dt);
     if(in.help) { panel_=panel_==Help?Closed:Help;return; }
     if(in.back) { panel_=Closed;return; }
@@ -124,7 +146,70 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
         if(in.down) selected_=(selected_+1)%6;
     }
     if(in.interact) use();
+    travel_this_frame_=0.0f;
     if(panel_==Closed) move(dt,in.forward,in.strafe,in.turn,in.look);
+    character_animator_.advance(dt,travel_this_frame_,climbing_);
+}
+
+CameraView3D Game3D::renderCamera() const {
+    const float cs=std::cos(yaw_),sn=std::sin(yaw_);
+    const float cp=std::cos(pitch_),sp=std::sin(pitch_);
+    const Vec3 first_target{
+        camera_.x+cs*cp,camera_.y+sp,camera_.z+sn*cp
+    };
+    CameraView3D view{camera_,first_target,false};
+    if(!third_person_) return view;
+
+    // Small shoulder offset and trailing camera behind the engineer. We
+    // sample the physical deck's navigation/collision proxy along the chase
+    // ray; do not allow the camera to pass through known machinery blocks,
+    // platform edges or stair shafts. When there is insufficient room to
+    // see the full character, fall back to safe first-person hands.
+    const Vec3 desired{
+        camera_.x-cs*2.35f-sn*0.16f,
+        camera_.y+0.38f,
+        camera_.z-sn*2.35f+cs*0.16f
+    };
+    const float feet=camera_.y-PlayerCharacter::EyeHeight;
+    float best=0.0f;
+    const int samples=24;
+    for(int i=1;i<=samples;++i) {
+        const float t=static_cast<float>(i)/samples;
+        const float x=camera_.x+(desired.x-camera_.x)*t;
+        const float z=camera_.z+(desired.z-camera_.z)*t;
+        float supported=feet;
+        if(!world_.walkSurface(x,z,feet,supported,0.08f) ||
+           std::fabs(supported-feet)>0.47f ||
+           !world_.hasHeadroom(x,z,supported,1.79f))
+            break;
+        best=t;
+    }
+    if(best<0.36f) return view;
+    best=std::max(0.36f,best-0.04f);
+    view.eye=Vec3{
+        camera_.x+(desired.x-camera_.x)*best,
+        camera_.y+(desired.y-camera_.y)*best,
+        camera_.z+(desired.z-camera_.z)*best
+    };
+    view.target=Vec3{
+        camera_.x+cs*0.63f,
+        camera_.y-0.12f+sp*0.58f,
+        camera_.z+sn*0.63f
+    };
+    view.show_body=true;
+    return view;
+}
+
+void Game3D::buildCharacterGeometry(const CameraView3D& view,
+                                    std::vector<Vertex3D>& out) const {
+    if(view.show_body) {
+        const Vec3 feet{camera_.x,camera_.y-PlayerCharacter::EyeHeight,
+                        camera_.z};
+        PlayerCharacter::buildBody(feet,yaw_,character_animator_.pose(),out);
+    } else {
+        PlayerCharacter::buildFirstPersonHands(camera_,yaw_,pitch_,
+                                               character_animator_.pose(),out);
+    }
 }
 
 Hud3D Game3D::hud() const {
@@ -134,8 +219,9 @@ Hud3D Game3D::hud() const {
     h.alarm=s.lo_pressure_alarm;
     h.climbing=climbing_;
     std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D - %s",World3D::deckName(deck_));
-    std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR   MAIN %s   STBY %s",
-                  s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump));
+    std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR  MAIN %s  STBY %s  VIEW %s",
+                  s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump),
+                  third_person_?"3P":"1P");
     if(s.mission==1) {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
             s.objective_complete?"001 DONE - VERIFY ECR TO ADVANCE":
@@ -152,7 +238,7 @@ Hud3D Game3D::hud() const {
     }
 
     const StationId station=world_.lookAtStation(camera_,yaw_);
-    const char* prompt="STICK WALK   D-PAD TURN   L/R LOOK   X USE";
+    const char* prompt="STICK WALK  D-PAD TURN  L/R LOOK  X USE  SELECT VIEW";
     if(station==EcrConsoleStation) prompt="X: OPEN ECR LO CONSOLE";
     else if(station==LoPumpStation) prompt="X: OPERATE LO PUMP STATION";
     else if(station==StrainerStation) prompt="X: INSPECT MAIN LO STRAINER";
@@ -173,7 +259,7 @@ Hud3D Game3D::hud() const {
             "L/R: LOOK DOWN / UP",
             "WALK UP/DOWN INCLINED STEEL STAIRS",
             "D-PAD UP/DOWN: WALK OR SELECT PANEL",
-            "O: CLOSE   TRIANGLE: HELP",
+            "O: CLOSE  TRIANGLE: HELP  SELECT: CAMERA",
             "DESCEND FROM ECR TO DECK 01"
         };
         h.panel_count=7;
