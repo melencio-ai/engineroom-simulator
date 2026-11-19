@@ -97,6 +97,27 @@ static void worldAssemblyChecks() {
         }
         assert(finishes_used[m] && "Every defined finish should be exercised in the scene");
     }
+    // Pump-flat assembly uses the existing modular catalog. Count the
+    // cross-header, two vertical risers, two instrumented discharge branches,
+    // and actual bolted/flanged fittings rather than bespoke one-off meshes.
+    int header_spools=0,header_flanges=0,pump_gauges=0;
+    for(std::size_t i=0;i<parts.size();++i) {
+        const MarinePartPlacement& p=parts[i];
+        const Vec3& pos=p.transform.position;
+        if(pos.x<1.0f || pos.x>2.55f || pos.y<4.85f || pos.y>5.85f)
+            continue;
+        if(p.part==PipeSpool) ++header_spools;
+        if(p.part==WeldNeckFlange) ++header_flanges;
+        if(p.part==PressureGauge) ++pump_gauges;
+    }
+    assert(header_spools>=5);
+    assert(header_flanges>=4);
+    assert(pump_gauges>=2);
+    // The existing panel approach remains walkable after adding the manifold.
+    float approach=0.0f;
+    assert(world.walkSurface(2.64f,-2.81f,3.2f,approach));
+    assert(std::fabs(approach-3.2f)<0.02f);
+
     // World is still assembled from the original marine equipment and the
     // new reusable parts, not a showroom replacing LO interaction locations.
     assert(world.canStand(-7.35f,0.0f,EcrDeck));
