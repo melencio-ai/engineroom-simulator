@@ -121,6 +121,25 @@ static void stairSlopeChecks(const World3D& w) {
     }
 }
 
+static void headroomChecks(const World3D& w) {
+    assert(w.hasHeadroom(-7.35f,0.0f,World3D::floorHeight(EcrDeck)));
+    assert(w.hasHeadroom(3.5f,4.0f,World3D::floorHeight(PumpFlatDeck)));
+    assert(!w.hasHeadroom(NAN,0.0f,0.0f));
+    assert(!w.hasHeadroom(1.0f,0.0f,0.0f,5.0f));
+    for(int i=0;i<w.stairCount();++i) {
+        const Stair3D& st=w.stair(i);
+        const float t=0.70f;
+        const float x=st.top_x+(st.bottom_x-st.top_x)*t;
+        const float z=st.top_z+(st.bottom_z-st.top_z)*t;
+        for(int deck=TankTopDeck;deck<EcrDeck;++deck) {
+            const float lower=World3D::floorHeight(deck);
+            const float flight=lower+(1.0f-t)*3.2f;
+            assert(!w.hasHeadroom(x,z,lower)); // Under the low stair underside.
+            assert(w.hasHeadroom(x,z,flight)); // On top of the same flight.
+        }
+    }
+}
+
 static void stationChecks(const World3D& w) {
     const float ecr=World3D::floorHeight(EcrDeck)+1.65f;
     const float pump=World3D::floorHeight(PumpFlatDeck)+1.65f;
@@ -187,6 +206,7 @@ int main() {
     geometryChecks(world);
     deckChecks(world);
     stairSlopeChecks(world);
+    headroomChecks(world);
     stationChecks(world);
     gameplayChecks(world);
     std::puts("v0.5: raised deck, steel stair gradient, collisions, walkable travel and LO missions OK");
