@@ -235,7 +235,10 @@ def viewer_payload(asm: dict,meshes: dict,records: dict) -> dict:
             "positions":[round(x,5) for v in flatten(mesh) for x in v],
             "normals":normals,
             "rgb":[c/255 for c in MATERIALS[
-                records[comp_id]["material"]["base_material"]]]
+                records[comp_id]["material"]["base_material"]]],
+            "display_name":records[comp_id]["name"],
+            "material":records[comp_id]["material"]["base_material"],
+            "parameters":records[comp_id]["parameters"]
         }
     steps={s["instance_id"]:s for s in asm["exploded_steps"]}
     return {
