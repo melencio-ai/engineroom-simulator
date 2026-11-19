@@ -1,4 +1,4 @@
-name: Engine Watch 3D Screenshot Geometry Cleanup CI
+name: Engine Watch G2 Marine Catalog and PSP CI
 
 on:
   push:
@@ -22,6 +22,17 @@ jobs:
         run: python tools/asset_pipeline/validate_catalog.py
       - name: Test invalid dimensions, provenance and connection graphs
         run: python -m unittest discover -s tests/catalog -p 'test_*.py' -v
+      - name: Export separate inspection GLB OBJ and PSP optimized meshes
+        run: python tools/asset_pipeline/export_catalog.py --out dist/parametric-catalog
+      - name: Check complete catalog artifact and illustrative source status
+        run: |
+          python -c 'import json,pathlib; d=json.load(open("dist/parametric-catalog/manifest.json")); assert d["component_count"]==7; assert all(not p["engineering_verified"] and p["psp_triangles"]<=1800 for p in d["components"]); assert len(list(pathlib.Path("dist/parametric-catalog/inspection").glob("*.glb")))==7; print("G2 inspection and PSP assets validated")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-parametric-marine-components-g2
+          path: dist/parametric-catalog/
+          if-no-files-found: error
+          retention-days: 14
 
   marine-component-objects:
     runs-on: ubuntu-latest
