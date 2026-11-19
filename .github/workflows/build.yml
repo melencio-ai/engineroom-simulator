@@ -146,7 +146,7 @@ jobs:
           for pose in poses:
               txt=pose.read_text()
               assert "mtllib marine_engineer.mtl" in txt
-              assert txt.count("\\nv ")>100
+              assert sum(line.startswith("v ") for line in txt.splitlines())>100
               assert "usemtl" in txt
           print("G3.5: six OBJ poses, colours/PPE and transient character budget PASS")
           PY
