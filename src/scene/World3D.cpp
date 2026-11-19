@@ -34,10 +34,10 @@ const uint32_t dark = rgb(48, 67, 64);
 }
 
 World3D::World3D() {
-    // ~50 degree steel stair-ladders, 3.2 m rise between adjacent platforms.
-    // The flight repeats by deck with clear bypass walkways around each well.
-    stairs_[0]=Stair3D{-1.82f,5.00f,0.86f,5.00f,1.00f,false};
-    stairs_[1]=Stair3D{13.50f,-4.54f,13.50f,-1.88f,1.00f,true};
+    // Stair geometry and the actual upper-deck cutouts now originate from the
+    // SAME plan as the deck tiles and physical walking support.
+    stairs_[0]=deck_plan_.stair(0);
+    stairs_[1]=deck_plan_.stair(1);
     build();
 }
 
@@ -260,73 +260,71 @@ void World3D::part(MarinePartId type,MarineMaterialId finish,
 void World3D::build() {
     vertices_.reserve(85000);
     const unsigned all=(1u<<DeckCount)-1u;
-    // No sealed stacked rooms: the central main-engine well is open through
-    // four partial working flats. Below is a continuous tank top with engine seating.
-    deckSlab(-2.85f,15.30f,-6.65f,6.65f,0.0f,deck);
-    for(int d=1;d<DeckCount;++d) {
-        const float y=floorHeight(d);
-        const uint32_t floor_col=(d%2==0)?shade(deck,1.08f):deck;
-        // Forward 50-degree service stair, recessed into an open partial deck.
-        deckSlab(-2.85f,-1.82f,-6.65f,6.65f,y,floor_col);
-        deckSlab(-1.82f,0.86f,-6.65f,4.34f,y,floor_col);
-        deckSlab(-1.82f,0.86f,5.66f,6.65f,y,floor_col);
-        // The Pump Flat has one dedicated, removable chequer-plate
-        // maintenance cover. Replace the corresponding slab area instead of
-        // drawing a second complete floor plate eight centimetres above it.
-        if(d==PumpFlatDeck) {
-            deckSlab(0.86f,2.10f,-6.65f,6.65f,y,floor_col);
-            deckSlab(2.70f,3.10f,-6.65f,6.65f,y,floor_col);
-            deckSlab(2.10f,2.70f,-6.65f,-0.70f,y,floor_col);
-            deckSlab(2.10f,2.70f,0.30f,6.65f,y,floor_col);
-            // Local checker plate top is +0.035; positioning it -0.035
-            // makes its steel top level with the adjacent slab (raised
-            // chequer marks remain approximately 5 mm above the deck).
+    // G3: Single-source physical deck construction. Every visible floor
+    // panel, open grating, service cover, shaft cutout and collision support
+    // is derived from DeckPlan. Never stamp another face on top of a cell.
+    for(const DeckCell& c : deck_plan_.cells()) {
+        const float y=floorHeight(c.level);
+        const uint32_t floor_col=(c.level%2==0)?shade(deck,1.08f):deck;
+        if(c.surface==SolidSteelPlate) {
+            deckSlab(c.x0,c.x1,c.z0,c.z1,y,floor_col);
+        } else if(c.surface==InsetServiceCover) {
+            // Cover local physical top is +0.035m, so embed its top exactly
+            // flush with the neighbouring green steel deck.
             part(CheckerPlate,GreenEpoxy,
-                 PartTransform(2.40f,y-0.035f,-0.20f,0.60f,1.0f,1.0f));
-        } else {
-            deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
+                 PartTransform((c.x0+c.x1)*0.5f,y-0.035f,
+                               (c.z0+c.z1)*0.5f,
+                               c.x1-c.x0,1.0f,c.z1-c.z0));
+        } else if(c.surface==OpenSteelGrate) {
+            // The reusable model spans only local +/-0.49, NOT +/-0.50:
+            // sizing by 0.98 rather than 1.00 closes previously-visible
+            // 45mm longitudinal gaps between adjacent open-grate bays.
+            // The top of the scaled bar is +0.03*0.72; set it at y exactly.
+            part(OpenSteelGrating,GreenGrating,
+                 PartTransform((c.x0+c.x1)*0.5f,y-0.0216f,
+                               (c.z0+c.z1)*0.5f,
+                               (c.x1-c.x0)/0.98f,0.72f,
+                               (c.z1-c.z0)/0.98f));
         }
-        // Two long catwalks. The exposed inner 0.82 m of each side is
-        // REAL open grating supported by longitudinal edge members, rather
-        // than a decorative grid floating above a solid deck plate.
-        // canStand() already recognizes these side runs as walkable.
-        deckSlab(3.10f,12.20f,-6.65f,-3.20f,y,floor_col);
-        deckSlab(3.10f,12.20f,3.20f,6.65f,y,floor_col);
-        // Aft escape stair runs athwartships (along Z) to preserve deck access.
-        deckSlab(12.20f,12.84f,-6.65f,6.65f,y,floor_col);
-        deckSlab(12.84f,14.16f,-6.65f,-4.54f,y,floor_col);
-        deckSlab(12.84f,14.16f,-1.88f,6.65f,y,floor_col);
-        deckSlab(14.16f,15.30f,-6.65f,6.65f,y,floor_col);
+    }
 
-        // Support each actual grating band along BOTH longitudinal edges.
-        // Bays are 2.275 m long. Transverse bearer bars line up with joints,
-        // eliminating suspended-looking bars in the engine-space screenshots.
-        for(int side=-1;side<=1;side+=2) {
-            // All bearers are UNDER the flush grate. The top of each
-            // bearer is y-0.035, just inside the bottom of a grate bar,
-            // never above the walking surface.
-            box(7.65f,y-0.135f,side*2.40f,4.55f,0.10f,0.065f,steel);
-            box(7.65f,y-0.135f,side*3.20f,4.55f,0.10f,0.065f,steel);
-            for(int bay=0;bay<=4;++bay) {
-                const float x=3.10f+2.275f*bay;
-                box(x,y-0.135f,side*2.80f,0.055f,0.10f,0.40f,steel);
-            }
-            railing(3.16f,12.14f,side*2.38f,y,handrail);
+    // Load-bearing frames follow the SAME grating-band coordinates. Only
+    // one longitudinal member per edge and one bearer per bay joint:
+    // supports stay entirely underneath the player-facing floor.
+    for(const DeckGratingBand& b : deck_plan_.gratingBands()) {
+        const float y=floorHeight(b.level);
+        const float xmid=(b.x0+b.x1)*0.5f;
+        const float zmid=(b.z0+b.z1)*0.5f;
+        const float hx=(b.x1-b.x0)*0.5f;
+        const float hz=(b.z1-b.z0)*0.5f;
+        box(xmid,y-0.135f,b.z0,hx,0.10f,0.065f,steel);
+        box(xmid,y-0.135f,b.z1,hx,0.10f,0.065f,steel);
+        for(int bay=0;bay<=b.bay_count;++bay) {
+            const float x=b.x0+(b.x1-b.x0)*bay/b.bay_count;
+            box(x,y-0.135f,zmid,0.055f,0.10f,hz,steel);
         }
-        // Transverse rails protect the forward and aft edges of the open
-        // engine well; the long galleries retain their longitudinal rails.
-        railingZ(-2.38f,2.38f,3.10f,y,handrail);
-        railingZ(-2.38f,2.38f,12.20f,y,handrail);
-        // Structural lighting bands and bright exit-route marks.
+    }
+
+    // The open main-engine well drives all four edge guardrails. These are
+    // intentionally absent from the Tank Top, where the well is a solid deck.
+    for(const DeckOpening& op : deck_plan_.openings()) {
+        if(op.purpose!=EngineMachineryWell) continue;
+        const float y=floorHeight(op.level);
+        railing(op.x0+0.06f,op.x1-0.06f,op.z0,y,handrail);
+        railing(op.x0+0.06f,op.x1-0.06f,op.z1,y,handrail);
+        railingZ(op.z0,op.z1,op.x0,y,handrail);
+        railingZ(op.z0,op.z1,op.x1,y,handrail);
+    }
+    for(int d=PumpFlatDeck;d<DeckCount;++d) {
+        const float y=floorHeight(d);
         box(-2.65f,y+2.27f,-6.44f,0.07f,0.08f,0.31f,
             d==PumpFlatDeck?green:d==MainEngineDeck?yellow:d==AuxiliaryDeck?red:pipe);
         box(-2.65f,y+2.27f,6.44f,0.07f,0.08f,0.31f,bright);
     }
 
-    // Upper ECR lives outside the engine well, overlooking the main engine.
+    // Upper ECR bulkheads are independent equipment/structures. Its steel
+    // walking plate and access bridge have already been made by DeckPlan.
     const float top=floorHeight(EcrDeck);
-    deckSlab(-9.80f,-3.35f,-3.94f,3.94f,top,shade(deck,1.15f));
-    deckSlab(-3.35f,-2.85f,-1.18f,1.18f,top,shade(deck,1.15f));
     // The ECR's narrow access bridge previously had bare exposed sides.
     // Both white double-rails terminate at the existing doorway jambs.
     railing(-3.32f,-2.86f,-1.15f,top,handrail);
@@ -565,21 +563,8 @@ void World3D::build() {
                        1.80f,1.0f,1.10f,0.0f,1.570796327f));
     for(int d=0;d<DeckCount;++d) {
         const float y=floorHeight(d);
-        // True open grate only exists where the upper working decks have
-        // cutouts. Never overlay it on the solid Level 00 tank top.
-        if(d>TankTopDeck) {
-            for(int i=0;i<4;++i) {
-                const float grate_x=4.2375f+i*2.275f;
-                for(int side=-1;side<=1;side+=2) {
-                    // Local grating bars have y=+0.030 top; scaled by
-                    // 0.72 gives +0.0216. Lower the origin by that amount
-                    // to match the adjacent slab EXACTLY.
-                    part(OpenSteelGrating,GreenGrating,
-                         PartTransform(grate_x,y-0.0216f,side*2.79f,
-                                       2.275f,0.72f,0.82f));
-                }
-            }
-        }
+        // Grating/maintenance covers are emitted exclusively from DeckPlan,
+        // not from a second manually placed decorative catalog pass.
         // Structural beams live above the walking envelope, not on the decks.
         for(int side=-1;side<=1;side+=2) {
             part(IBeam,StructuralSteelGrey,
@@ -755,28 +740,10 @@ void World3D::build() {
 }
 
 bool World3D::canStand(float x,float z,int deck_id,float radius) const {
-    if(deck_id<0 || deck_id>=DeckCount || radius<0.0f || radius>0.65f) return false;
-    if(!std::isfinite(x) || !std::isfinite(z)) return false;
-    const float az=std::fabs(z);
-    if(deck_id==EcrDeck && x< -2.50f) {
-        if(x< -9.75f+radius || az>3.93f-radius) return false;
-        // Only the centre ECR doorway connects to the machinery upper platform.
-        if(x> -3.54f-radius && az>1.12f-radius) return false;
-        if(x> -2.81f-radius && az>1.12f-radius) return false;
-    } else {
-        if(x< -2.84f+radius || az>6.64f-radius) return false;
-    }
-    if(x>15.29f-radius) return false;
-    // The engine is not a floor: retain port/starboard catwalk openings at L1-L4.
-    if(deck_id>TankTopDeck && x>3.10f-radius && x<12.20f+radius &&
-       az<2.38f+radius) return false;
-    // Floor plates are cut away at each inclined flight. Unlike a simple
-    // ladder trigger, a player standing on the slope resolves their height
-    // from walkSurface(), not from a fake platform in the stair opening.
-    if(x>-1.82f-radius && x<0.86f+radius &&
-       z>4.34f-radius && z<5.66f+radius) return false;
-    if(x>12.84f-radius && x<14.16f+radius &&
-       z>-4.54f-radius && z<-1.88f+radius) return false;
+    // The renderer and collision now consult the same DeckPlan cell union.
+    // The footprint must be fully supported across *adjacent* tiles and grates,
+    // but may not bridge a real open shaft or the central machinery well.
+    if(!deck_plan_.supportsFootprint(x,z,deck_id,radius)) return false;
     for(std::size_t i=0;i<obstacles_.size();++i) {
         const Footprint& b=obstacles_[i];
         if(!(b.deck_mask & (1u<<deck_id))) continue;
