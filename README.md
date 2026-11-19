@@ -103,6 +103,8 @@ New reusable pieces enhance green marine checker plating, partial grating, struc
 
 **No GitHub CLI is needed** when downloading artifacts through the browser.
 
+Alternatively, the repository includes `tools/install-v0.7-ppsspp.ps1`. Download the v0.7 artifact ZIP to `D:\Downloads`, then run that PowerShell file on Windows. It finds the newest matching ZIP, validates the packaged EBOOT, backs up your existing game, and installs to the standard PPSSPP Documents directory. Override `-ZipPath` or `-GameDirectory` if needed.
+
 ## Build, testing and limitations
 
 The CI workflow validates headless LO simulation tests, world/collision/navigation tests, all 33 component templates, material lookup, transforms, desktop OpenGL compilation, native PSP EBOOT compilation, and a PPSSPP boot/framebuffer smoke check. CI also exports all OBJ and MTL assets automatically.
