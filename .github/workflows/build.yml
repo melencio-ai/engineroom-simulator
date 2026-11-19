@@ -1,4 +1,4 @@
-name: Engine Watch G3.5.1 Character Camera and Hands CI
+name: Engine Watch G3.5.2 Smart Third-Person Camera CI
 
 on:
   push:
@@ -154,7 +154,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-marine-engineer-character-g351
+          name: engine-watch-marine-engineer-character-g352
           path: dist/marine-engineer/
           if-no-files-found: error
           retention-days: 14
@@ -218,7 +218,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g351-character-camera-preview
+          name: engine-watch-psp-g352-smart-camera-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -230,7 +230,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g351-character-camera-preview
+          name: engine-watch-psp-g352-smart-camera-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -275,6 +275,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-g351-character-camera-diagnostics
+          name: ppsspp-g352-smart-camera-diagnostics
           path: diagnostics/
           if-no-files-found: ignore

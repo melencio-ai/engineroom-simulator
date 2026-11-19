@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.5.2 — Smart obstruction-aware marine-engineer camera (draft preview)
+
+[Review the G3.5.2 smart camera](docs/g352-smart-camera.md). The third-person camera now checks genuine **3D blocking structure** (ECR bulkheads/columns, real stair treads, deck plates, equipment and hull walls) instead of just walkable floor positions. It selects between 12 possible trailing, lateral and elevated viewpoints; keeps the engineer visible; avoids zooming into the helmet; and provides `VIEW 3P SHIFT` when the camera changes shoulder. All logic uses inexpensive C++11 AABB ray tests with a PSP-friendly broadphase and **does not add permanent scene vertices**. The separate G3.5.2 PPSSPP preview is for visual approval of the stair, white-column and head-close footage issues before any merge.
+
 ## G3.5.1 — Third-person camera continuity and glove polish (draft preview)
 
 The [G3.5.1 polish branch](docs/g351-character-camera-polish.md) keeps the engineer visible on inclined ladders instead of abruptly falling back to first-person hands while the HUD says 3P. It adds time-smoothed chase camera positioning, adaptive FOV, aim offset beyond the helmet, faceted head/tapered suit, and low-poly gloves with palms, thumbs and four fingers. **SELECT** still switches camera views on PSP/PPSSPP/phone. The existing engine-room static scene and LO pump simulation remain unchanged.

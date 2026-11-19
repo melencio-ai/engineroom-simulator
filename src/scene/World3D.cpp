@@ -144,6 +144,98 @@ void World3D::obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask) {
     obstacles_.push_back(Footprint{x0,x1,z0,z1,deck_mask});
 }
 
+void World3D::cameraBlocker(float x,float y,float z,
+                             float hx,float hy,float hz) {
+    // Camera-only proxies follow the same authored bounds as drawn boxes.
+    // Add only real opaque structural surfaces: railings with open spaces
+    // are not approximated as whole solid barriers.
+    camera_occluders_.push_back(CameraOccluder{
+        x-hx,x+hx,y-hy,y+hy,z-hz,z+hz
+    });
+}
+
+void World3D::occludingBox(float x,float y,float z,
+                            float hx,float hy,float hz,uint32_t color) {
+    box(x,y,z,hx,hy,hz,color);
+    cameraBlocker(x,y,z,hx,hy,hz);
+}
+
+float World3D::cameraRayFraction(const Vec3& from,const Vec3& to,
+                                 float radius) const {
+    // 3D swept-sphere versus AABB via a parametric ray slab intersection.
+    // Fractions are unitless, independent of the segment's actual length.
+    if(!std::isfinite(from.x)||!std::isfinite(from.y)||!std::isfinite(from.z)||
+       !std::isfinite(to.x)||!std::isfinite(to.y)||!std::isfinite(to.z)||
+       !std::isfinite(radius) || radius<0.0f || radius>0.40f)
+        return 0.0f;
+    const float dir[3]={to.x-from.x,to.y-from.y,to.z-from.z};
+    const float origin[3]={from.x,from.y,from.z};
+    const float sq=dir[0]*dir[0]+dir[1]*dir[1]+dir[2]*dir[2];
+    if(sq<0.0000001f) return 1.0f;
+    float earliest=1.0f;
+    const float epsilon=0.000001f;
+    // Broadphase: almost all columns and treads are far outside a 3-m
+    // chase-camera ray. Reject them without any divisions or slab math.
+    // This matters for PSP's CPU, where queries run every 3P frame.
+    const float ray_lo[3]={
+        std::min(from.x,to.x)-radius,
+        std::min(from.y,to.y)-radius,
+        std::min(from.z,to.z)-radius
+    };
+    const float ray_hi[3]={
+        std::max(from.x,to.x)+radius,
+        std::max(from.y,to.y)+radius,
+        std::max(from.z,to.z)+radius
+    };
+    // Each box is checked with the same conservative radius inflation.
+    // No dynamic allocations, spatial tree or per-triangle GPU reads.
+    const auto test=[&](float xmin,float xmax,float ymin,float ymax,
+                        float zmin,float zmax) {
+        if(xmax<ray_lo[0] || xmin>ray_hi[0] ||
+           ymax<ray_lo[1] || ymin>ray_hi[1] ||
+           zmax<ray_lo[2] || zmin>ray_hi[2]) return;
+        const float lows[3]={xmin-radius,ymin-radius,zmin-radius};
+        const float highs[3]={xmax+radius,ymax+radius,zmax+radius};
+        float enter=0.0f,exit=earliest;
+        for(int axis=0;axis<3;++axis) {
+            if(std::fabs(dir[axis])<epsilon) {
+                if(origin[axis]<lows[axis] || origin[axis]>highs[axis])
+                    return;
+            } else {
+                float near=(lows[axis]-origin[axis])/dir[axis];
+                float far=(highs[axis]-origin[axis])/dir[axis];
+                if(near>far) std::swap(near,far);
+                enter=std::max(enter,near);
+                exit=std::min(exit,far);
+                if(enter>exit) return;
+            }
+        }
+        if(exit>=0.0f && enter<=earliest)
+            earliest=std::min(earliest,std::max(0.0f,enter));
+    };
+
+    // Opaque real bulkheads, upright steel frames, console bases, stair
+    // treads/stringer bars. These boxes are produced alongside their meshes.
+    for(std::size_t i=0;i<camera_occluders_.size();++i) {
+        const CameraOccluder& b=camera_occluders_[i];
+        test(b.x0,b.x1,b.y0,b.y1,b.z0,b.z1);
+        if(earliest<=0.0f) return 0.0f;
+    }
+    // Use G3's existing single-source deck cell topology. Crossing a deck
+    // plate, solid stairwell landing or underside is not a clear sightline.
+    // Grates are intentionally approximated by a thin contact envelope,
+    // not by a full-thickness transparent slab.
+    const std::vector<DeckCell>& cells=deck_plan_.cells();
+    for(std::size_t i=0;i<cells.size();++i) {
+        const DeckCell& c=cells[i];
+        const float y=floorHeight(c.level);
+        const float bottom=c.surface==OpenSteelGrate?y-0.055f:y-0.220f;
+        test(c.x0,c.x1,bottom,y+0.018f,c.z0,c.z1);
+        if(earliest<=0.0f) return 0.0f;
+    }
+    return earliest;
+}
+
 float World3D::floorHeight(int deck_id) {
     const int clamped=std::max(0,std::min(DeckCount-1,deck_id));
     return 3.2f*static_cast<float>(clamped);
@@ -241,7 +333,7 @@ void World3D::stairGeometry(const Stair3D& st) {
             const float y=base+3.2f*t;
             const float hx=along_x?run/(16.0f*2.0f)*0.93f:width*0.49f;
             const float hz=along_x?width*0.49f:run/(16.0f*2.0f)*0.93f;
-            box(x,y-0.025f,z,hx,0.035f,hz,shade(deck,1.07f));
+            occludingBox(x,y-0.025f,z,hx,0.035f,hz,shade(deck,1.07f));
             box(x,y+0.017f,z,hx*0.92f,0.012f,hz*0.92f,shade(grating,1.14f));
             // Bright metal anti-slip nosing on the tread front edge.
             if(along_x)
@@ -370,24 +462,27 @@ void World3D::build() {
     railing(-3.32f,-2.86f, 1.15f,top,handrail);
     // A coated steel ECR overhead, not a near-black open sky panel.
     panelizedBox(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,shade(wall,0.71f));
-    box(-10.02f,top+1.98f,0.0f,0.16f,2.02f,4.06f,wall);
+    cameraBlocker(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f);
+    occludingBox(-10.02f,top+1.98f,0.0f,0.16f,2.02f,4.06f,wall);
     panelizedBox(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f,wall);
+    cameraBlocker(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f);
     panelizedBox(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f,wall);
+    cameraBlocker(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f);
     // ECR-front bulkhead with two clear look-through windows and central door.
     for(int side=-1;side<=1;side+=2) {
         const float z=side*2.65f;
-        box(-3.38f,top+0.30f,z,0.12f,0.30f,1.34f,wall);
-        box(-3.38f,top+3.62f,z,0.12f,0.38f,1.34f,wall);
-        box(-3.38f,top+2.05f,side*1.32f,0.12f,1.76f,0.08f,steel);
-        box(-3.38f,top+2.05f,side*3.98f,0.12f,1.76f,0.08f,steel);
+        occludingBox(-3.38f,top+0.30f,z,0.12f,0.30f,1.34f,wall);
+        occludingBox(-3.38f,top+3.62f,z,0.12f,0.38f,1.34f,wall);
+        occludingBox(-3.38f,top+2.05f,side*1.32f,0.12f,1.76f,0.08f,steel);
+        occludingBox(-3.38f,top+2.05f,side*3.98f,0.12f,1.76f,0.08f,steel);
         box(-3.35f,top+2.55f,z,0.07f,0.065f,1.28f,bright);
     }
-    box(-3.38f,top+3.60f,0.0f,0.15f,0.40f,1.20f,wall);
+    occludingBox(-3.38f,top+3.60f,0.0f,0.15f,0.40f,1.20f,wall);
     box(-3.36f,top+1.10f,-1.22f,0.07f,1.10f,0.075f,yellow);
     box(-3.36f,top+1.10f,1.22f,0.07f,1.10f,0.075f,yellow);
     // ECR control wall behind player on spawn; turned-to using proximity.
-    box(-9.41f,top+0.94f,0.0f,0.34f,0.92f,2.30f,steel);
-    box(-9.12f,top+2.12f,0.0f,0.13f,0.72f,2.25f,dark);
+    occludingBox(-9.41f,top+0.94f,0.0f,0.34f,0.92f,2.30f,steel);
+    occludingBox(-9.12f,top+2.12f,0.0f,0.13f,0.72f,2.25f,dark);
     for(int i=0;i<5;++i) {
         const float z=-1.68f+0.84f*i;
         box(-8.95f,top+2.23f,z,0.03f,0.30f,0.32f,engineBlue);
@@ -399,19 +494,24 @@ void World3D::build() {
 
     // Hull, stern bulkhead, forward machinery boundary, roof beams and framing.
     panelizedBox(6.24f,8.48f,-6.91f,9.28f,8.53f,0.16f,wall);
+    cameraBlocker(6.24f,8.48f,-6.91f,9.28f,8.53f,0.16f);
     panelizedBox(6.24f,8.48f, 6.91f,9.28f,8.53f,0.16f,wall);
+    cameraBlocker(6.24f,8.48f,6.91f,9.28f,8.53f,0.16f);
     panelizedBox(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f,wall);
+    cameraBlocker(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f);
     panelizedBox(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f,wall);
+    cameraBlocker(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f);
     // Above the lower forward bulkhead the ECR occupies only the central
     // eight metres. Close the two flanking bays with white-coated structure:
     // formerly they opened directly onto the dark clear colour.
     for(int side=-1;side<=1;side+=2)
-        box(-2.98f,top+2.02f,side*5.46f,0.14f,2.04f,1.40f,wall);
+        occludingBox(-2.98f,top+2.02f,side*5.46f,0.14f,2.04f,1.40f,wall);
     panelizedBox(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,shade(wall,0.65f));
+    cameraBlocker(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f);
     for(float x=-2.0f;x<15.0f;x+=3.0f) {
-        box(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
+        occludingBox(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
         for(int side=-1;side<=1;side+=2)
-            box(x,8.40f,side*6.66f,0.16f,8.45f,0.12f,steel);
+            occludingBox(x,8.40f,side*6.66f,0.16f,8.45f,0.12f,steel);
     }
     for(int i=0;i<5;++i) {
         const float y=floorHeight(i);
@@ -426,7 +526,7 @@ void World3D::build() {
     for(float x=-1.35f;x<15.05f;x+=2.60f) {
         for(int side=-1;side<=1;side+=2) {
             const float z=side*6.73f;
-            box(x,8.15f,z,0.080f,8.22f,0.070f,shade(wall,0.82f));
+            occludingBox(x,8.15f,z,0.080f,8.22f,0.070f,shade(wall,0.82f));
             for(int d=1;d<DeckCount;++d) {
                 const float y=floorHeight(d);
                 triangle(Vec3{x-0.36f,y+0.11f,z-side*0.02f},
@@ -448,11 +548,11 @@ void World3D::build() {
     }
 
     // One slow-speed six-cylinder main engine from foundation to top platform.
-    box(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
-    box(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
-    box(7.60f,5.72f,0.0f,3.63f,1.35f,1.49f,shade(engineBlue,1.06f));
-    box(7.60f,8.43f,0.0f,3.55f,1.42f,1.45f,machinery);
-    box(7.60f,10.82f,0.0f,3.53f,0.75f,1.35f,steel);
+    occludingBox(7.70f,0.43f,0.0f,4.25f,0.43f,1.88f,dark);
+    occludingBox(7.60f,2.62f,0.0f,3.84f,1.79f,1.62f,engineBlue);
+    occludingBox(7.60f,5.72f,0.0f,3.63f,1.35f,1.49f,shade(engineBlue,1.06f));
+    occludingBox(7.60f,8.43f,0.0f,3.55f,1.42f,1.45f,machinery);
+    occludingBox(7.60f,10.82f,0.0f,3.53f,0.75f,1.35f,steel);
     for(int i=0;i<6;++i) {
         const float x=4.70f+i*1.14f;
         box(x,11.76f,0.0f,0.48f,0.48f,1.14f,engineBlue);
@@ -497,7 +597,7 @@ void World3D::build() {
         // opposite auxiliary-side bays rather than block the stair throat.
         const float z=gen==0 ? -4.58f : 1.12f;
         box(1.52f,ay+0.20f,z,1.23f,0.20f,0.94f,dark);
-        box(0.82f,ay+0.94f,z,0.76f,0.61f,0.67f,engineBlue);
+        occludingBox(0.82f,ay+0.94f,z,0.76f,0.61f,0.67f,engineBlue);
         for(int i=0;i<3;++i)
             box(0.35f+i*0.44f,ay+1.60f,z,0.15f,0.14f,0.58f,machinery);
         cylinderX(1.36f,2.52f,ay+1.06f,z,0.62f,12,steel);
@@ -510,7 +610,7 @@ void World3D::build() {
         cylinderY(10.50f+i*0.68f,ay+0.20f,ay+1.95f,-4.86f,0.28f,10,steel);
     box(10.65f,ay+0.48f,-5.75f,1.12f,0.47f,0.39f,dark);
     obstacle(9.60f,11.77f,-5.25f,-4.40f,1u<<AuxiliaryDeck);
-    box(13.94f,ay+0.91f,4.70f,0.39f,0.91f,1.25f,machinery);
+    occludingBox(13.94f,ay+0.91f,4.70f,0.39f,0.91f,1.25f,machinery);
 
     // L2 engine side service boards and cylinder maintenance walkways.
     const float my=floorHeight(MainEngineDeck);
@@ -528,7 +628,7 @@ void World3D::build() {
         const float z=i==0?-4.38f:2.75f;
         box(0.55f,py+0.21f,z,0.87f,0.21f,0.68f,dark);
         cylinderX(-0.12f,0.92f,py+0.91f,z,0.45f,12,pipe);
-        box(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
+        occludingBox(0.90f,py+0.92f,z,0.52f,0.41f,0.38f,machinery);
         box(0.90f,py+1.39f,z,0.43f,0.055f,0.31f,yellow);
         cylinderY(1.25f,py+0.96f,py+1.17f,z,0.22f,10,red);
         cylinderX(-0.40f,1.30f,py+1.20f,z+0.56f,0.09f,10,pipe);
@@ -544,7 +644,7 @@ void World3D::build() {
         }
         obstacle(-0.45f,1.58f,z-0.78f,z+0.78f,1u<<PumpFlatDeck);
     }
-    box(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
+    occludingBox(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
     box(1.67f,py+1.32f,-2.83f,0.033f,0.42f,0.40f,dark);
     box(1.62f,py+1.44f,-2.98f,0.024f,0.07f,0.085f,green);
     box(1.62f,py+1.44f,-2.67f,0.024f,0.07f,0.085f,yellow);

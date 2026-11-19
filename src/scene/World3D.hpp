@@ -15,6 +15,13 @@ struct Footprint {
     unsigned deck_mask;
 };
 
+// Authoring-time 3D camera occluders match individual, real bulkhead,
+// column, stair tread and equipment volumes. They never affect player
+// locomotion, the static PSP draw mesh or the G3 deck collision model.
+struct CameraOccluder {
+    float x0,x1,y0,y1,z0,z1;
+};
+
 enum StationId {
     NoStation = 0,
     EcrConsoleStation,
@@ -51,12 +58,20 @@ public:
     const Stair3D& stair(int index) const { return stairs_[index==1 ? 1 : 0]; }
     int stairCount() const { return 2; }
 
+    // Returns the first unobstructed fraction of the segment [from,to].
+    // 1.0 = fully visible, <1 = blocked by real ship structure. Inflated
+    // AABBs approximate a small camera sphere; no per-triangle raycasts.
+    float cameraRayFraction(const Vec3& from,const Vec3& to,
+                            float radius=0.10f) const;
+    std::size_t cameraOccluderCount() const { return camera_occluders_.size(); }
+
 private:
     std::vector<Vertex3D> vertices_;
     std::vector<MarinePartPlacement> parts_;
     MarinePartLibrary parts_library_;
     DeckPlan deck_plan_;
     std::vector<Footprint> obstacles_;
+    std::vector<CameraOccluder> camera_occluders_;
     Stair3D stairs_[2];
 
     void triangle(const Vec3& a, const Vec3& b, const Vec3& c, uint32_t color);
@@ -70,6 +85,9 @@ private:
     void cylinderY(float x,float y0,float y1,float z,float radius,int segments,uint32_t color);
     void pipeZ(float z0,float z1,float x,float y,float radius,uint32_t color);
     void obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask);
+    void cameraBlocker(float cx,float cy,float cz,float hx,float hy,float hz);
+    void occludingBox(float cx,float cy,float cz,float hx,float hy,float hz,
+                      uint32_t color);
     void deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color);
     void railing(float x0,float x1,float z,float height,uint32_t color);
     void railingZ(float z0,float z1,float x,float height,uint32_t color);

@@ -24,7 +24,8 @@ struct CameraView3D {
     Vec3 target;
     bool show_body=false;
     float fov_degrees=68.0f;
-    bool constrained=false; // camera is shortened by physical geometry
+    bool constrained=false; // camera is shifted or shortened by structure
+    bool shifted=false;     // alternative shoulder or overhead placement
 };
 
 struct Hud3D {
@@ -84,6 +85,8 @@ private:
     float chase_distance_=0.0f;
     bool chase_initialized_=false;
     bool chase_constrained_=false;
+    bool chase_shifted_=false;
+    int chase_candidate_=-1;
 
     void use();
     void operate();
