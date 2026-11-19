@@ -155,6 +155,17 @@ void World3D::railing(float x0,float x1,float z,float height,uint32_t color) {
     // Low toe board at an exposed engine-side platform edge.
     box((x0+x1)*0.5f,height+0.10f,z,0.5f*(x1-x0),0.10f,0.027f,shade(deck,1.20f));
 }
+void World3D::railingZ(float z0,float z1,float x,float height,uint32_t color) {
+    if(z1<=z0) return;
+    pipeZ(z0,z1,x,height+1.06f,0.032f,color);
+    pipeZ(z0,z1,x,height+0.54f,0.027f,color);
+    for(float z=z0;z<z1;z+=1.70f)
+        box(x,height+0.55f,z,0.035f,0.55f,0.035f,color);
+    box(x,height+0.55f,z1,0.035f,0.55f,0.035f,color);
+    // Toe plate prevents loose objects rolling into the engine well.
+    box(x,height+0.10f,(z0+z1)*0.5f,
+        0.027f,0.10f,(z1-z0)*0.5f,shade(deck,1.20f));
+}
 void World3D::lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color) {
     const float dx=b.x-a.x,dz=b.z-a.z;
     const float horizontal=std::sqrt(dx*dx+dz*dz);
@@ -260,31 +271,34 @@ void World3D::build() {
         deckSlab(-1.82f,0.86f,-6.65f,4.34f,y,floor_col);
         deckSlab(-1.82f,0.86f,5.66f,6.65f,y,floor_col);
         deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
-        // Two long catwalks. The omitted center is a vertical machinery well.
-        deckSlab(3.10f,12.20f,-6.65f,-2.38f,y,floor_col);
-        deckSlab(3.10f,12.20f,2.38f,6.65f,y,floor_col);
+        // Two long catwalks. The exposed inner 0.82 m of each side is
+        // REAL open grating supported by longitudinal edge members, rather
+        // than a decorative grid floating above a solid deck plate.
+        // canStand() already recognizes these side runs as walkable.
+        deckSlab(3.10f,12.20f,-6.65f,-3.20f,y,floor_col);
+        deckSlab(3.10f,12.20f,3.20f,6.65f,y,floor_col);
         // Aft escape stair runs athwartships (along Z) to preserve deck access.
         deckSlab(12.20f,12.84f,-6.65f,6.65f,y,floor_col);
         deckSlab(12.84f,14.16f,-6.65f,-4.54f,y,floor_col);
         deckSlab(12.84f,14.16f,-1.88f,6.65f,y,floor_col);
         deckSlab(14.16f,15.30f,-6.65f,6.65f,y,floor_col);
 
-        // Readable deck grating and alternating stripe rhythm, without textures.
-        for(float x=3.40f;x<12.06f;x+=1.10f) {
-            for(int side=-1;side<=1;side+=2)
-                box(x,y+0.019f,side*4.53f,0.026f,0.016f,2.05f,shade(bright,0.51f));
-        }
+        // Support each actual grating band along BOTH longitudinal edges.
+        // Bays are 2.275 m long. Transverse bearer bars line up with joints,
+        // eliminating suspended-looking bars in the engine-space screenshots.
         for(int side=-1;side<=1;side+=2) {
-            for(float z=2.86f;z<6.56f;z+=1.07f)
-                box(7.66f,y+0.021f,side*z,4.41f,0.017f,0.020f,shade(bright,0.49f));
+            box(7.65f,y-0.095f,side*2.40f,4.55f,0.11f,0.065f,steel);
+            box(7.65f,y-0.095f,side*3.20f,4.55f,0.11f,0.065f,steel);
+            for(int bay=0;bay<=4;++bay) {
+                const float x=3.10f+2.275f*bay;
+                box(x,y-0.092f,side*2.80f,0.055f,0.10f,0.40f,steel);
+            }
             railing(3.16f,12.14f,side*2.38f,y,handrail);
         }
-        // Painted green checker plate is bordered by open side grating around
-        // machinery. Horizontal grating strips remain lighter and readable.
-        for(float x=3.45f;x<12.0f;x+=0.52f) {
-            for(int side=-1;side<=1;side+=2)
-                box(x,y+0.025f,side*2.76f,0.021f,0.020f,0.32f,shade(grating,1.05f));
-        }
+        // Transverse rails protect the forward and aft edges of the open
+        // engine well; the long galleries retain their longitudinal rails.
+        railingZ(-2.38f,2.38f,3.10f,y,handrail);
+        railingZ(-2.38f,2.38f,12.20f,y,handrail);
         // Structural lighting bands and bright exit-route marks.
         box(-2.65f,y+2.27f,-6.44f,0.07f,0.08f,0.31f,
             d==PumpFlatDeck?green:d==MainEngineDeck?yellow:d==AuxiliaryDeck?red:pipe);
@@ -295,7 +309,12 @@ void World3D::build() {
     const float top=floorHeight(EcrDeck);
     deckSlab(-9.80f,-3.35f,-3.94f,3.94f,top,shade(deck,1.15f));
     deckSlab(-3.35f,-2.85f,-1.18f,1.18f,top,shade(deck,1.15f));
-    box(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,dark);
+    // The ECR's narrow access bridge previously had bare exposed sides.
+    // Both white double-rails terminate at the existing doorway jambs.
+    railing(-3.32f,-2.86f,-1.15f,top,handrail);
+    railing(-3.32f,-2.86f, 1.15f,top,handrail);
+    // A coated steel ECR overhead, not a near-black open sky panel.
+    box(-6.55f,top+4.10f,0.0f,3.45f,0.18f,4.05f,shade(wall,0.71f));
     box(-10.02f,top+1.98f,0.0f,0.16f,2.02f,4.06f,wall);
     box(-6.55f,top+1.98f,-4.02f,3.45f,2.02f,0.15f,wall);
     box(-6.55f,top+1.98f,4.02f,3.45f,2.02f,0.15f,wall);
@@ -328,7 +347,12 @@ void World3D::build() {
     box(6.24f,8.48f, 6.91f,9.28f,8.53f,0.16f,wall);
     box(15.53f,8.48f,0.0f,0.17f,8.53f,6.88f,wall);
     box(-2.98f,6.35f,0.0f,0.14f,6.35f,6.86f,wall);
-    box(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,dark);
+    // Above the lower forward bulkhead the ECR occupies only the central
+    // eight metres. Close the two flanking bays with white-coated structure:
+    // formerly they opened directly onto the dark clear colour.
+    for(int side=-1;side<=1;side+=2)
+        box(-2.98f,top+2.02f,side*5.46f,0.14f,2.04f,1.40f,wall);
+    box(6.24f,17.14f,0.0f,9.28f,0.17f,6.92f,shade(wall,0.65f));
     for(float x=-2.0f;x<15.0f;x+=3.0f) {
         box(x,16.85f,0.0f,0.13f,0.30f,6.75f,steel);
         for(int side=-1;side<=1;side+=2)
@@ -524,8 +548,12 @@ void World3D::build() {
             for(int side=-1;side<=1;side+=2) {
                 part(CheckerPlate,GreenEpoxy,
                      PartTransform(x,y+0.060f,side*4.70f,1.75f,0.60f,1.05f));
+                // Continuous deck-level grating: four equal panels close
+                // the full 3.10..12.20 m inner-catwalk strip.
+                const float grate_x=4.2375f+i*2.275f;
                 part(OpenSteelGrating,GreenGrating,
-                     PartTransform(x,y+0.057f,side*2.91f,1.06f,0.72f,0.54f));
+                     PartTransform(grate_x,y+0.024f,side*2.80f,
+                                   2.275f,0.72f,0.82f));
             }
         }
         // Structural beams live above the walking envelope, not on the decks.
