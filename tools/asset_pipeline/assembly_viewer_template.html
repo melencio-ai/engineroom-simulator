@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engine Watch | Marine Assembly Inspector</title>
+<style>
+:root{color-scheme:dark;--bg:#101a21;--panel:#172630;--line:#30444e;--text:#e1ecee;--muted:#9baeb7;--teal:#82d7bc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input{font:inherit}
+#layout{display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh;min-height:560px}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{padding:20px 18px 14px;border-bottom:1px solid var(--line)}
+.micro{color:var(--teal);font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
+h1{font-size:18px;line-height:1.2;margin:8px 0}
+h2{font-size:12px;margin:0 0 10px;letter-spacing:1px;text-transform:uppercase}
+.muted{color:var(--muted)}
+#search{background:#0c161c;border:1px solid var(--line);border-radius:8px;margin:12px 12px 8px;padding:10px;color:var(--text);width:calc(100% - 24px)}
+#parts{overflow:auto;flex:1;min-height:70px;padding:0 12px 8px}
+.part{display:flex;width:100%;text-align:left;align-items:center;gap:9px;background:transparent;color:var(--text);border:1px solid transparent;border-radius:7px;padding:8px;cursor:pointer}
+.part:hover{background:#243945}
+.part.active{border-color:#3b9883;background:#1b3c3d}
+.dot{width:8px;height:8px;border:1px solid #bdc8c9;border-radius:50%;flex-shrink:0}
+.part b{font-size:12px;font-weight:600;display:block}
+.part small{font-size:10px;color:var(--muted);word-break:break-all}
+#detail{padding:14px 18px;border-top:1px solid var(--line);min-height:145px;max-height:34vh;overflow:auto;background:#13212b}
+#detail .tag{display:inline-block;background:#294249;color:#c8dedc;border-radius:5px;padding:2px 6px;margin-right:5px;font-size:10px}
+#detail dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:11px}
+#detail dt{color:var(--muted)}
+#detail dd{margin:0;text-align:right;overflow-wrap:anywhere}
+section{min-width:0;display:flex;flex-direction:column;position:relative;background:radial-gradient(ellipse at 50% 45%,#1e343e 0,#0a1319 76%)}
+#topbar{padding:14px 20px;position:absolute;left:0;right:0;z-index:2;pointer-events:none}
+#topbar .micro{display:block;margin-bottom:5px}
+#canvas{width:100%;height:100%;display:block;flex:1;touch-action:none;cursor:grab}
+#canvas:active{cursor:grabbing}
+#controls{background:rgba(13,23,28,.96);border-top:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+button.cmd{border:1px solid #3e5964;border-radius:8px;background:#253844;color:var(--text);padding:8px 12px;cursor:pointer}
+button.cmd:hover{border-color:var(--teal)}
+#explode{accent-color:#78c5ad;flex:1;min-width:120px}
+#pct{font-variant-numeric:tabular-nums;width:43px;text-align:right;color:var(--teal);font-weight:650}
+#foot{padding:8px 20px;border-top:1px solid #22343d;font-size:11px;color:var(--muted)}
+kbd{background:#29414a;border-radius:3px;padding:2px 5px;font:inherit}
+#fallback{display:none;position:absolute;inset:30% 20%;padding:24px;text-align:center;background:#182933;border:1px solid var(--line);border-radius:12px}
+@media(max-width:740px){#layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 240px}aside{grid-row:2;border-right:0;border-top:1px solid var(--line)}.brand{padding:9px 12px}.brand h1{font-size:14px;margin:2px 0}#search{margin:7px}#detail{display:none}section{grid-row:1}#controls{padding:8px;gap:7px}button.cmd{padding:6px 8px}#topbar{padding:10px}}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside>
+    <div class="brand">
+      <div class="micro">Engine Watch / digital shipyard</div>
+      <h1 id="title">Assembly inspection</h1>
+      <div class="muted" id="count">Catalog component hierarchy</div>
+    </div>
+    <input id="search" type="search" placeholder="Search BOM parts..." aria-label="Search assembly parts">
+    <div id="parts" aria-label="Selectable component list"></div>
+    <div id="detail"><h2>Part details</h2><div class="muted">Select an item in the drawing or BOM.</div></div>
+  </aside>
+  <section>
+    <div id="topbar">
+      <span class="micro">3D assembly viewer / independent part IDs</span>
+      <div class="muted">Drag to orbit · Scroll to zoom · Click a part to inspect</div>
+    </div>
+    <canvas id="canvas" aria-label="Interactive 3D model of selected marine assembly"></canvas>
+    <div id="fallback">WebGL is unavailable on this device. The assembly BOM and JSON/GLB exports remain accessible.</div>
+    <div id="controls">
+      <button class="cmd" id="assembled">Assembled</button>
+      <input type="range" id="explode" min="0" max="100" step="1" value="0" aria-label="Exploded assembly timeline">
+      <button class="cmd" id="exploded">Exploded</button>
+      <span id="pct">0%</span>
+      <button class="cmd" id="reset">Fit view</button>
+    </div>
+    <div id="foot">ILLUSTRATIVE ONLY — no certified pressure rating, dimensional approval or maintenance authorization. Offline self-contained inspection.</div>
+  </section>
+</div>
+<script>
+"use strict";
+const SCENE=__ENGINEWATCH_ASSEMBLY_DATA__;
+const el=id=>document.getElementById(id);
+el("title").textContent=SCENE.title;
+el("count").textContent=SCENE.instances.length+" installed parts · "+SCENE.bom.length+" unique variants · "+SCENE.connections.length+" links";
+let selected=-1;
+let yaw=1.15,pitch=0.40,distance=2200;
+let percentage=0,dragging=false,last=[0,0],down=[0,0],wasDrag=false;
+const canvas=el("canvas");
+const gl=canvas.getContext("webgl",{antialias:true,alpha:false,depth:true,preserveDrawingBuffer:false});
+if(!gl){el("fallback").style.display="block";}
+function normal(a){const n=Math.hypot(...a);return n?a.map(x=>x/n):[0,0,1];}
+function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function view(eye,target){
+ const z=normal(eye.map((x,i)=>x-target[i])),x=normal(cross([0,1,0],z)),y=cross(z,x);
+ return [x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,
+         -dot(x,eye),-dot(y,eye),-dot(z,eye),1];
+}
+function mult(a,b){
+ const c=new Array(16).fill(0);
+ for(let col=0;col<4;col++)for(let row=0;row<4;row++)
+  for(let k=0;k<4;k++)c[col*4+row]+=a[k*4+row]*b[col*4+k];
+ return c;
+}
+function persp(degrees,aspect,n,f){
+ const t=1/Math.tan(degrees*Math.PI/360);
+ return[t/aspect,0,0,0,0,t,0,0,0,0,(f+n)/(n-f),-1,0,0,2*f*n/(n-f),0];
+}
+function rotated(v,angles){
+ let [x,y,z]=v;const [a,b,c]=angles.map(t=>t*Math.PI/180);
+ [y,z]=[y*Math.cos(a)-z*Math.sin(a),y*Math.sin(a)+z*Math.cos(a)];
+ [x,z]=[x*Math.cos(b)+z*Math.sin(b),-x*Math.sin(b)+z*Math.cos(b)];
+ [x,y]=[x*Math.cos(c)-y*Math.sin(c),x*Math.sin(c)+y*Math.cos(c)];
+ return[x,y,z];
+}
+function stageFraction(step){
+ if(!step)return 0;
+ return Math.max(0,Math.min(1,percentage/100*(SCENE.maxStep+1)-step));
+}
+function model(inst){
+ const a=rotated([1,0,0],inst.rotation),b=rotated([0,1,0],inst.rotation),c=rotated([0,0,1],inst.rotation);
+ const w=stageFraction(inst.step),t=inst.translation.map((x,i)=>x+inst.exploded[i]*w);
+ return[...a,0,...b,0,...c,0,...t,1];
+}
+function createProgram(vertex,fragment){
+ function shader(type,source){
+  const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));
+  return s;
+ }
+ const p=gl.createProgram();
+ gl.attachShader(p,shader(gl.VERTEX_SHADER,vertex));
+ gl.attachShader(p,shader(gl.FRAGMENT_SHADER,fragment));
+ gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
+ return{
+  p,aPos:gl.getAttribLocation(p,"aPos"),aNorm:gl.getAttribLocation(p,"aNorm"),
+  vp:gl.getUniformLocation(p,"uVP"),model:gl.getUniformLocation(p,"uModel"),
+  color:gl.getUniformLocation(p,"uColor"),highlight:gl.getUniformLocation(p,"uHighlight")
+ };
+}
+let renderProgram=null,pickProgram=null,meshes={};
+if(gl){
+ const vertex="attribute vec3 aPos;attribute vec3 aNorm;uniform mat4 uVP;uniform mat4 uModel;varying float vLit;void main(){vec3 n=normalize(mat3(uModel)*aNorm);vLit=max(dot(n,normalize(vec3(-0.35,0.86,0.45))),0.0);gl_Position=uVP*uModel*vec4(aPos,1.0);}";
+ const fragment="precision mediump float;uniform vec3 uColor;uniform float uHighlight;varying float vLit;void main(){vec3 col=uColor*(0.32+0.68*vLit)+uHighlight*vec3(0.17,0.12,0.03);gl_FragColor=vec4(col,1.0);}";
+ const pickV="attribute vec3 aPos;uniform mat4 uVP;uniform mat4 uModel;void main(){gl_Position=uVP*uModel*vec4(aPos,1.0);}";
+ const pickF="precision mediump float;uniform vec3 uColor;void main(){gl_FragColor=vec4(uColor,1.0);}";
+ try{
+  renderProgram=createProgram(vertex,fragment);pickProgram=createProgram(pickV,pickF);
+  for(const [id,item] of Object.entries(SCENE.parts)){
+   const position=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,position);
+   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(item.positions),gl.STATIC_DRAW);
+   const normals=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,normals);
+   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(item.normals),gl.STATIC_DRAW);
+   meshes[id]={position,normals,count:item.positions.length/3};
+  }
+  gl.enable(gl.DEPTH_TEST);
+ }catch(err){el("fallback").textContent="Renderer unavailable: "+err.message;el("fallback").style.display="block";renderProgram=null;}
+}
+function resize(){
+ if(!gl)return;
+ const d=Math.min(window.devicePixelRatio||1,2),r=canvas.getBoundingClientRect();
+ const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+ gl.viewport(0,0,w,h);
+}
+function draw(picking){
+ if(!gl||!renderProgram)return;
+ resize();
+ gl.clearColor(.055,.091,.117,1);
+ gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+ const cp=Math.cos(pitch),eye=[cp*Math.cos(yaw)*distance,Math.sin(pitch)*distance,cp*Math.sin(yaw)*distance];
+ const vp=mult(persp(48,canvas.width/canvas.height,10,10000),view(eye,[0,0,0]));
+ const shader=picking?pickProgram:renderProgram;
+ gl.useProgram(shader.p);
+ gl.uniformMatrix4fv(shader.vp,false,new Float32Array(vp));
+ SCENE.instances.forEach((inst,i)=>{
+  const mesh=meshes[inst.component_id],meta=SCENE.parts[inst.component_id];
+  const color=picking?[(i+1&255)/255,((i+1)>>8&255)/255,((i+1)>>16&255)/255]:meta.rgb;
+  gl.uniformMatrix4fv(shader.model,false,new Float32Array(model(inst)));
+  gl.uniform3fv(shader.color,new Float32Array(color));
+  if(shader.highlight)gl.uniform1f(shader.highlight,!picking&&i===selected?1:0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.position);
+  gl.enableVertexAttribArray(shader.aPos);
+  gl.vertexAttribPointer(shader.aPos,3,gl.FLOAT,false,0,0);
+  if(shader.aNorm>=0){
+   gl.bindBuffer(gl.ARRAY_BUFFER,mesh.normals);
+   gl.enableVertexAttribArray(shader.aNorm);
+   gl.vertexAttribPointer(shader.aNorm,3,gl.FLOAT,false,0,0);
+  }
+  gl.drawArrays(gl.TRIANGLES,0,mesh.count);
+ });
+}
+function render(){draw(false);}
+function renderList(){
+ const match=el("search").value.trim().toLowerCase();
+ const out=el("parts");
+ out.replaceChildren();
+ SCENE.instances.forEach((item,i)=>{
+  const meta=SCENE.parts[item.component_id];
+  if(!((item.id+" "+item.component_id+" "+meta.display_name).toLowerCase().includes(match)))return;
+  const b=document.createElement("button");
+  b.className="part"+(i===selected?" active":"");
+  const dot=document.createElement("span");dot.className="dot";
+  dot.style.background="rgb("+meta.rgb.map(v=>Math.round(v*255)).join(",")+")";
+  const text=document.createElement("span");
+  const title=document.createElement("b");title.textContent=item.id;
+  const sub=document.createElement("small");sub.textContent=meta.display_name;
+  text.append(title,sub);b.append(dot,text);
+  b.onclick=()=>select(i);out.appendChild(b);
+ });
+}
+function select(i){
+ selected=i;renderList();render();
+ const box=el("detail");box.replaceChildren();
+ const h=document.createElement("h2");h.textContent="Selected component";box.append(h);
+ if(i<0)return;
+ const inst=SCENE.instances[i],meta=SCENE.parts[inst.component_id];
+ const b=document.createElement("b");b.textContent=inst.id;box.append(b);
+ const text=document.createElement("p");text.className="muted";text.textContent=meta.display_name;box.append(text);
+ const dl=document.createElement("dl");
+ const rows=[
+  ["Part ID",inst.component_id],
+  ["Material",meta.material],
+  ["Serviceable",inst.maintainable?"Yes":"Welded/non-removable"],
+  ["Explode step",inst.step||"Fixed"],
+  ...Object.entries(meta.parameters).filter(([k])=>k.endsWith("_mm")||k.endsWith("_count")).slice(0,8)
+ ];
+ rows.forEach(([k,v])=>{
+  const dt=document.createElement("dt");dt.textContent=k.replaceAll("_"," ");
+  const dd=document.createElement("dd");dd.textContent=String(v);
+  dl.append(dt,dd);
+ });
+ box.append(dl);
+}
+function setPercent(p){
+ percentage=Math.max(0,Math.min(100,Number(p)||0));
+ el("explode").value=percentage;
+ el("pct").textContent=percentage+"%";
+ render();
+}
+el("explode").oninput=e=>setPercent(e.target.value);
+el("assembled").onclick=()=>setPercent(0);
+el("exploded").onclick=()=>setPercent(100);
+el("reset").onclick=()=>{yaw=1.15;pitch=.4;distance=2200;render();};
+el("search").oninput=renderList;
+canvas.addEventListener("pointerdown",e=>{dragging=true;wasDrag=false;down=[e.clientX,e.clientY];last=down;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener("pointermove",e=>{
+ if(!dragging)return;
+ const dx=e.clientX-last[0],dy=e.clientY-last[1];
+ if(Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)wasDrag=true;
+ yaw+=dx*.009;pitch=Math.max(-1.25,Math.min(1.25,pitch+dy*.009));
+ last=[e.clientX,e.clientY];render();
+});
+canvas.addEventListener("pointerup",e=>{
+ if(!wasDrag&&gl&&renderProgram){
+  gl.disable(gl.DITHER);gl.disable(gl.BLEND);
+  draw(true);
+  const rect=canvas.getBoundingClientRect(),px=new Uint8Array(4);
+  const x=Math.min(canvas.width-1,Math.max(0,Math.floor((e.clientX-rect.left)*canvas.width/rect.width)));
+  const y=Math.min(canvas.height-1,Math.max(0,Math.floor((rect.bottom-e.clientY)*canvas.height/rect.height)));
+  gl.readPixels(x,y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  gl.enable(gl.DITHER);
+  const id=px[0]+(px[1]<<8)+(px[2]<<16);
+  select(id>0&&id<=SCENE.instances.length?id-1:-1);
+ }
+ dragging=false;
+});
+canvas.addEventListener("wheel",e=>{
+ e.preventDefault();distance=Math.max(300,Math.min(8000,distance*Math.exp(e.deltaY*.001)));render();
+},{passive:false});
+window.addEventListener("resize",render);
+renderList();render();
+</script>
+</body>
+</html>
