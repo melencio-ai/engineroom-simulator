@@ -460,6 +460,16 @@ void World3D::build() {
         box(0.90f,py+1.39f,z,0.43f,0.055f,0.31f,yellow);
         cylinderY(1.25f,py+0.96f,py+1.17f,z,0.22f,10,red);
         cylinderX(-0.40f,1.30f,py+1.20f,z+0.56f,0.09f,10,pipe);
+        // Electric-motor cooling ribs, protected shaft coupling and base feet.
+        // These use low-poly steel silhouettes; they are not OEM pump CAD.
+        for(int rib=0;rib<6;++rib)
+            box(0.71f+0.11f*rib,py+0.94f,z,
+                0.020f,0.42f,0.41f,shade(engineBlue,rib%2?0.97f:1.14f));
+        box(0.53f,py+0.92f,z,0.14f,0.29f,0.33f,yellow); // coupling guard
+        for(int side=-1;side<=1;side+=2) {
+            box(-0.11f,py+0.43f,z+side*0.43f,0.17f,0.07f,0.12f,steel);
+            box(1.13f,py+0.43f,z+side*0.43f,0.16f,0.07f,0.12f,steel);
+        }
         obstacle(-0.45f,1.58f,z-0.78f,z+0.78f,1u<<PumpFlatDeck);
     }
     box(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
@@ -623,6 +633,55 @@ void World3D::build() {
     part(FlatWasher,GalvanizedSteel,
          PartTransform(0.73f,ly+0.44f,-5.89f,0.22f,0.20f,0.22f));
 
+    // Pump-flat common LO discharge manifold. Both illustrated pump branches
+    // rise from the skids and meet a transverse overhead pipe. Keeping the
+    // header above head height preserves the forward walking corridor and
+    // the original local-panel access coordinates. All fittings are catalog
+    // instances; the pipe colours are indicative, not ISO-certified labels.
+    const float header_y=py+2.40f;
+    const float header_x=2.38f;
+    const float quarter_turn=1.570796327f;
+    part(PipeSpool,PipeInsulation,
+         PartTransform(header_x,header_y,-0.815f,7.13f,0.85f,0.85f,quarter_turn));
+    for(int i=0;i<2;++i) {
+        const float z=i==0?-4.38f:2.75f;
+        // Pump discharge rise: local spool X-axis rotated into vertical Y.
+        part(PipeSpool,PipeInsulation,
+             PartTransform(1.25f,py+1.77f,z,1.26f,0.85f,0.85f,
+                           0.0f,0.0f,quarter_turn));
+        part(PipeSpool,PipeInsulation,
+             PartTransform(1.815f,header_y,z,1.13f,0.85f,0.85f));
+        part(PipeElbow90,PipeInsulation,
+             PartTransform(1.25f,header_y,z,0.47f,0.48f,0.48f,
+                           0.0f,quarter_turn));
+        part(PipeTee,PipeInsulation,
+             PartTransform(header_x,header_y,z,0.51f,0.51f,0.51f,quarter_turn));
+        // Bolted/flanged maintenance joints at the pump and common header.
+        for(int joint=0;joint<2;++joint) {
+            const float x=joint==0?1.29f:header_x-0.06f;
+            part(WeldNeckFlange,GalvanizedSteel,
+                 PartTransform(x,header_y,z,0.19f,0.43f,0.43f));
+            part(PipeGasket,RubberGasket,
+                 PartTransform(x+0.09f,header_y,z,0.16f,0.42f,0.42f));
+        }
+        // Coloured identifier is a short band, not a solid orange pipe.
+        part(PipeSpool,LubricatingOilOrange,
+             PartTransform(1.82f,header_y,z,0.11f,0.90f,0.90f));
+        part(PressureGauge,BronzeInstrument,
+             PartTransform(1.76f,py+1.72f,z-0.20f,0.44f,0.42f,0.42f));
+        part(PipeSupport,StructuralSteelGrey,
+             PartTransform(header_x,header_y+0.48f,z,0.50f,0.50f,0.52f));
+        for(int foot=0;foot<2;++foot)
+            part(HexBolt,GalvanizedSteel,
+                 PartTransform(foot==0?-0.11f:1.13f,py+0.50f,z+0.43f,
+                               0.23f,0.24f,0.23f));
+    }
+    for(int end=0;end<2;++end) {
+        const float z=end==0?-4.38f:2.75f;
+        part(WeldNeckFlange,GalvanizedSteel,
+             PartTransform(header_x,header_y,z,0.16f,0.43f,0.43f,quarter_turn));
+    }
+
     // A separate cooling/header manifold with repeated neutral pipe surfaces
     // and narrower blue identification bands as finish-specific objects.
     for(int i=0;i<3;++i) {
@@ -723,7 +782,8 @@ bool World3D::walkSurface(float x,float z,float feet_y,float& next_feet_y,
     for(int d=TankTopDeck;d<DeckCount;++d) {
         const float y=floorHeight(d);
         const float diff=std::fabs(feet_y-y);
-        if(diff<best && canStand(x,z,d,radius)) {
+        if(diff<best && canStand(x,z,d,radius) &&
+           hasHeadroom(x,z,y)) {
             best=diff;
             next_feet_y=y;
             found=true;
@@ -733,7 +793,7 @@ bool World3D::walkSurface(float x,float z,float feet_y,float& next_feet_y,
         float stair_y=0.0f;
         if(stairHeight(stairs_[i],x,z,feet_y,stair_y,radius)) {
             const float diff=std::fabs(feet_y-stair_y);
-            if(diff<=best+0.001f) {
+            if(diff<=best+0.001f && hasHeadroom(x,z,stair_y)) {
                 best=diff;
                 next_feet_y=stair_y;
                 found=true;
@@ -741,6 +801,33 @@ bool World3D::walkSurface(float x,float z,float feet_y,float& next_feet_y,
         }
     }
     return found;
+}
+
+bool World3D::hasHeadroom(float x,float z,float feet_y,float height) const {
+    if(!std::isfinite(x) || !std::isfinite(z) || !std::isfinite(feet_y) ||
+       !std::isfinite(height) || height<0.8f || height>2.2f) return false;
+    // The stairs are stacked vertically. The walkable surface of one flight
+    // does not imply sufficient clearance below it on the next lower level.
+    // Use the same centerlines as stairHeight() and the drawn underside,
+    // with a narrow stringer margin. No triangle-by-triangle PSP collision.
+    for(int i=0;i<stairCount();++i) {
+        const Stair3D& st=stairs_[i];
+        const float vx=st.bottom_x-st.top_x,vz=st.bottom_z-st.top_z;
+        const float run2=vx*vx+vz*vz;
+        const float t=((x-st.top_x)*vx+(z-st.top_z)*vz)/run2;
+        if(t<=0.0f || t>=1.0f) continue;
+        const float lateral=std::fabs((x-st.top_x)*vz-(z-st.top_z)*vx)/
+                            std::sqrt(run2);
+        if(lateral>st.width*0.5f+0.12f) continue;
+        for(int d=TankTopDeck;d<EcrDeck;++d) {
+            const float underside=floorHeight(d)+3.2f*(1.0f-t)-0.20f;
+            // Surfaces at or below the feet belong to the flight being used;
+            // only a genuinely overhead flight can obstruct the camera.
+            if(underside>feet_y+0.22f && underside<feet_y+height+0.15f)
+                return false;
+        }
+    }
+    return true;
 }
 
 bool World3D::onStair(float x,float z,float feet_y) const {
