@@ -31,7 +31,7 @@ jobs:
           build/catalog/verify_ewmesh dist/parametric-catalog/psp/*.ewmesh
       - name: Check complete catalog artifact and illustrative source status
         run: |
-          python -c 'import json,pathlib; d=json.load(open("dist/parametric-catalog/manifest.json")); assert d["component_count"]==7; assert all(not p["engineering_verified"] and p["psp_triangles"]<=1800 for p in d["components"]); assert len(list(pathlib.Path("dist/parametric-catalog/inspection").glob("*.glb")))==7; print("G2 inspection and PSP assets validated")'
+          python -c 'import json,pathlib; d=json.load(open("dist/parametric-catalog/manifest.json")); assert d["component_count"]==10; assert all(not p["engineering_verified"] and p["psp_triangles"]<=1800 for p in d["components"]); assert len(list(pathlib.Path("dist/parametric-catalog/inspection").glob("*.glb")))==10; print("G2 inspection and PSP assets validated")'
       - uses: actions/upload-artifact@v4
         with:
           name: engine-watch-parametric-marine-components-g2
