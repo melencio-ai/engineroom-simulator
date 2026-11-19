@@ -47,6 +47,8 @@ dist/parametric-catalog/
 
 The manifest records every catalog ID, source JSON SHA-256, source/approval status, geometry bounds, triangle counts, separate output hashes, and the LOD's dimension unit.
 
+**Native runtime-layout verification:** The CI compiles `tools/asset_pipeline/verify_ewmesh.cpp` as C++11 and reads every generated `.ewmesh` into `enginewatch::Vertex3D`. It enforces the `16-byte` ABGR/XYZ layout, version, triangle-multiple count, per-part PSP vertex cap, finite coordinates, alpha channel, and metre-scale bounds. This prevents silent mismatch between the Python asset exporter and the C++ scene format; gameplay import is still a separate later task.
+
 ### The PSP `.ewmesh` format (version 1)
 
 ```text
