@@ -44,6 +44,8 @@ static void geometryChecks(const World3D& w) {
     static_assert(sizeof(Vertex3D)==16,"PSP GU expects colour + XYZ vertex");
     assert(mesh.size()>16000);
     assert(mesh.size()%3==0);
+    std::fprintf(stderr,"PSP mesh budget: %zu vertices (%zu triangles), limit 129999 vertices\n",
+                 mesh.size(),mesh.size()/3);
     assert(mesh.size()<130000); // Guardrail/stair/chequer geometry budget.
     float miny=999.0f,maxy=-999.0f;
     bool green_deck=false,light_bulkhead=false;
