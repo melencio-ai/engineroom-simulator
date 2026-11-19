@@ -156,9 +156,13 @@ static void screenshotGeometryChecks(const World3D& w) {
                 assert(std::fabs(surface-y)<0.03f);
                 int grate_mesh=0;
                 for(const Vertex3D& v:w.vertices()) {
-                    if(std::fabs(v.x-x)<0.90f &&
+                    // Grating bars span nearly the full panel width:
+                    // x half-length is 1.1375 m and z half-width 0.41 m.
+                    // Count all support/bar edge vertices, not only a small
+                    // central patch (the latter accidentally excluded them).
+                    if(std::fabs(v.x-x)<1.15f &&
                        std::fabs(v.y-y)<0.095f &&
-                       std::fabs(v.z-side*2.80f)<0.37f)
+                       std::fabs(v.z-side*2.80f)<0.43f)
                         ++grate_mesh;
                 }
                 assert(grate_mesh>=40);
