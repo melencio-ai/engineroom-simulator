@@ -38,6 +38,7 @@ The validator returns nonzero on errors. It validates source and model contracts
     catalog/
       registry.json
       standards/registry.json
+      standards/evidence_registry.json # empty until licensed evidence approved
       standards/confidence_policy.json
       materials/registry.json
       families/registry.json
@@ -58,7 +59,7 @@ Each active file must appear exactly once in the registry and must have a filena
 4. Thread interfaces encode actual displayed diameter and pitch; property class 8.8 is **not** a steel grade.
 5. Green epoxy is a **finish**, not a structural material. Each part distinguishes base material, grade, coating and visual presentation.
 6. Each part references an explicit family, generator name and revision. The generator status is **planned** until G2 actually implements its geometry.
-7. A standards landing page establishes document scope and edition but **does not verify a dimensional value**. All initial standard sources have metadata-only licenses and cannot upgrade a part to a verified status.
+7. A standards landing page establishes document scope and edition but **does not verify a dimensional value**. All initial sources are metadata-only. The separate verified-evidence registry starts empty: a made-up source ID cannot upgrade any part to engineering-verified status.
 8. Parts/assemblies are **illustrative** until supported by approved evidence. A draft part reference ending in .TODO is allowed only inside an illustrative assembly.
 9. Unassigned MGO/LO fluids retain unknown viscosity, density, flash point and sulfur measurements. Don't infer fuel properties from a commercial abbreviation.
 10. The catalog must not replace the existing 33 PSP archetypes, their 16 finishes, five-deck collisions, or Missions 001/002 until the generated replacement is validated.
