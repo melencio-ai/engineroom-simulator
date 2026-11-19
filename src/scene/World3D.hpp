@@ -56,6 +56,9 @@ public:
     // Call per horizontal movement step with the previous character foot height.
     bool walkSurface(float x, float z, float feet_y, float& next_feet_y,
                      float radius=0.25f) const;
+    // Reject positions where a descending stair/stringer would intersect the
+    // first-person camera/head. Kept separate from floor support resolution.
+    bool hasHeadroom(float x, float z, float feet_y, float height=1.65f) const;
     bool onStair(float x, float z, float feet_y) const;
     bool isInEcr(float x, int deck) const { return deck==EcrDeck && x < -3.4f; }
 
