@@ -23,6 +23,8 @@ struct CameraView3D {
     Vec3 eye;
     Vec3 target;
     bool show_body=false;
+    float fov_degrees=68.0f;
+    bool constrained=false; // camera is shortened by physical geometry
 };
 
 struct Hud3D {
@@ -77,10 +79,16 @@ private:
     bool third_person_=false;
     float travel_this_frame_=0.0f;
     CharacterAnimator character_animator_;
+    Vec3 chase_eye_{};
+    Vec3 chase_target_{};
+    float chase_distance_=0.0f;
+    bool chase_initialized_=false;
+    bool chase_constrained_=false;
 
     void use();
     void operate();
     void move(float dt,float forward,float strafe,float turn,float look);
+    void updateChaseCamera(float dt);
 };
 
 } // namespace enginewatch
