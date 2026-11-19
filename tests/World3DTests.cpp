@@ -189,6 +189,33 @@ static void gameplayChecks(const World3D& world) {
     driveTo(game,-2.35f,5.00f);
     assert(game.currentDeck()==MainEngineDeck);
 
+    // Regression: walk down to the real Pump Flat, face the local LO panel,
+    // open it and start the main pump. This catches correct collision routes
+    // AND the interaction/HUD path (not only isolated process-model tests).
+    driveTo(game,1.35f,3.94f);
+    driveTo(game,-2.35f,3.94f);
+    driveTo(game,-2.35f,5.00f);
+    driveTo(game,1.35f,5.00f);
+    assert(game.currentDeck()==PumpFlatDeck);
+    driveTo(game,2.64f,5.00f);
+    driveTo(game,2.64f,-2.81f);
+    Input3D turn_to_panel;
+    turn_to_panel.turn=1.0f;
+    step(game,turn_to_panel,29);
+    assert(world.lookAtStation(game.camera(),game.yaw())==LoPumpStation);
+    Input3D use_panel;
+    use_panel.interact=true;
+    step(game,use_panel); // Open.
+    assert(game.hud().panel_visible);
+    step(game,use_panel); // Selected MAIN PUMP -> STARTING.
+    assert(game.simulation().state().main_pump.requested);
+    step(game,Input3D{},16);
+    assert(game.simulation().state().main_pump.running);
+    assert(std::strstr(game.hud().objective,"RUNNING"));
+    step(game,Input3D{},200);
+    assert(game.simulation().state().lo_pressure_bar>=3.0f);
+    assert(std::strstr(game.hud().objective,"RETURN TO DECK 04"));
+
     Input3D in;
     in.pause=true;
     step(game,in);
