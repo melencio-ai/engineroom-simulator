@@ -31,6 +31,22 @@ jobs:
           build/catalog/verify_ewmesh dist/parametric-catalog/psp/*.ewmesh
       - name: Export independent assembled and exploded marine joints
         run: python tools/asset_pipeline/export_assemblies.py --out dist/marine-assemblies
+      - name: Validate standalone WebGL viewer JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files=sorted(Path("dist/marine-assemblies").glob("*/viewer.html"))
+          assert len(files)==2
+          for n,file in enumerate(files):
+              html=file.read_text(encoding="utf-8")
+              code=html.split("<script>\n",1)[1].split("\n</script>",1)[0]
+              path=Path("build/catalog")/f"assembly-viewer-{n}.js"
+              path.write_text(code,encoding="utf-8")
+              assert "https://" not in code and "http://" not in code
+          print("Offline WebGL inspection scripts extracted: 2")
+          PY
+          node --check build/catalog/assembly-viewer-0.js
+          node --check build/catalog/assembly-viewer-1.js
       - name: Validate assembly C++11 PSP geometry batches
         run: build/catalog/verify_ewmesh dist/marine-assemblies/*/psp/*.ewmesh
       - name: Confirm resolved assemblies, per-instance GLBs and standalone viewers
