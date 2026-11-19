@@ -755,7 +755,10 @@ bool World3D::stairHeight(const Stair3D& st,float x,float z,float feet_y,
     const float t=(ux*vx+uz*vz)/run2; // t=0 at upper landing, 1 lower
     if(t < -0.17f || t > 1.17f) return false;
     const float lateral=std::fabs(ux*vz-uz*vx)/run;
-    if(lateral>st.width*0.5f-radius*0.28f) return false;
+    // Reserve enough space between the player camera and the physical
+    // stringers/handrail posts. The old 0.28 radius factor allowed the camera
+    // close enough to intersect the upright boxes when turning sideways.
+    if(lateral>st.width*0.5f-radius*0.90f) return false;
     // Clamp only beyond the tread run at a safe, level landing approach.
     const float rise=1.0f-std::max(0.0f,std::min(1.0f,t));
     float best=0.48f;
