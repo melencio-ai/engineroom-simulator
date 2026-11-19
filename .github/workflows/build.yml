@@ -1,4 +1,4 @@
-name: Engine Watch 3D Pump Flat Navigation CI
+name: Engine Watch 3D Screenshot Geometry Cleanup CI
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
           python3 -c 'import json,os; p="dist/marine-objects/"; d=json.load(open(p+"catalog.json")); assert len(d["parts"])==33; assert len(d["finishes"])==16; assert all(os.path.isfile(p+x["obj_file"]) and os.path.isfile(p+x["mtl_file"]) for x in d["parts"]); print("33 OBJ+MTL models and 16 finishes verified")'
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-reusable-3d-objects-v0.7
+          name: engine-watch-reusable-3d-objects-v0.7.1
           path: dist/marine-objects/
           if-no-files-found: error
           retention-days: 14
@@ -75,7 +75,7 @@ jobs:
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-v0.7-pump-flat-navigation
+          name: engine-watch-psp-v0.7.1-screenshot-cleanup
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-v0.7-pump-flat-navigation
+          name: engine-watch-psp-v0.7.1-screenshot-cleanup
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -132,6 +132,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-v0.7-pump-flat-diagnostics
+          name: ppsspp-v0.7.1-screenshot-diagnostics
           path: diagnostics/
           if-no-files-found: ignore
