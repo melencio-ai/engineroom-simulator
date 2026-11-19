@@ -192,9 +192,7 @@ static void gameplayChecks(const World3D& world) {
     // Regression: walk down to the real Pump Flat, face the local LO panel,
     // open it and start the main pump. This catches correct collision routes
     // AND the interaction/HUD path (not only isolated process-model tests).
-    driveTo(game,1.35f,3.94f);
-    driveTo(game,-2.35f,3.94f);
-    driveTo(game,-2.35f,5.00f);
+    // The preceding ascent ends exactly at the L2 upper stair head.
     driveTo(game,1.35f,5.00f);
     assert(game.currentDeck()==PumpFlatDeck);
     driveTo(game,2.64f,5.00f);
