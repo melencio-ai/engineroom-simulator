@@ -34,6 +34,8 @@ void Game3D::reset() {
     chase_initialized_=false;
     chase_distance_=0.0f;
     chase_constrained_=false;
+    chase_shifted_=false;
+    chase_candidate_=-1;
     chase_eye_=camera_;
     chase_target_=camera_;
 }
@@ -171,89 +173,120 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
 void Game3D::updateChaseCamera(float dt) {
     if(!third_person_) return;
     const float cs=std::cos(yaw_),sn=std::sin(yaw_);
-    const float feet=camera_.y-PlayerCharacter::EyeHeight;
+    const float safe_dt=clamp(dt,0.0f,0.05f);
 
-    // Shoulder-offset pursuit view. The crosshair aims 1.25m BEYOND the
-    // character, rather than over their helmet as in the first prototype.
-    // Each point along the intended boom is checked against the same G3
-    // deck/stair/large-machinery proxy as the walking controller.
-    const float back=3.00f,side=0.32f;
-    const float dx=-cs*back-sn*side;
-    const float dz=-sn*back+cs*side;
-    float safe=0.0f;
-    const int segments=20; // budgeted for PPSSPP/mobile CPU
-    for(int i=1;i<=segments;++i) {
-        const float t=static_cast<float>(i)/segments;
-        const float x=camera_.x+dx*t,z=camera_.z+dz*t;
-        float support=feet;
-        bool valid=world_.walkSurface(x,z,feet,support,0.065f);
-        if(!valid && climbing_) {
-            // On an inclined ladder the camera's prospective foot position
-            // can be over one metre above/below the player's current tread.
-            // Try nearby stair elevations without treating missing deck
-            // panels as walkable air.
-            const float shifts[]={-1.40f,-1.0f,-0.55f,0.55f,1.0f,1.40f};
-            for(unsigned k=0;k<sizeof(shifts)/sizeof(shifts[0]);++k) {
-                if(world_.walkSurface(x,z,feet+shifts[k],support,0.065f) &&
-                   std::fabs(support-feet)<=1.55f) {
-                    valid=true;
-                    break;
-                }
-            }
-        }
-        if(!valid || std::fabs(support-feet)>1.55f ||
-           support>camera_.y+0.05f)
-            break;
-        safe=t;
-    }
-
-    // Keep the body in third person while negotiating narrow stairways.
-    // Abrupt 3P->1P fallback was the principal issue in the footage.
-    const float goal=std::max(0.40f,3.0f*std::max(0.0f,safe-0.035f));
-    chase_constrained_=goal<2.60f;
-    if(!chase_initialized_) {
-        chase_distance_=goal;
-    } else if(goal<chase_distance_) {
-        // Immediately shorten on new obstructions so a smoothed camera
-        // cannot be left behind a solid wall or above an unsupported shaft.
-        chase_distance_=goal;
-    } else {
-        // Expand gradually when exiting a confined space: no camera pop.
-        const float a=1.0f-std::exp(-5.8f*dt);
-        chase_distance_+=a*(goal-chase_distance_);
-    }
-
-    const float scale=chase_distance_/3.0f;
-    const Vec3 desiredEye{
-        camera_.x+dx*scale,
-        camera_.y+0.23f+0.23f*scale,
-        camera_.z+dz*scale
-    };
-    const Vec3 desiredTarget{
+    // The visibility ray begins just above the character's eye, safely in
+    // front of the helmet and above a steel walking surface. The same ray
+    // is used for all candidate camera placements, rather than extrapolating
+    // the player's *floor* collision to elevated third-person viewpoints.
+    const Vec3 focus{camera_.x,camera_.y+0.15f,camera_.z};
+    const Vec3 aim{
         camera_.x+cs*1.25f,
         camera_.y-0.05f+std::sin(pitch_)*0.28f,
         camera_.z+sn*1.25f
     };
+
+    struct Candidate {
+        float back,side,raise,preference;
+    };
+    // In cramped spaces evaluate alternate left/right shoulders and higher
+    // angles BEFORE accepting a helmet-close center camera. Side-only
+    // options handle the ECR console directly behind the spawn point.
+    // These are relative to the character's facing direction (metres).
+    static const Candidate options[]={
+        {3.05f, 0.32f,0.55f,0.00f}, // default trailing shoulder
+        {2.80f, 1.25f,0.65f,0.38f},
+        {2.80f,-1.25f,0.65f,0.38f},
+        {2.25f, 1.55f,1.00f,0.54f},
+        {2.25f,-1.55f,1.00f,0.54f},
+        {1.50f, 0.20f,1.55f,0.65f}, // elevated behind
+        {1.05f, 1.65f,1.20f,0.70f},
+        {1.05f,-1.65f,1.20f,0.70f},
+        {0.25f, 2.10f,0.88f,0.80f}, // lateral ECR/column escape
+        {0.25f,-2.10f,0.88f,0.80f},
+        {0.45f, 0.88f,1.55f,0.98f}, // last-resort upper shoulder
+        {0.45f,-0.88f,1.55f,0.98f}
+    };
+    const int count=static_cast<int>(sizeof(options)/sizeof(options[0]));
+
+    Vec3 positions[count];
+    float distances[count];
+    float scores[count];
+    int best=0;
+    float highest=-10000.0f;
+    for(int i=0;i<count;++i) {
+        const Candidate& c=options[i];
+        const Vec3 want{
+            focus.x-cs*c.back-sn*c.side,
+            focus.y+c.raise,
+            focus.z-sn*c.back+cs*c.side
+        };
+        const float dx=want.x-focus.x,dy=want.y-focus.y,dz=want.z-focus.z;
+        const float length=std::sqrt(dx*dx+dy*dy+dz*dz);
+        const float free=world_.cameraRayFraction(focus,want,0.10f);
+        // End the camera sphere 8 cm before the first obstructing surface.
+        const float t=free>=0.99999f?1.0f:
+            std::max(0.0f,free-0.08f/std::max(length,0.001f));
+        positions[i]=Vec3{focus.x+dx*t,focus.y+dy*t,focus.z+dz*t};
+        distances[i]=length*t;
+        // Prioritize an unobstructed body-length view. A shorter center
+        // camera gets a much worse score than a clear sideways viewpoint.
+        float score=distances[i]*1.65f-c.preference;
+        if(t<0.99f)score-=0.45f;
+        if(distances[i]<1.40f)score-=3.20f*(1.40f-distances[i]);
+        // Hysteresis holds the previous shoulder while similarly suitable,
+        // avoiding left/right flicker as the player steps across a railing.
+        if(chase_initialized_ && i==chase_candidate_)score+=0.33f;
+        scores[i]=score;
+        if(score>highest) { highest=score;best=i; }
+    }
+
+    // Do not let a marginal score change flip the shoulder each frame.
+    // A truly blocked current option will still lose to a clear one.
+    const Vec3 target=positions[best];
+    const float selected_distance=distances[best];
+    chase_candidate_=best;
+    chase_shifted_=best!=0;
+    chase_constrained_=chase_shifted_ || selected_distance<2.35f;
+
     if(!chase_initialized_) {
-        chase_eye_=desiredEye;
-        chase_target_=desiredTarget;
+        chase_eye_=target;
+        chase_target_=aim;
+        chase_distance_=selected_distance;
         chase_initialized_=true;
         return;
     }
-    const float a=1.0f-std::exp(-10.0f*dt);
-    chase_eye_.x+=(desiredEye.x-chase_eye_.x)*a;
-    chase_eye_.y+=(desiredEye.y-chase_eye_.y)*a;
-    chase_eye_.z+=(desiredEye.z-chase_eye_.z)*a;
-    chase_target_.x+=(desiredTarget.x-chase_target_.x)*a;
-    chase_target_.y+=(desiredTarget.y-chase_target_.y)*a;
-    chase_target_.z+=(desiredTarget.z-chase_target_.z)*a;
 
-    // A rapid corner can make a smoothed eye lag through the new wall.
-    // Clamp it toward the already validated desired eye instead of allowing
-    // an entire frame of camera geometry penetration.
-    float supported=feet;
-    if(!world_.walkSurface(chase_eye_.x,chase_eye_.z,feet,supported,0.065f) &&
-       !climbing_) chase_eye_=desiredEye;
+    // Smooth the camera's *position*, not merely its scalar distance.
+    // Restrict interpolated positions to an unobstructed ray every frame.
+    const float a=1.0f-std::exp(-8.5f*safe_dt);
+    Vec3 stepped{
+        chase_eye_.x+(target.x-chase_eye_.x)*a,
+        chase_eye_.y+(target.y-chase_eye_.y)*a,
+        chase_eye_.z+(target.z-chase_eye_.z)*a
+    };
+    if(world_.cameraRayFraction(focus,stepped,0.10f)<0.999f)
+        stepped=target; // snap to already verified safe shoulder
+    chase_eye_=stepped;
+
+    const float focus_dx=chase_eye_.x-focus.x;
+    const float focus_dy=chase_eye_.y-focus.y;
+    const float focus_dz=chase_eye_.z-focus.z;
+    chase_distance_=std::sqrt(focus_dx*focus_dx+
+                             focus_dy*focus_dy+focus_dz*focus_dz);
+
+    const float b=1.0f-std::exp(-10.0f*safe_dt);
+    chase_target_.x+=(aim.x-chase_target_.x)*b;
+    chase_target_.y+=(aim.y-chase_target_.y)*b;
+    chase_target_.z+=(aim.z-chase_target_.z)*b;
+
+    // If the smoothed position approaches the player's helmet, immediately
+    // use the best unobstructed lateral/elevated view rather than a near
+    // first-person angle with a third-person body filling the frame.
+    if(chase_distance_<1.1f && selected_distance>chase_distance_+0.20f) {
+        chase_eye_=target;
+        chase_distance_=selected_distance;
+    }
 }
 
 CameraView3D Game3D::renderCamera() const {
@@ -277,6 +310,7 @@ CameraView3D Game3D::renderCamera() const {
     view.target=chase_initialized_?chase_target_:view.target;
     view.fov_degrees=clamp(76.0f+(1.8f-chase_distance_)*5.0f,76.0f,91.0f);
     view.constrained=chase_constrained_;
+    view.shifted=chase_shifted_;
     return view;
 }
 
@@ -301,7 +335,8 @@ Hud3D Game3D::hud() const {
     std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D - %s",World3D::deckName(deck_));
     std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR  MAIN %s  STBY %s  VIEW %s",
                   s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump),
-                  third_person_?(chase_constrained_?"3P CLOSE":"3P"):"1P");
+                  third_person_?(chase_distance_<1.45f?"3P CLOSE":
+                                chase_shifted_?"3P SHIFT":"3P"):"1P");
     if(s.mission==1) {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
             s.objective_complete?"001 DONE - VERIFY ECR TO ADVANCE":
