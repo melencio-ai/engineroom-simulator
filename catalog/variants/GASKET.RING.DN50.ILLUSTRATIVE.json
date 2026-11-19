@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "id": "GASKET.RING.DN50.ILLUSTRATIVE",
+  "family": "piping.ring_gasket",
+  "name": "Illustrative DN50 flat ring gasket (material unassigned)",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "inner_diameter_mm": 54,
+    "outer_diameter_mm": 92,
+    "thickness_mm": 3,
+    "face_type": "RF"
+  },
+  "material": {
+    "base_material": "fiber_sheet",
+    "grade": null,
+    "grade_standard": null
+  },
+  "coating_id": null,
+  "insulation_id": null,
+  "standards": [],
+  "ports": [
+    {
+      "id": "face_a",
+      "kind": "flange",
+      "interface": "FLANGE:ILLUSTRATIVE:DN50:RF",
+      "position_mm": [
+        -1.5,
+        0,
+        0
+      ],
+      "axis": [
+        -1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    },
+    {
+      "id": "face_b",
+      "kind": "flange",
+      "interface": "FLANGE:ILLUSTRATIVE:DN50:RF",
+      "position_mm": [
+        1.5,
+        0,
+        0
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "service": "lubricating_oil"
+    }
+  ],
+  "generator": {
+    "name": "ring_gasket",
+    "version": "0.2.0",
+    "implementation_status": "available"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "low_mesh"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": []
+  }
+}
