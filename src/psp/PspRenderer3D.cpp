@@ -28,6 +28,7 @@ struct TextVertex {
 }
 
 PspRenderer3D::PspRenderer3D() {
+    character_vertices_.reserve(PlayerCharacter::MaxRuntimeVertices);
     sceGuInit();
     sceGuStart(GU_DIRECT,gu_list);
     // 512-wide hardware stride; two RGBA buffers and a 16-bit depth buffer fit VRAM.
@@ -153,13 +154,13 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
     // The whole engine space fits within 60 m of the player; 0.25 m near
     // plane keeps more precision than the previous 0.12..80 range.
     sceGumPerspective(68.0f,480.0f/272.0f,0.25f,60.0f);
-    const Vec3& p=game.camera();
-    const float yaw=game.yaw();
-    ScePspFVector3 eye={p.x,p.y,p.z};
-    const float pitch=game.pitch();
-    const float cp=std::cos(pitch);
-    ScePspFVector3 center={p.x+std::cos(yaw)*cp,p.y+std::sin(pitch),
-                            p.z+std::sin(yaw)*cp};
+    const CameraView3D camera=game.renderCamera();
+    ScePspFVector3 eye={
+        camera.eye.x,camera.eye.y,camera.eye.z
+    };
+    ScePspFVector3 center={
+        camera.target.x,camera.target.y,camera.target.z
+    };
     ScePspFVector3 up={0.0f,1.0f,0.0f};
     sceGumMatrixMode(GU_VIEW);
     sceGumLoadIdentity();
@@ -178,6 +179,24 @@ void PspRenderer3D::draw(const World3D& world,const Game3D& game) {
         sceGumDrawArray(GU_TRIANGLES,
                         GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D,
                         count,0,v.data()+first);
+    }
+
+    // The animated engineer uses a separate transient PSP GU vertex block;
+    // the static ship scene remains at its validated 127,950-vertex budget.
+    // The character's low-poly body is shown in third-person; the same
+    // animation pose builds gloved arms in first-person.
+    game.buildCharacterGeometry(camera,character_vertices_);
+    if(!character_vertices_.empty() &&
+       character_vertices_.size()<=PlayerCharacter::MaxRuntimeVertices) {
+        const std::size_t bytes=character_vertices_.size()*sizeof(Vertex3D);
+        Vertex3D* temporary=static_cast<Vertex3D*>(sceGuGetMemory(bytes));
+        if(temporary) {
+            std::memcpy(temporary,character_vertices_.data(),bytes);
+            sceKernelDcacheWritebackRange(temporary,bytes);
+            sceGumDrawArray(GU_TRIANGLES,
+                           GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D,
+                           static_cast<int>(character_vertices_.size()),0,temporary);
+        }
     }
 
     // HUD uses absolute 2D screen vertices, without changing the 3D camera.
