@@ -270,7 +270,22 @@ void World3D::build() {
         deckSlab(-2.85f,-1.82f,-6.65f,6.65f,y,floor_col);
         deckSlab(-1.82f,0.86f,-6.65f,4.34f,y,floor_col);
         deckSlab(-1.82f,0.86f,5.66f,6.65f,y,floor_col);
-        deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
+        // The Pump Flat has one dedicated, removable chequer-plate
+        // maintenance cover. Replace the corresponding slab area instead of
+        // drawing a second complete floor plate eight centimetres above it.
+        if(d==PumpFlatDeck) {
+            deckSlab(0.86f,2.10f,-6.65f,6.65f,y,floor_col);
+            deckSlab(2.70f,3.10f,-6.65f,6.65f,y,floor_col);
+            deckSlab(2.10f,2.70f,-6.65f,-0.70f,y,floor_col);
+            deckSlab(2.10f,2.70f,0.30f,6.65f,y,floor_col);
+            // Local checker plate top is +0.035; positioning it -0.035
+            // makes its steel top level with the adjacent slab (raised
+            // chequer marks remain approximately 5 mm above the deck).
+            part(CheckerPlate,GreenEpoxy,
+                 PartTransform(2.40f,y-0.035f,-0.20f,0.60f,1.0f,1.0f));
+        } else {
+            deckSlab(0.86f,3.10f,-6.65f,6.65f,y,floor_col);
+        }
         // Two long catwalks. The exposed inner 0.82 m of each side is
         // REAL open grating supported by longitudinal edge members, rather
         // than a decorative grid floating above a solid deck plate.
@@ -287,11 +302,14 @@ void World3D::build() {
         // Bays are 2.275 m long. Transverse bearer bars line up with joints,
         // eliminating suspended-looking bars in the engine-space screenshots.
         for(int side=-1;side<=1;side+=2) {
-            box(7.65f,y-0.095f,side*2.40f,4.55f,0.11f,0.065f,steel);
-            box(7.65f,y-0.095f,side*3.20f,4.55f,0.11f,0.065f,steel);
+            // All bearers are UNDER the flush grate. The top of each
+            // bearer is y-0.035, just inside the bottom of a grate bar,
+            // never above the walking surface.
+            box(7.65f,y-0.135f,side*2.40f,4.55f,0.10f,0.065f,steel);
+            box(7.65f,y-0.135f,side*3.20f,4.55f,0.10f,0.065f,steel);
             for(int bay=0;bay<=4;++bay) {
                 const float x=3.10f+2.275f*bay;
-                box(x,y-0.092f,side*2.80f,0.055f,0.10f,0.40f,steel);
+                box(x,y-0.135f,side*2.80f,0.055f,0.10f,0.40f,steel);
             }
             railing(3.16f,12.14f,side*2.38f,y,handrail);
         }
@@ -539,21 +557,27 @@ void World3D::build() {
     // world objects, not ad-hoc modelling calls. Each part is a cached local
     // template plus a finish and ship/world transform. See MarineParts.hpp.
     // Placement is illustrative and does not claim an approved vessel GA.
-    part(SteelPlate,GreenEpoxy,PartTransform(0.1f,0.035f,-2.9f,1.8f,1.0f,1.1f));
+    // One reusable steel inspection panel is mounted on a bulkhead, not
+    // layered over an existing floor. The plate remains a world asset without
+    // causing a duplicate top face on the tank top.
+    part(SteelPlate,GreenEpoxy,
+         PartTransform(5.0f,floorHeight(PumpFlatDeck)+1.20f,-6.71f,
+                       1.80f,1.0f,1.10f,0.0f,1.570796327f));
     for(int d=0;d<DeckCount;++d) {
         const float y=floorHeight(d);
-        // Removable embossed deck panels and open grating at the engine well.
-        for(int i=0;i<4;++i) {
-            const float x=4.05f+i*2.3f;
-            for(int side=-1;side<=1;side+=2) {
-                part(CheckerPlate,GreenEpoxy,
-                     PartTransform(x,y+0.060f,side*4.70f,1.75f,0.60f,1.05f));
-                // Continuous deck-level grating: four equal panels close
-                // the full 3.10..12.20 m inner-catwalk strip.
+        // True open grate only exists where the upper working decks have
+        // cutouts. Never overlay it on the solid Level 00 tank top.
+        if(d>TankTopDeck) {
+            for(int i=0;i<4;++i) {
                 const float grate_x=4.2375f+i*2.275f;
-                part(OpenSteelGrating,GreenGrating,
-                     PartTransform(grate_x,y+0.024f,side*2.80f,
-                                   2.275f,0.72f,0.82f));
+                for(int side=-1;side<=1;side+=2) {
+                    // Local grating bars have y=+0.030 top; scaled by
+                    // 0.72 gives +0.0216. Lower the origin by that amount
+                    // to match the adjacent slab EXACTLY.
+                    part(OpenSteelGrating,GreenGrating,
+                         PartTransform(grate_x,y-0.0216f,side*2.79f,
+                                       2.275f,0.72f,0.82f));
+                }
             }
         }
         // Structural beams live above the walking envelope, not on the decks.
