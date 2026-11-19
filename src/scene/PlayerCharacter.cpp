@@ -84,6 +84,75 @@ struct MeshBuilder {
         face(p[3],p[2],p[6],p[7],shade(color,1.22f));
         face(p[4],p[5],p[1],p[0],shade(color,0.60f));
     }
+    void taperedTorso(const Vec3& center,float halfHeight,
+                      float chestHalfWidth,float waistHalfWidth,
+                      float halfDepth,uint32_t color) {
+        // One six-faced tapered prism, not an enormous rectangular cuboid.
+        // Its shoulders naturally extend beyond the waist in third person.
+        const float y0=center.y-halfHeight,y1=center.y+halfHeight;
+        const float xf=center.x+halfDepth,xb=center.x-halfDepth;
+        const float z0=center.z-waistHalfWidth,z1=center.z+waistHalfWidth;
+        const float z2=center.z-chestHalfWidth,z3=center.z+chestHalfWidth;
+        const Vec3 p[8]={
+            Vec3{xb,y0,z0},Vec3{xf,y0,z0},
+            Vec3{xf,y1,z2},Vec3{xb,y1,z2},
+            Vec3{xb,y0,z1},Vec3{xf,y0,z1},
+            Vec3{xf,y1,z3},Vec3{xb,y1,z3}
+        };
+        face(p[0],p[1],p[2],p[3],shade(color,.83f));
+        face(p[5],p[4],p[7],p[6],shade(color,1.06f));
+        face(p[4],p[0],p[3],p[7],shade(color,.73f));
+        face(p[1],p[5],p[6],p[2],shade(color,1.16f));
+        face(p[3],p[2],p[6],p[7],shade(color,1.21f));
+        face(p[4],p[5],p[1],p[0],shade(color,.63f));
+    }
+    void facetedHead(const Vec3& center,const Vec3& radius,uint32_t color) {
+        // Hexagonal tapered skull with two facial-height bands. Flat
+        // triangle shading keeps PSP-friendly recognizable anatomy.
+        const int sides=8;
+        for(int band=0;band<2;++band) {
+            const float lower=band==0?-0.77f:0.0f;
+            const float upper=band==0?0.0f:0.78f;
+            const float lower_scale=band==0?0.82f:1.0f;
+            const float upper_scale=band==0?1.0f:0.80f;
+            for(int k=0;k<sides;++k) {
+                const float a=TWOPI*k/sides,b=TWOPI*(k+1)/sides;
+                const Vec3 p0{center.x+radius.x*lower_scale*std::cos(a),
+                              center.y+radius.y*lower,
+                              center.z+radius.z*lower_scale*std::sin(a)};
+                const Vec3 p1{center.x+radius.x*lower_scale*std::cos(b),
+                              center.y+radius.y*lower,
+                              center.z+radius.z*lower_scale*std::sin(b)};
+                const Vec3 p2{center.x+radius.x*upper_scale*std::cos(b),
+                              center.y+radius.y*upper,
+                              center.z+radius.z*upper_scale*std::sin(b)};
+                const Vec3 p3{center.x+radius.x*upper_scale*std::cos(a),
+                              center.y+radius.y*upper,
+                              center.z+radius.z*upper_scale*std::sin(a)};
+                face(p0,p1,p2,p3,shade(color,k%3==0?1.05f:.94f));
+            }
+        }
+        // Low-poly cheekbone/forehead caps; never use a full sphere mesh.
+        for(int k=0;k<sides;++k) {
+            const float a=TWOPI*k/sides,b=TWOPI*(k+1)/sides;
+            const Vec3 top{center.x,center.y+radius.y,center.z};
+            const Vec3 lo{center.x,center.y-radius.y,center.z};
+            vertex(top,color);
+            vertex(Vec3{center.x+radius.x*.80f*std::cos(a),
+                        center.y+radius.y*.78f,
+                        center.z+radius.z*.80f*std::sin(a)},color);
+            vertex(Vec3{center.x+radius.x*.80f*std::cos(b),
+                        center.y+radius.y*.78f,
+                        center.z+radius.z*.80f*std::sin(b)},color);
+            vertex(lo,shade(color,.80f));
+            vertex(Vec3{center.x+radius.x*.82f*std::cos(b),
+                        center.y-radius.y*.77f,
+                        center.z+radius.z*.82f*std::sin(b)},shade(color,.80f));
+            vertex(Vec3{center.x+radius.x*.82f*std::cos(a),
+                        center.y-radius.y*.77f,
+                        center.z+radius.z*.82f*std::sin(a)},shade(color,.80f));
+        }
+    }
     void hingedBox(const Vec3& center,const Vec3& half,
                    const Vec3& joint,float radians,uint32_t color) {
         box(hinge(center,joint,radians),half,radians,color);
@@ -160,22 +229,26 @@ void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
     const float reach_amount=reach(pose);
 
     // Boiler suit, collar, belt, helmet, name badge, radio and face.
-    b.box(Vec3{0,1.190f+breathing,0},Vec3{0.17f,0.29f,0.215f},0,SUIT);
+    b.taperedTorso(Vec3{0,1.190f+breathing,0},
+                   0.291f,0.228f,0.178f,0.158f,SUIT);
     b.box(Vec3{0,0.887f,0},Vec3{0.165f,0.130f,0.208f},0,SUIT_SHADOW);
     b.box(Vec3{0.0f,0.916f,0},Vec3{0.177f,0.027f,0.216f},0,BOOTS);
     b.box(Vec3{0,1.492f,0},Vec3{0.080f,0.065f,0.095f},0,SUIT_SHADOW);
-    b.box(Vec3{0.018f,1.646f,0},Vec3{0.112f,0.132f,0.119f},0,SKIN);
-    b.box(Vec3{0.012f,1.778f,0},Vec3{0.150f,0.046f,0.150f},0,HELMET);
-    b.box(Vec3{0.090f,1.739f,0},Vec3{0.115f,0.018f,0.170f},0,HELMET);
+    b.facetedHead(Vec3{0.020f,1.641f,0},
+                  Vec3{0.105f,0.133f,0.112f},SKIN);
+    // Compact helmet bowl and forward brim follow the faceted head.
+    b.facetedHead(Vec3{0.014f,1.770f,0},
+                  Vec3{0.143f,0.054f,0.147f},HELMET);
+    b.box(Vec3{0.105f,1.746f,0},Vec3{0.112f,0.014f,0.162f},0,HELMET);
     b.box(Vec3{0.171f,1.390f,-0.125f},Vec3{0.009f,0.050f,0.060f},0,BADGE);
     b.box(Vec3{-0.020f,1.410f,0.240f},Vec3{0.060f,0.080f,0.029f},0,BOOTS);
     b.box(Vec3{0.180f,1.078f,0},Vec3{0.007f,0.021f,0.192f},0,REFLECT);
 
     for(int side=-1;side<=1;side+=2) {
         const float z=side*0.123f;
-        const float leg_swing=(side<0?1.0f:-1.0f)*0.49f*gait*cycle;
-        const float knee_bend=(side<0?1.0f:-1.0f)*
-                              0.12f*gait*std::max(0.0f,-cycle);
+        const float phase=(side<0?1.0f:-1.0f)*cycle;
+        const float leg_swing=0.37f*gait*phase;
+        const float knee_bend=0.22f*gait*std::max(0.0f,phase);
         const Vec3 hip{0.0f,0.837f,z};
         b.hingedBox(Vec3{0,0.653f,z},Vec3{0.124f,0.204f,0.104f},
                     hip,leg_swing,SUIT);
@@ -206,8 +279,14 @@ void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
               Vec3{0.094f,0.167f,0.081f},forearm,SUIT_SHADOW);
         b.box(plus(elbow,rotateXY(Vec3{0,-0.200f,0},forearm)),
               Vec3{0.099f,0.020f,0.085f},forearm,REFLECT);
-        b.box(plus(elbow,rotateXY(Vec3{0,-0.320f,0},forearm)),
-              Vec3{0.078f,0.073f,0.082f},forearm,GLOVE);
+        const Vec3 wrist=plus(elbow,rotateXY(Vec3{0,-0.316f,0},forearm));
+        b.box(wrist,Vec3{0.072f,0.068f,0.075f},forearm,GLOVE);
+        // Visible glove/thumb silhouette from profile and rear views.
+        b.box(plus(wrist,rotateXY(Vec3{0.069f,-0.033f,
+              -side*0.046f},forearm)),
+              Vec3{0.046f,0.038f,0.040f},forearm,GLOVE);
+        b.box(plus(wrist,rotateXY(Vec3{0,-0.070f,0},forearm)),
+              Vec3{0.055f,0.040f,0.067f},forearm,GLOVE);
     }
 }
 
@@ -215,29 +294,50 @@ void PlayerCharacter::buildFirstPersonHands(const Vec3& eye,float yaw,float pitc
                                             const CharacterPose& pose,
                                             std::vector<Vertex3D>& out) {
     out.clear();
-    out.reserve(450);
+    out.reserve(690);
     MeshBuilder b=handBuilder(out,eye,yaw,pitch);
     const float gait=clampf(pose.motion,0,1);
     const float w=std::sin(pose.walk_phase);
     const float reach_amount=reach(pose);
     for(int side=-1;side<=1;side+=2) {
-        const float sway=0.022f*gait*(side<0?w:-w);
+        // Hands rest inside the lower corners ABOVE the PSP 226px HUD.
+        // No forearm begins at the camera near plane (0.25m).
+        const float sidef=static_cast<float>(side);
+        const float sway=0.015f*gait*(side<0?w:-w);
         const float climb=pose.climbing?
-                          0.16f+0.055f*(side<0?w:-w):0.0f;
-        const float reach_x=(side>0?0.24f*reach_amount:0);
-        const float reach_y=(side>0?0.27f*reach_amount:0);
-        const float reach_z=(side>0?-0.27f*reach_amount:0);
-        const float zz=side*0.39f+reach_z;
-        const float yy=-0.45f+climb+reach_y+sway;
-        // Short, camera-space sleeves and working gloves. First-person
-        // geometry starts beyond the 0.25-m near plane and follows pitch,
-        // but remains depth-tested against machinery/console surfaces.
-        b.box(Vec3{0.52f+reach_x*0.45f,yy-0.055f,zz},
-              Vec3{0.225f,0.090f,0.098f},0,SUIT);
-        b.box(Vec3{0.675f+reach_x*0.73f,yy-0.029f,zz},
-              Vec3{0.041f,0.091f,0.101f},0,REFLECT);
-        b.box(Vec3{0.765f+reach_x,yy+0.014f,zz},
-              Vec3{0.125f,0.077f,0.092f},0,GLOVE);
+                          0.075f+0.070f*(side<0?w:-w):0.0f;
+        const float active=(side>0?reach_amount:0.0f);
+        const float xx=0.03f*std::fabs(sway)+active*0.25f;
+        const float yy=-0.265f+climb+active*0.155f+sway;
+        const float zz=sidef*(0.305f-0.095f*active);
+
+        // Narrow rolled sleeves are diagonally offset and smaller than the
+        // original oversized rectangular blocks; reflective wrist cuff is
+        // slim enough to be visible without obscuring the glove.
+        b.box(Vec3{0.673f+xx*.33f,yy-0.062f,zz+sidef*.040f},
+              Vec3{0.188f,0.066f,0.077f},-.09f,SUIT);
+        b.box(Vec3{0.803f+xx*.67f,yy-0.026f,zz+sidef*.014f},
+              Vec3{0.028f,0.069f,0.071f},0,REFLECT);
+        b.box(Vec3{0.901f+xx,yy+0.006f,zz},
+              Vec3{0.106f,0.057f,0.083f},-.06f,GLOVE);
+
+        // Four distinct low-poly gloved fingers; slightly unequal lengths.
+        // Finger pairs are separated so the palm is actually recognizable
+        // in silhouette instead of being one large rectangular claw.
+        const float finger_lengths[]={0.063f,0.079f,0.075f,0.056f};
+        for(int j=0;j<4;++j) {
+            const float lateral=(static_cast<float>(j)-1.5f)*0.040f;
+            b.box(Vec3{1.007f+xx+finger_lengths[j]*.32f,
+                       yy+0.006f-0.008f*std::fabs(lateral),
+                       zz+lateral},
+                  Vec3{finger_lengths[j],0.027f,0.016f},-.04f,GLOVE);
+        }
+        // Opposable thumb projects toward center rather than parallel to
+        // the fingers. A slight angle is enough for a convincing PSP shape.
+        b.box(Vec3{0.944f+xx,yy-0.031f,zz-sidef*.104f},
+              Vec3{0.072f,0.028f,0.033f},-.28f,GLOVE);
+        b.box(Vec3{0.996f+xx,yy-0.048f,zz-sidef*.117f},
+              Vec3{0.035f,0.026f,0.031f},-.42f,shade(GLOVE,1.09f));
     }
 }
 
