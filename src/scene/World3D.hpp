@@ -72,7 +72,6 @@ private:
     void stairGeometry(const Stair3D& stair);
     void part(MarinePartId type,MarineMaterialId finish,const PartTransform& position);
     void checkerTread(float x,float y,float z,uint32_t color);
-    void plateSeams(float x0,float x1,float z0,float z1,float y);
     void lineBar(const Vec3& a,const Vec3& b,float half_width,uint32_t color);
     bool stairHeight(const Stair3D& stair,float x,float z,float feet_y,
                      float& candidate_y,float radius) const;
