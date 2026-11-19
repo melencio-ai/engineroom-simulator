@@ -62,6 +62,10 @@ private:
     void triangle(const Vec3& a, const Vec3& b, const Vec3& c, uint32_t color);
     void quad(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d, uint32_t color);
     void box(float cx,float cy,float cz,float hx,float hy,float hz,uint32_t color);
+    // Split only exposed surfaces of a large slab/bulkhead into PSP-safe
+    // screen-space tiles, without any redundant internal shared faces.
+    void panelizedBox(float cx,float cy,float cz,float hx,float hy,float hz,
+                      uint32_t color,float max_span=2.0f);
     void cylinderX(float x0,float x1,float y,float z,float radius,int segments,uint32_t color);
     void cylinderY(float x,float y0,float y1,float z,float radius,int segments,uint32_t color);
     void pipeZ(float z0,float z1,float x,float y,float radius,uint32_t color);
