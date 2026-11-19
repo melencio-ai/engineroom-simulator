@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "id": "ASM.LO.PUMP.SKID.DEMO.001",
+  "name": "Conceptual LO motor and pump assembly (unresolved components)",
+  "status": "illustrative",
+  "children": [
+    {
+      "instance_id": "motor",
+      "component_id": "MOTOR.LO.DEMO.TODO",
+      "translation_mm": [
+        0,
+        350,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "pump",
+      "component_id": "PUMP.LO.DEMO.TODO",
+      "translation_mm": [
+        950,
+        350,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "shaft-coupling-placeholder",
+      "from": "motor.shaft",
+      "to": "pump.drive",
+      "kind": "shaft"
+    }
+  ],
+  "exploded_steps": [
+    {
+      "step": 1,
+      "instance_id": "motor",
+      "translation_mm": [
+        -700,
+        0,
+        0
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 2,
+      "instance_id": "pump",
+      "translation_mm": [
+        700,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "motor"
+      ]
+    }
+  ],
+  "provenance": {
+    "verified": false,
+    "reference": null
+  }
+}
