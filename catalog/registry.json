@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "note": "Active catalog entries are illustrative, source-verified engineering data is pending.",
+  "components": [
+    "catalog/variants/BOLT.HEX.ISO4014.M10X30.8_8.ZN.json",
+    "catalog/variants/BOLT.HEX.ISO4014.M12X40.8_8.ZN.json",
+    "catalog/variants/PIPE.SPOOL.DN50.L800.ILLUSTRATIVE.json"
+  ],
+  "fluids": [
+    "catalog/fluids/FLUID.LO.UNKNOWN.json",
+    "catalog/fluids/FLUID.MGO.GRADE_UNASSIGNED.json"
+  ],
+  "assemblies": [
+    "catalog/assemblies/ASM.LO.PUMP.SKID.DEMO.001.json"
+  ],
+  "systems": [
+    "catalog/systems/SYS.LO.DEMO.001.json"
+  ]
+}
