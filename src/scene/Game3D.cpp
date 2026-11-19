@@ -31,6 +31,11 @@ void Game3D::reset() {
     third_person_=false;
     travel_this_frame_=0.0f;
     character_animator_.reset();
+    chase_initialized_=false;
+    chase_distance_=0.0f;
+    chase_constrained_=false;
+    chase_eye_=camera_;
+    chase_target_=camera_;
 }
 
 void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
@@ -137,10 +142,21 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     }
     if(!(dt_seconds>0.0f) || !std::isfinite(dt_seconds)) return;
     const float dt=clamp(dt_seconds,0.0f,0.05f);
-    if(in.toggle_view) third_person_=!third_person_;
+    if(in.toggle_view) {
+        third_person_=!third_person_;
+        if(third_person_) chase_initialized_=false;
+    }
     sim_.step(dt);
-    if(in.help) { panel_=panel_==Help?Closed:Help;return; }
-    if(in.back) { panel_=Closed;return; }
+    if(in.help) {
+        panel_=panel_==Help?Closed:Help;
+        updateChaseCamera(dt);
+        return;
+    }
+    if(in.back) {
+        panel_=Closed;
+        updateChaseCamera(dt);
+        return;
+    }
     if(panel_==Pumps) {
         if(in.up) selected_=(selected_+5)%6;
         if(in.down) selected_=(selected_+1)%6;
@@ -149,59 +165,118 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     travel_this_frame_=0.0f;
     if(panel_==Closed) move(dt,in.forward,in.strafe,in.turn,in.look);
     character_animator_.advance(dt,travel_this_frame_,climbing_);
+    updateChaseCamera(dt);
+}
+
+void Game3D::updateChaseCamera(float dt) {
+    if(!third_person_) return;
+    const float cs=std::cos(yaw_),sn=std::sin(yaw_);
+    const float feet=camera_.y-PlayerCharacter::EyeHeight;
+
+    // Shoulder-offset pursuit view. The crosshair aims 1.25m BEYOND the
+    // character, rather than over their helmet as in the first prototype.
+    // Each point along the intended boom is checked against the same G3
+    // deck/stair/large-machinery proxy as the walking controller.
+    const float back=3.00f,side=0.32f;
+    const float dx=-cs*back-sn*side;
+    const float dz=-sn*back+cs*side;
+    float safe=0.0f;
+    const int segments=36;
+    for(int i=1;i<=segments;++i) {
+        const float t=static_cast<float>(i)/segments;
+        const float x=camera_.x+dx*t,z=camera_.z+dz*t;
+        float support=feet;
+        bool valid=world_.walkSurface(x,z,feet,support,0.065f);
+        if(!valid && climbing_) {
+            // On an inclined ladder the camera's prospective foot position
+            // can be over one metre above/below the player's current tread.
+            // Try nearby stair elevations without treating missing deck
+            // panels as walkable air.
+            const float shifts[]={-1.40f,-1.0f,-0.55f,0.55f,1.0f,1.40f};
+            for(unsigned k=0;k<sizeof(shifts)/sizeof(shifts[0]);++k) {
+                if(world_.walkSurface(x,z,feet+shifts[k],support,0.065f) &&
+                   std::fabs(support-feet)<=1.55f) {
+                    valid=true;
+                    break;
+                }
+            }
+        }
+        if(!valid || std::fabs(support-feet)>1.55f ||
+           support>camera_.y+0.05f)
+            break;
+        safe=t;
+    }
+
+    // Keep the body in third person while negotiating narrow stairways.
+    // Abrupt 3P->1P fallback was the principal issue in the footage.
+    const float goal=std::max(0.40f,3.0f*std::max(0.0f,safe-0.035f));
+    chase_constrained_=goal<2.60f;
+    if(!chase_initialized_) {
+        chase_distance_=goal;
+    } else if(goal<chase_distance_) {
+        // Immediately shorten on new obstructions so a smoothed camera
+        // cannot be left behind a solid wall or above an unsupported shaft.
+        chase_distance_=goal;
+    } else {
+        // Expand gradually when exiting a confined space: no camera pop.
+        const float a=1.0f-std::exp(-5.8f*dt);
+        chase_distance_+=a*(goal-chase_distance_);
+    }
+
+    const float scale=chase_distance_/3.0f;
+    const Vec3 desiredEye{
+        camera_.x+dx*scale,
+        camera_.y+0.23f+0.23f*scale,
+        camera_.z+dz*scale
+    };
+    const Vec3 desiredTarget{
+        camera_.x+cs*1.25f,
+        camera_.y-0.05f+std::sin(pitch_)*0.28f,
+        camera_.z+sn*1.25f
+    };
+    if(!chase_initialized_) {
+        chase_eye_=desiredEye;
+        chase_target_=desiredTarget;
+        chase_initialized_=true;
+        return;
+    }
+    const float a=1.0f-std::exp(-10.0f*dt);
+    chase_eye_.x+=(desiredEye.x-chase_eye_.x)*a;
+    chase_eye_.y+=(desiredEye.y-chase_eye_.y)*a;
+    chase_eye_.z+=(desiredEye.z-chase_eye_.z)*a;
+    chase_target_.x+=(desiredTarget.x-chase_target_.x)*a;
+    chase_target_.y+=(desiredTarget.y-chase_target_.y)*a;
+    chase_target_.z+=(desiredTarget.z-chase_target_.z)*a;
+
+    // A rapid corner can make a smoothed eye lag through the new wall.
+    // Clamp it toward the already validated desired eye instead of allowing
+    // an entire frame of camera geometry penetration.
+    float supported=feet;
+    if(!world_.walkSurface(chase_eye_.x,chase_eye_.z,feet,supported,0.065f) &&
+       !climbing_) chase_eye_=desiredEye;
 }
 
 CameraView3D Game3D::renderCamera() const {
     const float cs=std::cos(yaw_),sn=std::sin(yaw_);
     const float cp=std::cos(pitch_),sp=std::sin(pitch_);
-    const Vec3 first_target{
-        camera_.x+cs*cp,camera_.y+sp,camera_.z+sn*cp
-    };
-    // C++11: CameraView3D has default member initializers, so assign
-    // explicitly instead of relying on C++14 aggregate initialization.
     CameraView3D view;
     view.eye=camera_;
-    view.target=first_target;
+    view.target=Vec3{
+        camera_.x+cs*cp,camera_.y+sp,camera_.z+sn*cp
+    };
     view.show_body=false;
+    view.fov_degrees=68.0f;
+    view.constrained=false;
     if(!third_person_) return view;
 
-    // Small shoulder offset and trailing camera behind the engineer. We
-    // sample the physical deck's navigation/collision proxy along the chase
-    // ray; do not allow the camera to pass through known machinery blocks,
-    // platform edges or stair shafts. When there is insufficient room to
-    // see the full character, fall back to safe first-person hands.
-    const Vec3 desired{
-        camera_.x-cs*2.35f-sn*0.16f,
-        camera_.y+0.38f,
-        camera_.z-sn*2.35f+cs*0.16f
-    };
-    const float feet=camera_.y-PlayerCharacter::EyeHeight;
-    float best=0.0f;
-    const int samples=24;
-    for(int i=1;i<=samples;++i) {
-        const float t=static_cast<float>(i)/samples;
-        const float x=camera_.x+(desired.x-camera_.x)*t;
-        const float z=camera_.z+(desired.z-camera_.z)*t;
-        float supported=feet;
-        if(!world_.walkSurface(x,z,feet,supported,0.08f) ||
-           std::fabs(supported-feet)>0.47f ||
-           !world_.hasHeadroom(x,z,supported,1.79f))
-            break;
-        best=t;
-    }
-    if(best<0.36f) return view;
-    best=std::max(0.36f,best-0.04f);
-    view.eye=Vec3{
-        camera_.x+(desired.x-camera_.x)*best,
-        camera_.y+(desired.y-camera_.y)*best,
-        camera_.z+(desired.z-camera_.z)*best
-    };
-    view.target=Vec3{
-        camera_.x+cs*0.63f,
-        camera_.y-0.12f+sp*0.58f,
-        camera_.z+sn*0.63f
-    };
+    // The body remains visible even when the chase boom contracts at a
+    // stairway or wall. A wider lens in close quarters prevents the helmet
+    // from filling the whole screen; there is NO automatic 1P view switch.
     view.show_body=true;
+    view.eye=chase_initialized_?chase_eye_:camera_;
+    view.target=chase_initialized_?chase_target_:view.target;
+    view.fov_degrees=clamp(76.0f+(1.8f-chase_distance_)*5.0f,76.0f,91.0f);
+    view.constrained=chase_constrained_;
     return view;
 }
 
@@ -226,7 +301,7 @@ Hud3D Game3D::hud() const {
     std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D - %s",World3D::deckName(deck_));
     std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR  MAIN %s  STBY %s  VIEW %s",
                   s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump),
-                  third_person_?"3P":"1P");
+                  third_person_?(chase_constrained_?"3P CLOSE":"3P"):"1P");
     if(s.mission==1) {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
             s.objective_complete?"001 DONE - VERIFY ECR TO ADVANCE":
