@@ -70,6 +70,14 @@ if(ENGINEWATCH_EXPORT_ASSETS AND NOT CMAKE_CROSSCOMPILING)
     target_link_libraries(enginewatch_export_parts PRIVATE enginewatch_scene)
 endif()
 
+# G3.5: native OBJ snapshots of the same procedural character that
+# animates in PSP and desktop. Native-only, never bundled into PSP EBOOT.
+option(ENGINEWATCH_EXPORT_CHARACTER "Export low-poly marine-engineer character poses" OFF)
+if(ENGINEWATCH_EXPORT_CHARACTER AND NOT CMAKE_CROSSCOMPILING)
+    add_executable(enginewatch_export_character tools/export_player_character.cpp)
+    target_link_libraries(enginewatch_export_character PRIVATE enginewatch_scene)
+endif()
+
 # G3: native constructor exporter reads the very same DeckPlan as the
 # playable C++ engine to generate physical layout JSON and vector deck maps.
 option(ENGINEWATCH_EXPORT_DECKPLAN "Export shared deck layout JSON and SVG blueprints" OFF)
