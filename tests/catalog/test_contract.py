@@ -35,7 +35,7 @@ class CatalogContractTests(unittest.TestCase):
     def test_complete_catalog_contract(self) -> None:
         counts = contract.validate_catalog(ROOT)
         self.assertEqual(counts, {
-            "components": 7, "assemblies": 1, "systems": 1, "fluids": 2
+            "components": 10, "assemblies": 3, "systems": 1, "fluids": 2
         })
 
     def test_duplicate_registry_path_rejected(self) -> None:

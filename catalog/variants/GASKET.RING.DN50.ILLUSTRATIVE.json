@@ -6,7 +6,7 @@
   "revision": 1,
   "status": "illustrative",
   "parameters": {
-    "inner_diameter_mm": 54,
+    "inner_diameter_mm": 52,
     "outer_diameter_mm": 92,
     "thickness_mm": 3,
     "face_type": "RF"

@@ -42,7 +42,7 @@ class GeometryTests(unittest.TestCase):
         cls.parts=[read_json(ROOT/p) for p in reg["components"]]
 
     def test_every_variant_has_distinct_inspection_and_psp_lod(self):
-        self.assertEqual(len(self.parts),7)
+        self.assertEqual(len(self.parts),10)
         self.assertEqual(len(set(p["generator"]["name"] for p in self.parts)),6)
         for p in self.parts:
             detailed=build_mesh(p,"inspection")
@@ -105,7 +105,7 @@ class GeometryTests(unittest.TestCase):
             a=export_all(ROOT,path/"a")
             b=export_all(ROOT,path/"b")
             self.assertEqual(a,b)
-            self.assertEqual(a["component_count"],7)
+            self.assertEqual(a["component_count"],10)
             for rec in a["components"]:
                 self.assertFalse(rec["engineering_verified"])
                 ident=rec["id"]

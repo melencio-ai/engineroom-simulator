@@ -157,6 +157,102 @@
           ]
         }
       }
+    },
+    "fit_spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "flanges",
+        "pipes",
+        "gasket",
+        "fasteners",
+        "joint_axis",
+        "axial_tolerance_mm",
+        "minimum_thread_protrusion_mm",
+        "engineering_approved"
+      ],
+      "properties": {
+        "kind": {
+          "const": "flanged_pipe_joint"
+        },
+        "flanges": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "pipes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "gasket": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_axis": {
+          "$ref": "#/$defs/vec3"
+        },
+        "axial_tolerance_mm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "minimum_thread_protrusion_mm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "engineering_approved": {
+          "const": false
+        },
+        "fasteners": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hole_index",
+              "bolt",
+              "nut",
+              "near_washer",
+              "far_washer"
+            ],
+            "properties": {
+              "hole_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bolt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "nut": {
+                "type": "string",
+                "minLength": 1
+              },
+              "near_washer": {
+                "type": "string",
+                "minLength": 1
+              },
+              "far_washer": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

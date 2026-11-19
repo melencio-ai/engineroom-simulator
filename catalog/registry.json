@@ -4,17 +4,22 @@
   "components": [
     "catalog/variants/BOLT.HEX.ISO4014.M10X30.8_8.ZN.json",
     "catalog/variants/BOLT.HEX.ISO4014.M12X40.8_8.ZN.json",
+    "catalog/variants/BOLT.HEX.ISO4014.M16X60.8_8.ZN.json",
     "catalog/variants/FLANGE.WN.DN50.ILLUSTRATIVE.json",
     "catalog/variants/GASKET.RING.DN50.ILLUSTRATIVE.json",
     "catalog/variants/NUT.HEX.M12.ILLUSTRATIVE.json",
+    "catalog/variants/NUT.HEX.M16.ILLUSTRATIVE.json",
     "catalog/variants/PIPE.SPOOL.DN50.L800.ILLUSTRATIVE.json",
-    "catalog/variants/WASHER.FLAT.M12.ILLUSTRATIVE.json"
+    "catalog/variants/WASHER.FLAT.M12.ILLUSTRATIVE.json",
+    "catalog/variants/WASHER.FLAT.M16.ILLUSTRATIVE.json"
   ],
   "fluids": [
     "catalog/fluids/FLUID.LO.UNKNOWN.json",
     "catalog/fluids/FLUID.MGO.GRADE_UNASSIGNED.json"
   ],
   "assemblies": [
+    "catalog/assemblies/ASM.FASTENER.M16.CLAMPKIT.ILLUSTRATIVE.json",
+    "catalog/assemblies/ASM.LO.FLANGE.JOINT.DN50.ILLUSTRATIVE.json",
     "catalog/assemblies/ASM.LO.PUMP.SKID.DEMO.001.json"
   ],
   "systems": [

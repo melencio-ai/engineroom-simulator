@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0.0",
+  "id": "ASM.FASTENER.M16.CLAMPKIT.ILLUSTRATIVE",
+  "name": "Illustrative M16 bolt, two washers and nut inspection stack (clamped material omitted)",
+  "status": "illustrative",
+  "children": [
+    {
+      "instance_id": "bolt",
+      "component_id": "BOLT.HEX.ISO4014.M16X60.8_8.ZN",
+      "translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_head",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        0,
+        0,
+        -1.25
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_nut",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        0,
+        0,
+        -43.75
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "nut",
+      "component_id": "NUT.HEX.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        0,
+        0,
+        -51.5
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "thread_engagement",
+      "from": "bolt.male_thread",
+      "to": "nut.female_thread",
+      "kind": "thread"
+    }
+  ],
+  "exploded_steps": [
+    {
+      "step": 1,
+      "instance_id": "nut",
+      "translation_mm": [
+        0,
+        0,
+        -110
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 2,
+      "instance_id": "washer_nut",
+      "translation_mm": [
+        0,
+        0,
+        -80
+      ],
+      "prerequisites": [
+        "nut"
+      ]
+    },
+    {
+      "step": 3,
+      "instance_id": "bolt",
+      "translation_mm": [
+        0,
+        0,
+        85
+      ],
+      "prerequisites": [
+        "washer_nut"
+      ]
+    },
+    {
+      "step": 4,
+      "instance_id": "washer_head",
+      "translation_mm": [
+        0,
+        0,
+        45
+      ],
+      "prerequisites": [
+        "bolt"
+      ]
+    }
+  ],
+  "provenance": {
+    "verified": false,
+    "reference": null
+  }
+}

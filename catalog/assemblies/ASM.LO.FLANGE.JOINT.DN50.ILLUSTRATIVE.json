@@ -1,0 +1,655 @@
+{
+  "schema_version": "1.0.0",
+  "id": "ASM.LO.FLANGE.JOINT.DN50.ILLUSTRATIVE",
+  "name": "Illustrative DN50 twin weld-neck LO flange joint with four M16 bolt sets",
+  "status": "illustrative",
+  "children": [
+    {
+      "instance_id": "left_pipe",
+      "component_id": "PIPE.SPOOL.DN50.L800.ILLUSTRATIVE",
+      "translation_mm": [
+        -454.5,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": false
+    },
+    {
+      "instance_id": "left_flange",
+      "component_id": "FLANGE.WN.DN50.ILLUSTRATIVE",
+      "translation_mm": [
+        -1.5,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        180,
+        0
+      ],
+      "maintainable": false
+    },
+    {
+      "instance_id": "gasket",
+      "component_id": "GASKET.RING.DN50.ILLUSTRATIVE",
+      "translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "right_flange",
+      "component_id": "FLANGE.WN.DN50.ILLUSTRATIVE",
+      "translation_mm": [
+        1.5,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": false
+    },
+    {
+      "instance_id": "right_pipe",
+      "component_id": "PIPE.SPOOL.DN50.L800.ILLUSTRATIVE",
+      "translation_mm": [
+        454.5,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        0,
+        0
+      ],
+      "maintainable": false
+    },
+    {
+      "instance_id": "bolt_0",
+      "component_id": "BOLT.HEX.ISO4014.M16X60.8_8.ZN",
+      "translation_mm": [
+        -22,
+        62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        -90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "nut_0",
+      "component_id": "NUT.HEX.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        28.5,
+        62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_near_0",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        -20.75,
+        62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_far_0",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        20.75,
+        62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "bolt_1",
+      "component_id": "BOLT.HEX.ISO4014.M16X60.8_8.ZN",
+      "translation_mm": [
+        -22,
+        0,
+        62.5
+      ],
+      "rotation_deg": [
+        0,
+        -90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "nut_1",
+      "component_id": "NUT.HEX.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        28.5,
+        0,
+        62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_near_1",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        -20.75,
+        0,
+        62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_far_1",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        20.75,
+        0,
+        62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "bolt_2",
+      "component_id": "BOLT.HEX.ISO4014.M16X60.8_8.ZN",
+      "translation_mm": [
+        -22,
+        -62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        -90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "nut_2",
+      "component_id": "NUT.HEX.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        28.5,
+        -62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_near_2",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        -20.75,
+        -62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_far_2",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        20.75,
+        -62.5,
+        0
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "bolt_3",
+      "component_id": "BOLT.HEX.ISO4014.M16X60.8_8.ZN",
+      "translation_mm": [
+        -22,
+        0,
+        -62.5
+      ],
+      "rotation_deg": [
+        0,
+        -90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "nut_3",
+      "component_id": "NUT.HEX.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        28.5,
+        0,
+        -62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_near_3",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        -20.75,
+        0,
+        -62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    },
+    {
+      "instance_id": "washer_far_3",
+      "component_id": "WASHER.FLAT.M16.ILLUSTRATIVE",
+      "translation_mm": [
+        20.75,
+        0,
+        -62.5
+      ],
+      "rotation_deg": [
+        0,
+        90,
+        0
+      ],
+      "maintainable": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "weld_left",
+      "from": "left_pipe.outlet",
+      "to": "left_flange.weld_end",
+      "kind": "pipe_end"
+    },
+    {
+      "id": "seal_left",
+      "from": "left_flange.gasket_face",
+      "to": "gasket.face_a",
+      "kind": "flange"
+    },
+    {
+      "id": "seal_right",
+      "from": "gasket.face_b",
+      "to": "right_flange.gasket_face",
+      "kind": "flange"
+    },
+    {
+      "id": "weld_right",
+      "from": "right_flange.weld_end",
+      "to": "right_pipe.inlet",
+      "kind": "pipe_end"
+    },
+    {
+      "id": "thread_0",
+      "from": "bolt_0.male_thread",
+      "to": "nut_0.female_thread",
+      "kind": "thread"
+    },
+    {
+      "id": "thread_1",
+      "from": "bolt_1.male_thread",
+      "to": "nut_1.female_thread",
+      "kind": "thread"
+    },
+    {
+      "id": "thread_2",
+      "from": "bolt_2.male_thread",
+      "to": "nut_2.female_thread",
+      "kind": "thread"
+    },
+    {
+      "id": "thread_3",
+      "from": "bolt_3.male_thread",
+      "to": "nut_3.female_thread",
+      "kind": "thread"
+    }
+  ],
+  "exploded_steps": [
+    {
+      "step": 1,
+      "instance_id": "nut_0",
+      "translation_mm": [
+        120,
+        0,
+        0
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 2,
+      "instance_id": "nut_1",
+      "translation_mm": [
+        120,
+        0,
+        0
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 3,
+      "instance_id": "nut_2",
+      "translation_mm": [
+        120,
+        0,
+        0
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 4,
+      "instance_id": "nut_3",
+      "translation_mm": [
+        120,
+        0,
+        0
+      ],
+      "prerequisites": []
+    },
+    {
+      "step": 5,
+      "instance_id": "washer_far_0",
+      "translation_mm": [
+        90,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "nut_0"
+      ]
+    },
+    {
+      "step": 6,
+      "instance_id": "washer_far_1",
+      "translation_mm": [
+        90,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "nut_1"
+      ]
+    },
+    {
+      "step": 7,
+      "instance_id": "washer_far_2",
+      "translation_mm": [
+        90,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "nut_2"
+      ]
+    },
+    {
+      "step": 8,
+      "instance_id": "washer_far_3",
+      "translation_mm": [
+        90,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "nut_3"
+      ]
+    },
+    {
+      "step": 9,
+      "instance_id": "bolt_0",
+      "translation_mm": [
+        -160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "washer_far_0"
+      ]
+    },
+    {
+      "step": 10,
+      "instance_id": "bolt_1",
+      "translation_mm": [
+        -160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "washer_far_1"
+      ]
+    },
+    {
+      "step": 11,
+      "instance_id": "bolt_2",
+      "translation_mm": [
+        -160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "washer_far_2"
+      ]
+    },
+    {
+      "step": 12,
+      "instance_id": "bolt_3",
+      "translation_mm": [
+        -160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "washer_far_3"
+      ]
+    },
+    {
+      "step": 13,
+      "instance_id": "washer_near_0",
+      "translation_mm": [
+        -100,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_0"
+      ]
+    },
+    {
+      "step": 14,
+      "instance_id": "washer_near_1",
+      "translation_mm": [
+        -100,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_1"
+      ]
+    },
+    {
+      "step": 15,
+      "instance_id": "washer_near_2",
+      "translation_mm": [
+        -100,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_2"
+      ]
+    },
+    {
+      "step": 16,
+      "instance_id": "washer_near_3",
+      "translation_mm": [
+        -100,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_3"
+      ]
+    },
+    {
+      "step": 17,
+      "instance_id": "right_pipe",
+      "translation_mm": [
+        160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_0",
+        "bolt_1",
+        "bolt_2",
+        "bolt_3"
+      ]
+    },
+    {
+      "step": 18,
+      "instance_id": "right_flange",
+      "translation_mm": [
+        160,
+        0,
+        0
+      ],
+      "prerequisites": [
+        "bolt_0",
+        "bolt_1",
+        "bolt_2",
+        "bolt_3"
+      ]
+    },
+    {
+      "step": 19,
+      "instance_id": "gasket",
+      "translation_mm": [
+        0,
+        110,
+        0
+      ],
+      "prerequisites": [
+        "right_flange"
+      ]
+    }
+  ],
+  "fit_spec": {
+    "kind": "flanged_pipe_joint",
+    "flanges": [
+      "left_flange",
+      "right_flange"
+    ],
+    "pipes": [
+      "left_pipe",
+      "right_pipe"
+    ],
+    "gasket": "gasket",
+    "fasteners": [
+      {
+        "hole_index": 0,
+        "bolt": "bolt_0",
+        "nut": "nut_0",
+        "near_washer": "washer_near_0",
+        "far_washer": "washer_far_0"
+      },
+      {
+        "hole_index": 1,
+        "bolt": "bolt_1",
+        "nut": "nut_1",
+        "near_washer": "washer_near_1",
+        "far_washer": "washer_far_1"
+      },
+      {
+        "hole_index": 2,
+        "bolt": "bolt_2",
+        "nut": "nut_2",
+        "near_washer": "washer_near_2",
+        "far_washer": "washer_far_2"
+      },
+      {
+        "hole_index": 3,
+        "bolt": "bolt_3",
+        "nut": "nut_3",
+        "near_washer": "washer_near_3",
+        "far_washer": "washer_far_3"
+      }
+    ],
+    "joint_axis": [
+      1,
+      0,
+      0
+    ],
+    "axial_tolerance_mm": 0.1,
+    "minimum_thread_protrusion_mm": 2,
+    "engineering_approved": false
+  },
+  "provenance": {
+    "verified": false,
+    "reference": null
+  }
+}

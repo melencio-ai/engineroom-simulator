@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0.0",
+  "id": "NUT.HEX.M16.ILLUSTRATIVE",
+  "family": "fastener.hex_nut",
+  "name": "Illustrative M16 hexagonal nut with internal thread",
+  "revision": 1,
+  "status": "illustrative",
+  "parameters": {
+    "nominal_diameter_mm": 16,
+    "thread_pitch_mm": 2,
+    "nut_thickness_mm": 13,
+    "across_flats_mm": 24,
+    "bore_diameter_mm": 16.7,
+    "thread_depth_mm": 0.35
+  },
+  "material": {
+    "base_material": "carbon_steel",
+    "grade": null,
+    "grade_standard": null
+  },
+  "coating_id": "COAT.NONE",
+  "insulation_id": null,
+  "standards": [],
+  "ports": [
+    {
+      "id": "female_thread",
+      "kind": "thread",
+      "interface": "METRIC:M16x2:internal",
+      "position_mm": [
+        0,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "service": null
+    }
+  ],
+  "generator": {
+    "name": "hex_nut",
+    "version": "0.2.0",
+    "implementation_status": "available"
+  },
+  "lod_policy": {
+    "master": "parametric_cad",
+    "inspection": "detailed_glb",
+    "psp_near": "low_mesh",
+    "psp_far": "omit"
+  },
+  "provenance": {
+    "source_type": "illustrative",
+    "verified": false,
+    "source_id": null,
+    "reviewer": null,
+    "field_sources": []
+  }
+}

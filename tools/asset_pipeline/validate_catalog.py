@@ -218,6 +218,10 @@ def validate_assembly(asm: dict, ctx: dict) -> None:
                     f"{ident}: exploded prerequisites must exist and precede the step")
     require(asm["status"] == "illustrative" or asm["provenance"]["verified"],
             f"{ident}: non-illustrative assembly must have verified reference")
+    # G2b checks spatial mating positions, shaft engagement and joint fit.
+    # The G1 placeholder assembly intentionally remains unresolved/draft.
+    from assembly_builder import validate_mated_assembly
+    validate_mated_assembly(asm, ctx["components"])
 
 
 def validate_system(sys: dict, ctx: dict) -> None:
