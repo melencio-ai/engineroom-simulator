@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "source_hierarchy": [
+    "approved_vessel_drawings",
+    "oem_certified_outline_or_datasheet",
+    "class_or_statutory",
+    "licensed_standard_table",
+    "permitted_crosschecked_measurement",
+    "illustrative"
+  ],
+  "accepted_status": [
+    "illustrative",
+    "catalog_documented",
+    "project_approved",
+    "simulation_calibrated"
+  ],
+  "rules": {
+    "illustrative": "No numeric dimension may be described as standards-verified; display provisional",
+    "catalog_documented": "Field values traced to a licensed standard or official manufacturer specification and edition",
+    "project_approved": "Versioned vessel/OEM reference and reviewer approval required",
+    "simulation_calibrated": "Project-approved basis plus model-specific calibrated behavioral evidence"
+  }
+}
