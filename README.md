@@ -6,6 +6,12 @@ This is a first-person, multi-deck PSP/PPSSPP marine engine-room simulator in C+
 
 The game is a *fictional merchant cargo ship composite*. The geometry and process simulation are representative; it is not approved naval-architecture documentation or shipboard operating guidance.
 
+## v0.7.1 — Screenshot geometry cleanup (feature branch)
+
+The follow-up screenshot review addresses ECR upper side-wall gaps, missing access-bridge rails, open machinery-well transverse railings, the deck grating/solid-plate overlay, dark overhead steel, and the unsupported HUD question-mark separator. The PSP scene remains low-poly with the same 33 reusable component families. See the **[v0.7.1 engineering and QA checklist](docs/v0.7.1-screenshot-geometry.md)**. This work is not yet merged into main.
+
+A separate v0.7.1 PPSSPP installer is at `tools/install-v0.7.1-ppsspp.ps1`, used with the `engine-watch-psp-v0.7.1-screenshot-cleanup` Actions artifact ZIP.
+
 ## v0.7 — Pump Flat and navigation
 
 This update builds **on top of v0.6**. It adds segmented, collision-checked walking, a dedicated stair headroom test, more complete low-poly pump/motor assemblies and a visually connected overhead LO discharge manifold made from the existing reusable marine 3D component library. During Mission 001 the HUD now distinguishes MAIN STARTING, MAIN RUNNING/pressure build and returning to ECR. Mission 002 and the existing 33 component archetypes remain.
