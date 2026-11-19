@@ -181,7 +181,7 @@ void Game3D::updateChaseCamera(float dt) {
     const float dx=-cs*back-sn*side;
     const float dz=-sn*back+cs*side;
     float safe=0.0f;
-    const int segments=36;
+    const int segments=20; // budgeted for PPSSPP/mobile CPU
     for(int i=1;i<=segments;++i) {
         const float t=static_cast<float>(i)/segments;
         const float x=camera_.x+dx*t,z=camera_.z+dz*t;
