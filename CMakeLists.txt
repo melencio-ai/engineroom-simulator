@@ -13,6 +13,7 @@ add_library(enginewatch_scene STATIC
     src/scene/MarineParts.cpp
     src/scene/World3D.cpp
     src/scene/Game3D.cpp
+    src/scene/PlayerCharacter.cpp
     src/scene/FontAtlas.cpp
 )
 target_include_directories(enginewatch_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -37,7 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH G3 PREVIEW"
+            TITLE "ENGINE WATCH G3.5 PLAYER"
             VERSION 01.00
         )
     endif()
@@ -90,6 +91,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_deck_tests tests/DeckLayoutTests.cpp)
     target_link_libraries(enginewatch_deck_tests PRIVATE enginewatch_scene)
     add_test(NAME constructed_deck_geometry_and_collision COMMAND enginewatch_deck_tests)
+
+    add_executable(enginewatch_player_tests tests/PlayerCharacterTests.cpp)
+    target_link_libraries(enginewatch_player_tests PRIVATE enginewatch_scene)
+    add_test(NAME marine_engineer_character_and_camera COMMAND enginewatch_player_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)
