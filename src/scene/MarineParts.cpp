@@ -164,8 +164,11 @@ void buildOne(MarinePartId id,std::vector<Vertex3D>& vertices) {
         b.checker();
         break;
     case OpenSteelGrating:
-        for(int i=0;i<11;++i)
-            b.box(-0.47f+i*0.094f,0,0,0.018f,0.03f,0.49f,0.93f);
+        // Thirteen load-bearing visual bars per modular bay. A modestly
+        // denser grate avoids sparse floating-looking rails once scaled to
+        // fit a 2.275 m catwalk bay; retain PSP-friendly low-poly solids.
+        for(int i=0;i<13;++i)
+            b.box(-0.47f+i*(0.94f/12.0f),0,0,0.013f,0.03f,0.49f,0.93f);
         for(int j=0;j<5;++j)
             b.box(0,-0.01f,-0.44f+j*0.22f,0.49f,0.022f,0.015f,1.14f);
         break;
