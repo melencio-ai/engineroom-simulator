@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(engine_watch VERSION 0.6 LANGUAGES C CXX)
+project(engine_watch VERSION 0.7 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,7 +36,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH 3D v0.6"
+            TITLE "ENGINE WATCH 3D v0.7"
             VERSION 01.00
         )
     endif()
