@@ -90,15 +90,31 @@ public:
         glFrustum(-right,right,-top,top,nearPlane,60.0);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        const enginewatch::Vec3& p=game.camera();
-        glRotatef(-game.pitch()*180.0f/3.141592653589793f,1,0,0);
-        glRotatef(90.0f+game.yaw()*180.0f/3.141592653589793f,0,1,0);
-        glTranslatef(-p.x,-p.y,-p.z);
+        const enginewatch::CameraView3D view=game.renderCamera();
+        const float dx=view.target.x-view.eye.x;
+        const float dy=view.target.y-view.eye.y;
+        const float dz=view.target.z-view.eye.z;
+        const float view_yaw=std::atan2(dz,dx);
+        const float view_pitch=std::atan2(dy,std::sqrt(dx*dx+dz*dz));
+        glRotatef(-view_pitch*180.0f/3.141592653589793f,1,0,0);
+        glRotatef(90.0f+view_yaw*180.0f/3.141592653589793f,0,1,0);
+        glTranslatef(-view.eye.x,-view.eye.y,-view.eye.z);
         glBegin(GL_TRIANGLES);
         const std::vector<enginewatch::Vertex3D>& mesh=world.vertices();
         for(std::size_t i=0;i<mesh.size();++i) {
             color(mesh[i].color);
             glVertex3f(mesh[i].x,mesh[i].y,mesh[i].z);
+        }
+        glEnd();
+
+        // Same dynamic animated body/hands used by PSP; not baked into the
+        // static World3D scene or its validated PSP vertex budget.
+        game.buildCharacterGeometry(view,character_vertices_);
+        glBegin(GL_TRIANGLES);
+        for(std::size_t i=0;i<character_vertices_.size();++i) {
+            color(character_vertices_[i].color);
+            glVertex3f(character_vertices_[i].x,character_vertices_[i].y,
+                       character_vertices_[i].z);
         }
         glEnd();
 
@@ -138,6 +154,7 @@ public:
     }
 private:
     GLuint font_=0;
+    std::vector<enginewatch::Vertex3D> character_vertices_;
 };
 }
 
@@ -149,7 +166,7 @@ int main(int,char**) {
     }
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,24);
-    SDL_Window* window=SDL_CreateWindow("Engine Watch G3 Preview",SDL_WINDOWPOS_CENTERED,
+    SDL_Window* window=SDL_CreateWindow("Engine Watch G3.5 Marine Engineer",SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,960,544,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(!window) { std::fprintf(stderr,"%s\n",SDL_GetError());SDL_Quit();return 1; }
     SDL_GLContext ctx=SDL_GL_CreateContext(window);
@@ -174,6 +191,7 @@ int main(int,char**) {
                 if(key==SDLK_c||key==SDLK_ESCAPE||key==SDLK_BACKSPACE) in.back=true;
                 if(key==SDLK_h||key==SDLK_F1) in.help=true;
                 if(key==SDLK_p||key==SDLK_TAB) in.pause=true;
+                if(key==SDLK_v) in.toggle_view=true;
                 if(key==SDLK_UP) in.up=true;
                 if(key==SDLK_DOWN) in.down=true;
             }
@@ -182,6 +200,7 @@ int main(int,char**) {
                 if(event.cbutton.button==SDL_CONTROLLER_BUTTON_B) in.back=true;
                 if(event.cbutton.button==SDL_CONTROLLER_BUTTON_Y) in.help=true;
                 if(event.cbutton.button==SDL_CONTROLLER_BUTTON_START) in.pause=true;
+                if(event.cbutton.button==SDL_CONTROLLER_BUTTON_BACK) in.toggle_view=true;
                 if(event.cbutton.button==SDL_CONTROLLER_BUTTON_DPAD_UP) in.up=true;
                 if(event.cbutton.button==SDL_CONTROLLER_BUTTON_DPAD_DOWN) in.down=true;
             }
