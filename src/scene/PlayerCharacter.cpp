@@ -153,6 +153,41 @@ struct MeshBuilder {
                         center.z+radius.z*.82f*std::sin(a)},shade(color,.80f));
         }
     }
+    void beam(const Vec3& a,const Vec3& b,float halfA,float halfB,
+              uint32_t color) {
+        // Two-bone arm segment with a true 3D axis. Cheaper than skinning,
+        // but it can reach a real socket that is above/below or beside
+        // the character rather than moving only in the shoulder XY plane.
+        Vec3 v=minus(b,a);
+        const float len=std::sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
+        if(len<0.005f) return;
+        v=Vec3{v.x/len,v.y/len,v.z/len};
+        const Vec3 reference=std::fabs(v.y)<0.86f?
+                             Vec3{0,1,0}:Vec3{0,0,1};
+        Vec3 side=Vec3{v.y*reference.z-v.z*reference.y,
+                       v.z*reference.x-v.x*reference.z,
+                       v.x*reference.y-v.y*reference.x};
+        const float sl=std::sqrt(side.x*side.x+side.y*side.y+side.z*side.z);
+        side=Vec3{side.x/sl,side.y/sl,side.z/sl};
+        const Vec3 other{v.y*side.z-v.z*side.y,
+                         v.z*side.x-v.x*side.z,
+                         v.x*side.y-v.y*side.x};
+        const auto pt=[&](const Vec3& center,float sa,float sb) -> Vec3 {
+            return Vec3{center.x+side.x*halfA*sa+other.x*halfB*sb,
+                        center.y+side.y*halfA*sa+other.y*halfB*sb,
+                        center.z+side.z*halfA*sa+other.z*halfB*sb};
+        };
+        const Vec3 p[8]={
+            pt(a,-1,-1),pt(a,1,-1),pt(a,1,1),pt(a,-1,1),
+            pt(b,-1,-1),pt(b,1,-1),pt(b,1,1),pt(b,-1,1)
+        };
+        face(p[0],p[4],p[5],p[1],shade(color,.83f));
+        face(p[1],p[5],p[6],p[2],shade(color,1.16f));
+        face(p[2],p[6],p[7],p[3],shade(color,1.04f));
+        face(p[3],p[7],p[4],p[0],shade(color,.75f));
+        face(p[0],p[1],p[2],p[3],shade(color,.67f));
+        face(p[5],p[4],p[7],p[6],shade(color,1.20f));
+    }
     void hingedBox(const Vec3& center,const Vec3& half,
                    const Vec3& joint,float radians,uint32_t color) {
         box(hinge(center,joint,radians),half,radians,color);
@@ -205,15 +240,18 @@ void CharacterAnimator::advance(float dt,float distance,bool climbing) {
         if(action_elapsed_>=duration) {
             pose_.action=CharacterIdle;
             pose_.action_progress=0;
+            pose_.has_target=false;
             action_elapsed_=0;
         }
     }
 }
 
-void CharacterAnimator::trigger(CharacterAction action) {
+void CharacterAnimator::trigger(CharacterAction action,const Vec3* target) {
     if(action==CharacterIdle) return;
     pose_.action=action;
     pose_.action_progress=0.0f;
+    pose_.has_target=target!=nullptr;
+    if(target) pose_.target_world=*target;
     action_elapsed_=0;
 }
 
@@ -263,6 +301,64 @@ void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
 
         const float shoulder_z=side*0.281f;
         const Vec3 shoulder{0,1.387f,shoulder_z};
+        if(side>0 && pose.has_target &&
+           pose.action==CharacterPressControl) {
+            // Analytic two-link right arm. World socket -> model local
+            // coordinates, then elbow triangle solution (0.34m + 0.36m).
+            // At peak extension the glove fingertip reaches the socket
+            // without adding high-poly IK bones or altering the PSP renderer.
+            const float cs=std::cos(yaw),sn=std::sin(yaw);
+            const float wx=pose.target_world.x-feet.x;
+            const float wz=pose.target_world.z-feet.z;
+            const Vec3 goal{
+                wx*cs+wz*sn,
+                pose.target_world.y-feet.y,
+                -wx*sn+wz*cs
+            };
+            const Vec3 still{0.095f,0.93f,shoulder_z};
+            const float strength=reach_amount;
+            const Vec3 fingertip{
+                still.x+(goal.x-still.x)*strength,
+                still.y+(goal.y-still.y)*strength,
+                still.z+(goal.z-still.z)*strength
+            };
+            Vec3 dir=minus(fingertip,shoulder);
+            const float reachDist=std::sqrt(
+                dir.x*dir.x+dir.y*dir.y+dir.z*dir.z);
+            const float distance=clampf(reachDist,0.16f,0.69f);
+            if(reachDist>0.0001f)
+                dir=Vec3{dir.x/reachDist,dir.y/reachDist,dir.z/reachDist};
+            else dir=Vec3{1,0,0};
+            // Move the palm back about 7cm from the button face; the short
+            // end glove section finishes at the exact contact location.
+            const Vec3 palm{
+                shoulder.x+dir.x*(distance-0.055f),
+                shoulder.y+dir.y*(distance-0.055f),
+                shoulder.z+dir.z*(distance-0.055f)
+            };
+            const float upper=0.355f,lower=0.355f;
+            const float axial=(distance*distance+upper*upper-lower*lower)/
+                               (2.0f*distance);
+            const float bend=std::sqrt(std::max(0.0f,upper*upper-axial*axial));
+            // Downward elbow preference, projected perpendicular to reach.
+            Vec3 bendDir{
+                -dir.x*dir.y,1.0f-dir.y*dir.y,-dir.z*dir.y
+            };
+            const float bendLength=std::sqrt(bendDir.x*bendDir.x+
+                bendDir.y*bendDir.y+bendDir.z*bendDir.z);
+            if(bendLength<0.05f)bendDir=Vec3{-dir.z,0,dir.x};
+            else bendDir=Vec3{bendDir.x/bendLength,
+                              bendDir.y/bendLength,bendDir.z/bendLength};
+            const Vec3 elbow{
+                shoulder.x+dir.x*axial-bendDir.x*bend,
+                shoulder.y+dir.y*axial-bendDir.y*bend,
+                shoulder.z+dir.z*axial-bendDir.z*bend
+            };
+            b.beam(shoulder,elbow,0.098f,0.088f,SUIT);
+            b.beam(elbow,palm,0.085f,0.078f,SUIT_SHADOW);
+            b.beam(palm,fingertip,0.065f,0.057f,GLOVE);
+            continue;
+        }
         float arm_swing=-leg_swing*0.79f;
         if(pose.climbing)
             arm_swing=0.66f+0.23f*(side<0?cycle:-cycle);
@@ -307,9 +403,28 @@ void PlayerCharacter::buildFirstPersonHands(const Vec3& eye,float yaw,float pitc
         const float climb=pose.climbing?
                           0.075f+0.070f*(side<0?w:-w):0.0f;
         const float active=(side>0?reach_amount:0.0f);
-        const float xx=0.03f*std::fabs(sway)+active*0.25f;
-        const float yy=-0.265f+climb+active*0.155f+sway;
-        const float zz=sidef*(0.305f-0.095f*active);
+        float xx=0.03f*std::fabs(sway)+active*0.25f;
+        float yy=-0.265f+climb+active*0.155f+sway;
+        float zz=sidef*(0.305f-0.095f*active);
+        if(side>0 && pose.has_target &&
+           pose.action==CharacterPressControl) {
+            // Project the same contact socket into the first-person
+            // camera basis. Our hand/palm/individual fingers translate
+            // together, so the fingertip coincides at peak reach.
+            const float cs=std::cos(yaw),sn=std::sin(yaw);
+            const float cp=std::cos(pitch),sp=std::sin(pitch);
+            const Vec3 v=minus(pose.target_world,eye);
+            const float tx=(v.x*cs+v.z*sn)*cp+v.y*sp;
+            const float ty=v.y*cp-(v.x*cs+v.z*sn)*sp;
+            const float tz=-v.x*sn+v.z*cs;
+            if(tx>0.34f && tx<1.80f) {
+                // Center fingertip ends near x=1.07f and palm y~yy.
+                // Limit translation to the safe PSP near-plane region.
+                xx+=(tx-(1.075f+xx))*active;
+                yy+=(ty-(yy+0.006f))*active;
+                zz+=(tz-zz)*active;
+            }
+        }
 
         // Narrow rolled sleeves are diagonally offset and smaller than the
         // original oversized rectangular blocks; reflective wrist cuff is
