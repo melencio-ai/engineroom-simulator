@@ -239,7 +239,7 @@ jobs:
           root=pathlib.Path("assets/generated")
           profile=json.load(open(root/"manifest.json"))
           source=json.load(open("build/humanoid/source_provenance.json"))
-          assert 650<=profile["psp_triangles"]<=900
+          assert 700<=profile["psp_triangles"]<=1000
           assert profile["original_triangles"]>profile["psp_triangles"]
           assert profile["psp_vertices_per_frame"]<=3000
           assert source["rig_count"]>=1
@@ -248,7 +248,16 @@ jobs:
           assert profile["stable_triangle_correspondence"]
           assert profile["root_motion_source"]=="original Hips bone"
           assert len(profile["mesh_lod_allocation"])==source["mesh_count"]
-          assert sum(x["result_triangles"] for x in profile["mesh_lod_allocation"])==profile["psp_triangles"]
+          assert sum(x["result_triangles"] for x in profile["mesh_lod_allocation"])+40==profile["psp_triangles"]
+          assert profile["safety_helmet_triangles"]==40
+          assert profile["semantic_face_regions"].get("helmet")==40
+          assert profile["semantic_face_regions"].get("boot",0)>=30
+          assert profile["semantic_face_regions"].get("coverall",0)>=250
+          allocations={m["name"]:m["result_triangles"] for m in profile["mesh_lod_allocation"]}
+          assert allocations["Worker_Body"]>=360
+          assert allocations["Worker_Legs"]>=145
+          assert allocations["Worker_Head"]>=150
+          assert allocations["Worker_Feet"]>=55
           report=json.load(open(root/"validation.json"))
           assert report["degenerate_triangle_ratio"]<0.025
           assert report["largest_adjacent_frame_vertex_step_m"]<0.87
