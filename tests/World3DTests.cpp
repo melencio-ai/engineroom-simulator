@@ -405,7 +405,13 @@ static void gameplayChecks(const World3D& world) {
     use_panel.interact=true;
     step(game,use_panel); // Open.
     assert(game.hud().panel_visible);
-    step(game,use_panel); // Selected MAIN PUMP -> STARTING.
+    step(game,use_panel); // Selected MAIN PUMP -> reaches real front button.
+    assert(!game.simulation().state().main_pump.requested);
+    assert(game.characterPose().action==CharacterPressControl);
+    assert(game.characterPose().has_target);
+    assert(std::strstr(game.hud().prompt,"REACHING BUTTON"));
+    // Contact occurs at ~0.32s; the LO process model changes state then.
+    step(game,Input3D{},7);
     assert(game.simulation().state().main_pump.requested);
     step(game,Input3D{},16);
     assert(game.simulation().state().main_pump.running);
