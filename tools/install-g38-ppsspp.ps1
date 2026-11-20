@@ -8,7 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$artifactPattern = 'engine-watch-psp-g38-humanoid-quality-preview*.zip'
+$artifactPattern = 'engine-watch-psp-g38-grounded-engineer-preview*.zip'
 
 if (Get-Process -Name 'PPSSPPWindows64','PPSSPPWindows' -ErrorAction SilentlyContinue) {
     throw 'Close PPSSPP completely before replacing EBOOT.PBP.'
