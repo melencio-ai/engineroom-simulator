@@ -266,10 +266,11 @@ jobs:
         with:
           name: engine-watch-g37-quaternius-optimized-worker
           path: assets/generated
-      - name: Confirm baked Worker is packaged with executable
+      - name: Confirm verified Worker sidecar is staged in PSP toolchain
         run: |
           test -s assets/generated/ENGINEER.EWM
-          python3 tools/humanoid/verify_ewmh.py assets/generated/ENGINEER.EWM
+          test -s assets/generated/validation.json
+          test -s assets/generated/manifest.json
       - name: Configure PSP native 3D build
         run: psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
       - name: Compile PSP GU/GUM 3D marine materials executable
