@@ -87,9 +87,13 @@ private:
     bool chase_constrained_=false;
     bool chase_shifted_=false;
     int chase_candidate_=-1;
+    // One in-flight local-panel command. Its actual LO simulation update
+    // occurs once when the right glove reaches the physical button.
+    bool pending_pump_=false;
+    int pending_pump_selection_=-1;
 
     void use();
-    void operate();
+    void operate(int selected);
     void move(float dt,float forward,float strafe,float turn,float look);
     void updateChaseCamera(float dt);
 };
