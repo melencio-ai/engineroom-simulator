@@ -207,6 +207,79 @@ def base_color(material, mesh, polygon, triangle):
     return rgba_to_abgr(*factor)
 
 
+# A coherent, non-UV-dependent shipboard workwear palette. The old
+# atlas-centroid sampling made heavily decimated triangles alternate between
+# unrelated dark and white texture islands, which looked like torn limbs.
+# Use real imported mesh/skin-bone semantics to paint a recognizable outfit.
+MARINE_COLORS = {
+    "coverall": (221, 104, 38),      # high-visibility orange boiler suit
+    "dark_suit": (37, 55, 70),       # industrial blue/navy side panels
+    "reflective": (202, 220, 215),
+    "skin": (183, 136, 100),
+    "helmet": (230, 184, 49),      # visually identifiable hard hat
+    "glove": (53, 67, 70),
+    "boot": (32, 39, 43),
+    "hair": (45, 40, 37),
+}
+REGION_WORDS = {
+    "helmet": ("hardhat", "helmet", "safetyhat", "cap"),
+    "glove": ("glove",),
+    "boot": ("boot", "shoe"),
+    "hair": ("hair", "beard"),
+    "skin": ("face", "eyebrow", "nose", "neck", "ear"),
+}
+
+
+def semantic_region(obj, evaluated_mesh, tri, material):
+    names = (obj.name + " " + (material.name if material else "")).lower()
+    for region, keys in REGION_WORDS.items():
+        if any(k in names for k in keys):
+            return region
+    group_scores = {"skin": 0.0, "glove": 0.0, "boot": 0.0,
+                    "coverall": 0.0}
+    for vertex_index in tri.vertices:
+        vertex = evaluated_mesh.vertices[vertex_index]
+        for binding in vertex.groups:
+            if binding.group >= len(obj.vertex_groups):
+                continue
+            name = obj.vertex_groups[binding.group].name.lower()
+            weight = binding.weight
+            if any(k in name for k in ("finger", "thumb", "hand", "wrist")):
+                group_scores["glove"] += weight
+            elif any(k in name for k in ("foot", "toe", "ankle")):
+                group_scores["boot"] += weight
+            elif any(k in name for k in ("head", "neck", "jaw")):
+                group_scores["skin"] += weight
+            else:
+                group_scores["coverall"] += weight
+    if group_scores["glove"] > group_scores["coverall"] * .85 and group_scores["glove"] > .03:
+        return "glove"
+    if group_scores["boot"] > group_scores["coverall"] * .80 and group_scores["boot"] > .03:
+        return "boot"
+    if group_scores["skin"] > group_scores["coverall"] * .70 and group_scores["skin"] > .03:
+        return "skin"
+    if "body" in names or "worker" in names or "clothes" in names:
+        return "coverall"
+    return max(group_scores, key=group_scores.get)
+
+
+def workwear_color(region, tri, material, obj, mesh):
+    rgb = MARINE_COLORS[region]
+    # Flat lighting is a visual-only baked material (PSP disables dynamic
+    # lights). A modest top/front facet shade gives readable anatomy.
+    n = tri.normal
+    factor = max(.74, min(1.20, .89 + .17 * n.z + .07 * n.x))
+    # Preserve facial detail without recreating noisy atlas seams.
+    if region == "skin" and material is not None:
+        source = base_color(material, mesh,
+                            mesh.polygons[tri.polygon_index], tri)
+        sr, sg, sb = source & 255, (source >> 8) & 255, (source >> 16) & 255
+        # Only keep original dark eyes/lashes on very dark atlas texels.
+        if max(sr, sg, sb) < 65:
+            rgb = (74, 54, 45)
+    return rgba_to_abgr(*[min(255, c * factor)/255 for c in rgb])
+
+
 def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     for rig in rigs:
         rig.animation_data_create()
@@ -218,6 +291,8 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     dg.update()
     vertices = []
     color_out = []
+    topology = []
+    regions = {}
     for obj in meshes:
         evaluated = obj.evaluated_get(dg)
         evaluated_mesh = evaluated.to_mesh(
@@ -225,21 +300,37 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
         if evaluated_mesh is None:
             raise ValueError(f"Cannot evaluate skinned mesh {obj.name}")
         evaluated_mesh.calc_loop_triangles()
-        mats = [s.material for s in obj.material_slots]
+        mats = [slot.material for slot in obj.material_slots]
         for tri in evaluated_mesh.loop_triangles:
             polygon = evaluated_mesh.polygons[tri.polygon_index]
             material = (mats[polygon.material_index]
                         if polygon.material_index < len(mats) else None)
-            abgr = (base_color(material, evaluated_mesh, polygon, tri)
-                    if palette is None else palette[len(color_out)])
+            if palette is None:
+                region = semantic_region(obj, evaluated_mesh, tri, material)
+                regions[region] = regions.get(region, 0) + 1
+                abgr = workwear_color(region, tri, material, obj, evaluated_mesh)
+            else:
+                abgr = palette[len(color_out)]
+            topology.append((obj.name, tuple(tri.vertices)))
             for vertex_index in tri.vertices:
                 p = evaluated.matrix_world @ evaluated_mesh.vertices[vertex_index].co
-                # glTF forward (-Y after Blender import) -> game forward +X;
-                # Blender vertical Z -> game vertical Y; Blender X -> game Z.
+                # Blender +Z vertical / -Y forward -> Engine Watch +Y up / +X forward.
                 vertices.append((-p.y, p.z, p.x))
                 color_out.append(abgr)
         evaluated.to_mesh_clear()
-    return vertices, color_out
+    # Root motion belongs to the actual C++ walk controller. Use the skinned
+    # hips bone, rather than re-centering every frame from animated arm/leg
+    # bounding boxes (which previously made the whole body appear jittery).
+    root_world = None
+    for rig in rigs:
+        hips = next((p for p in rig.pose.bones
+                     if "hip" in p.name.lower() or "pelvis" in p.name.lower()),
+                    None)
+        if hips:
+            root_world = rig.matrix_world @ hips.matrix.translation
+            break
+    root = (-root_world.y, root_world.z, root_world.x) if root_world else None
+    return vertices, color_out, tuple(topology), root, regions
 
 
 def bake(args):
@@ -262,16 +353,28 @@ def bake(args):
     clips = [("idle", 6), ("walk", 12), ("interact", 8)]
     poses = []
     colors = None
+    reference_topology = None
+    roots = []
+    region_histogram = {}
     for name, frames in clips:
         action = find_action(name)
         for i in range(frames):
-            verts, new_colors = sample_scene(
+            verts, new_colors, topology, root, regions = sample_scene(
                 bpy.context.scene, rigs, meshes, action,
                 i / float(frames), colors)
             if colors is None:
                 colors = new_colors
+                region_histogram = regions
+                reference_topology = topology
             if len(verts) != final_tris * 3:
-                raise ValueError("Animated topology changed between samples")
+                raise ValueError("Animated vertex count changed between samples")
+            if topology != reference_topology:
+                raise ValueError(
+                    "Imported skeleton topology/triangle order changes between "
+                    "frames; cannot safely interpolate PSP vertex streams")
+            if root is None:
+                raise ValueError("No stable Hips/Pelvis bone found for root-motion removal")
+            roots.append(root)
             poses.append(verts)
     if not poses:
         raise ValueError("No actual source rig animations evaluated")
@@ -291,13 +394,14 @@ def bake(args):
         fp.write(struct.pack("<4sIIIIIff", b"EWHM", 1, frame_size,
                              clips[0][1], clips[1][1], clips[2][1],
                              1.82, 12.0))
-        for pose in poses:
-            avg_x = (min(p[0] for p in pose) + max(p[0] for p in pose)) / 2
-            avg_z = (min(p[2] for p in pose) + max(p[2] for p in pose)) / 2
+        for pose, root in zip(poses, roots):
+            # Ground foot contact per sample; correct an imported clip's
+            # vertical root bounce without moving the game player.
+            sample_floor = min(p[1] for p in pose)
             for index, pos in enumerate(pose):
-                x = (pos[0] - avg_x) * scale
-                y = (pos[1] - floor) * scale
-                z = (pos[2] - avg_z) * scale
+                x = (pos[0] - root[0]) * scale
+                y = (pos[1] - sample_floor) * scale
+                z = (pos[2] - root[2]) * scale
                 if not all(math.isfinite(q) for q in (x, y, z)):
                     raise ValueError("Non-finite Blender skinned vertex")
                 fp.write(struct.pack("<Ifff", colors[index], x, y, z))
@@ -312,6 +416,11 @@ def bake(args):
         "source_master_is_not_stored_in_repository": True,
         "original_triangles": original,
         "mesh_lod_allocation": lod_report,
+        "semantic_face_regions": region_histogram,
+        "stable_triangle_correspondence": True,
+        "root_motion_source": "original Hips bone",
+        "foot_floor_alignment": "per baked frame",
+        "material_palette": "marine high-vis orange boiler suit, yellow helmet, gloves, boots",
         "psp_triangles": final_tris,
         "psp_vertices_per_frame": frame_size,
         "frames": {name: n for name, n in clips},
