@@ -15,6 +15,7 @@ add_library(enginewatch_scene STATIC
     src/scene/Game3D.cpp
     src/scene/PlayerCharacter.cpp
     src/scene/ImportedHumanoid.cpp
+    src/scene/ImportedHumanoid.cpp
     src/scene/FontAtlas.cpp
 )
 target_include_directories(enginewatch_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -108,6 +109,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_interaction_tests tests/InteractionSocketTests.cpp)
     target_link_libraries(enginewatch_interaction_tests PRIVATE enginewatch_scene)
     add_test(NAME physical_equipment_sockets_and_hand_contact COMMAND enginewatch_interaction_tests)
+
+    add_executable(enginewatch_humanoid_tests tests/ImportedHumanoidTests.cpp)
+    target_link_libraries(enginewatch_humanoid_tests PRIVATE enginewatch_scene)
+    add_test(NAME imported_quaternius_humanoid_clips COMMAND enginewatch_humanoid_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)
