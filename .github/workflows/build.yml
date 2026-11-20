@@ -1,4 +1,4 @@
-name: Engine Watch G3.7.1 Marine Engineer Humanoid Quality and PSP CI
+name: Engine Watch G3.8 Grounded Engineer Motion and PSP CI
 
 on:
   push:
@@ -263,7 +263,7 @@ jobs:
           assert report["largest_adjacent_frame_vertex_step_m"]<0.87
           assert report["stable_face_colours"]
           assert report["unique_palette_colors"]<=100
-          print("G3.7.1 preserved anatomy, PPE palette and stable animation PASS")
+          print("G3.8 preserved anatomy, PPE palette and stable animation PASS")
           PY
           cp build/humanoid/source_provenance.json assets/generated/source_provenance.json
       - name: Render 4 front/rear/side validation snapshots of ACTUAL PSP mesh
@@ -276,13 +276,13 @@ jobs:
           test "$(find assets/generated/qa-previews -name '*.png' | wc -l)" -eq 4
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-g371-character-visual-qa
+          name: engine-watch-g38-character-visual-qa
           path: assets/generated/qa-previews/
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-g371-anatomy-preserved-worker
+          name: engine-watch-g38-anatomy-preserved-worker
           path: assets/generated/
           if-no-files-found: error
           retention-days: 14
@@ -296,7 +296,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-g371-anatomy-preserved-worker
+          name: engine-watch-g38-anatomy-preserved-worker
           path: assets/generated
       - name: Confirm verified Worker sidecar is staged in PSP toolchain
         run: |
@@ -315,7 +315,7 @@ jobs:
           cp assets/generated/ENGINEER.EWM dist/PSP/GAME/ENGINEWATCH/ENGINEER.EWM
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g371-humanoid-quality-preview
+          name: engine-watch-psp-g38-humanoid-quality-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -327,7 +327,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g371-humanoid-quality-preview
+          name: engine-watch-psp-g38-humanoid-quality-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -373,6 +373,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-g371-humanoid-quality-diagnostics
+          name: ppsspp-g38-humanoid-quality-diagnostics
           path: diagnostics/
           if-no-files-found: ignore
