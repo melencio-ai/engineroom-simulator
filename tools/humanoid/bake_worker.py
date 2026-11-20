@@ -85,26 +85,45 @@ def reduce_model(meshes, budget):
     # Establish a minimum for small-but-important individual objects,
     # then fill the remainder by weighted object size and significance.
     priorities = {o.name: mesh_priority(o, originals[o.name]) for o in meshes}
-    allocation = {}
-    for obj in meshes:
-        count = originals[obj.name]
-        floor_pct = 0.21 if priorities[obj.name] >= 2 else 0.12
-        allocation[obj.name] = min(count, max(24, min(145, int(count * floor_pct))))
-    allocated = sum(allocation.values())
-    if allocated > budget:
-        # Extremely fragmented imported models should fail safely rather
-        # than delete all the tiny eye/hand/shoe pieces.
-        raise ValueError("source contains too many individually critical pieces")
-    for _ in range(budget - allocated):
-        remaining = [o for o in meshes if allocation[o.name] < originals[o.name]]
-        if not remaining:
-            break
-        selected = max(
-            remaining,
-            key=lambda o: priorities[o.name] * originals[o.name] ** .77 /
-                          (allocation[o.name] + 20.0) ** .48
+    # The pinned Worker is four specific skinned meshes. A previous
+    # greedy allocator spent 441 of 875 triangles ON THE HEAD and left
+    # only 95 for two legs, explaining the fragmented suit/limbs in the
+    # user's PPSSPP footage. Reserve each anatomically important part.
+    target_share = {
+        "Worker_Body": .50, "Worker_Legs": .20,
+        "Worker_Head": .22, "Worker_Feet": .08
+    }
+    if set(originals)==set(target_share):
+        allocation = {
+            name:min(originals[name],round(budget*target_share[name]))
+            for name in originals
+        }
+        # Integer rounding and part-capping can leave unassigned triangles.
+        for _ in range(budget - sum(allocation.values())):
+            key=max((name for name in originals
+                     if allocation[name]<originals[name]),
+                    key=lambda name:originals[name]/max(allocation[name],1))
+            allocation[key]+=1
+    else:
+        # A future verified mesh layout uses a conservative generic
+        # proportional allocator rather than assuming four Worker parts.
+        total_weight=sum(
+            originals[name]**.72 * priorities[name]
+            for name in originals
         )
-        allocation[selected.name] += 1
+        allocation={}
+        for name in originals:
+            ratio=(originals[name]**.72*priorities[name])/total_weight
+            allocation[name]=min(originals[name],max(24,int(budget*ratio)))
+        while sum(allocation.values())<budget:
+            names=[name for name in originals
+                   if allocation[name]<originals[name]]
+            if not names:
+                break
+            key=max(names,key=lambda name:originals[name]/allocation[name])
+            allocation[key]+=1
+        if sum(allocation.values())>budget:
+            raise ValueError("Too many critical anatomy parts for the PSP LOD")
 
     for obj in meshes:
         count = originals[obj.name]
