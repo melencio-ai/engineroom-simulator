@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "id": "QTR.WORKER.MALE.2022.CC0",
+  "source_title": "Quaternius Ultimate Modular Men Pack — Worker",
+  "source_creator": "Quaternius",
+  "source_pack_page": "https://quaternius.com/packs/ultimatemodularcharacters.html",
+  "original_pack_download": "https://drive.google.com/drive/folders/1USAAquX2JJWuA2m6zol0KUkFe3UkZ8zX?usp=sharing",
+  "license": "CC0-1.0 (as explicitly indicated on the February 2022 pack page)",
+  "license_reference": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "site_general_license": "https://quaternius.com/license.html",
+  "license_note": "The 2026 general QAL has different standalone-asset terms. This February 2022 pack is independently identified as CC0 on its own page. Record original page and acquisition date; do not conflate site-wide QAL with this pack.",
+  "archive_mirror_project": "https://github.com/LuanDucate/Ducz.CharacterCreator",
+  "archive_mirror_license_note": "Character models/animations credited to Quaternius CC0 in the repository's README. The converter project's code has its own copyright.",
+  "model_url": "https://raw.githubusercontent.com/LuanDucate/Ducz.CharacterCreator/main/public/models/Male/Worker.glb",
+  "model_git_blob_sha1": "3979f271e62242b046bfd3c07d6962064c699eff",
+  "model_path": "public/models/Male/Worker.glb",
+  "usage": "Only as a compiled character in the Engine Watch simulator and its private review artifacts; no standalone asset bundle in the repository.",
+  "target": "PSP 3P full-body: <=600 triangles; pre-baked idle/walk/interact frames; 1P gloves retain existing physically aimed G3.6 rig",
+  "source_mesh_in_git": false,
+  "generated_output": "ENGINEER.EWM"
+}

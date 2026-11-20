@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.7 — Genuine CC0 Quaternius Worker (stacked preview)
+
+The [G3.7 imported humanoid pipeline](docs/g37-imported-humanoid.md) uses the **rigged Quaternius Worker** from the 2022 CC0 *Ultimate Modular Men* pack, rather than exclusively assembling a person from geometric blocks. CI pins/verifies the individual source GLB, uses headless Blender to simplify the real humanoid to <=560 triangles and bake genuine Idle, Walk and Interact poses, and packages `ENGINEER.EWM` with the PSP `EBOOT.PBP`. The PSP player renders the real human in third person with the existing G3.5.2 camera; 1P gloves and G3.6 contact-target arm IK remain as safe fallbacks. The original source GLB is not committed and the preview is not merged to main.
+
 ## G3.5.2 — Smart obstruction-aware marine-engineer camera (draft preview)
 
 [Review the G3.5.2 smart camera](docs/g352-smart-camera.md). The third-person camera now checks genuine **3D blocking structure** (ECR bulkheads/columns, real stair treads, deck plates, equipment and hull walls) instead of just walkable floor positions. It selects between 12 possible trailing, lateral and elevated viewpoints; keeps the engineer visible; avoids zooming into the helmet; and provides `VIEW 3P SHIFT` when the camera changes shoulder. All logic uses inexpensive C++11 AABB ray tests with a PSP-friendly broadphase and **does not add permanent scene vertices**. The separate G3.5.2 PPSSPP preview is for visual approval of the stair, white-column and head-close footage issues before any merge.

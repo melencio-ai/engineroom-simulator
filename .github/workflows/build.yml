@@ -1,4 +1,4 @@
-name: Engine Watch G3.5.2 Smart Third-Person Camera CI
+name: Engine Watch G3.7 Quaternius Worker and PSP CI
 
 on:
   push:
@@ -201,12 +201,76 @@ jobs:
       - name: Test
         run: ctest --test-dir build/desktop --output-on-failure
 
+  quaternius-worker-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download one pinned Quaternius CC0 Worker GLB (not whole character pack)
+        run: |
+          mkdir -p build/humanoid
+          curl --fail --location --retry 4 --retry-delay 3 \
+            --output build/humanoid/Worker.glb \
+            https://raw.githubusercontent.com/LuanDucate/Ducz.CharacterCreator/main/public/models/Male/Worker.glb
+          python3 tools/humanoid/inspect_source.py \
+            --source build/humanoid/Worker.glb --report build/humanoid/source_provenance.json
+      - name: Install headless Blender rig and animation baker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+          blender --version | head -n 2
+      - name: Bake REAL rigged Idle Walk and Interact source clips to PSP LOD
+        run: |
+          python3 -m py_compile tools/humanoid/bake_worker.py
+          mkdir -p assets/generated
+          blender -b -t 2 --python tools/humanoid/bake_worker.py -- \
+            --input build/humanoid/Worker.glb \
+            --output assets/generated/ENGINEER.EWM \
+            --manifest assets/generated/manifest.json \
+            --triangles 560
+          test -s assets/generated/ENGINEER.EWM
+          test -s assets/generated/manifest.json
+      - name: Verify source animated (not static), fits PSP vertex/memory budgets
+        run: |
+          python3 tools/humanoid/verify_ewmh.py assets/generated/ENGINEER.EWM \
+            --report assets/generated/validation.json
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path("assets/generated")
+          profile=json.load(open(root/"manifest.json"))
+          source=json.load(open("build/humanoid/source_provenance.json"))
+          assert 170<=profile["psp_triangles"]<=560
+          assert profile["original_triangles"]>profile["psp_triangles"]
+          assert profile["psp_vertices_per_frame"]<=1800
+          assert source["rig_count"]>=1
+          assert "Idle" in " ".join(source["animations"])
+          assert profile["ewmh_file_bytes"]<1350000
+          print("G3.7 Quaternius Worker LOD and animation validation PASS")
+          PY
+          cp build/humanoid/source_provenance.json assets/generated/source_provenance.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-g37-quaternius-optimized-worker
+          path: assets/generated/
+          if-no-files-found: error
+          retention-days: 14
+
   psp-eboot:
     runs-on: ubuntu-latest
+    needs: quaternius-worker-import
     container:
       image: pspdev/pspdev:latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-watch-g37-quaternius-optimized-worker
+          path: assets/generated
+      - name: Confirm verified Worker sidecar is staged in PSP toolchain
+        run: |
+          test -s assets/generated/ENGINEER.EWM
+          test -s assets/generated/validation.json
+          test -s assets/generated/manifest.json
       - name: Configure PSP native 3D build
         run: psp-cmake -S . -B build/psp -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
       - name: Compile PSP GU/GUM 3D marine materials executable
@@ -216,9 +280,10 @@ jobs:
           test -f build/psp/EBOOT.PBP
           mkdir -p dist/PSP/GAME/ENGINEWATCH
           cp build/psp/EBOOT.PBP dist/PSP/GAME/ENGINEWATCH/EBOOT.PBP
+          cp assets/generated/ENGINEER.EWM dist/PSP/GAME/ENGINEWATCH/ENGINEER.EWM
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g352-smart-camera-preview
+          name: engine-watch-psp-g37-quaternius-worker-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -230,7 +295,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g352-smart-camera-preview
+          name: engine-watch-psp-g37-quaternius-worker-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -248,6 +313,7 @@ jobs:
         run: |
           mkdir -p diagnostics "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH"
           cp game/PSP/GAME/ENGINEWATCH/EBOOT.PBP "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/EBOOT.PBP"
+          cp game/PSP/GAME/ENGINEWATCH/ENGINEER.EWM "$HOME/.config/ppsspp/PSP/GAME/ENGINEWATCH/ENGINEER.EWM"
           xvfb-run -a -s "-screen 0 1280x720x24" bash -c '
             export LIBGL_ALWAYS_SOFTWARE=1
             pulseaudio --start --exit-idle-time=-1 >/tmp/pulse-start.log 2>&1 || true
@@ -275,6 +341,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-g352-smart-camera-diagnostics
+          name: ppsspp-g37-quaternius-worker-diagnostics
           path: diagnostics/
           if-no-files-found: ignore

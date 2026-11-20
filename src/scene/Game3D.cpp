@@ -377,10 +377,11 @@ Hud3D Game3D::hud() const {
     h.alarm=s.lo_pressure_alarm;
     h.climbing=climbing_;
     std::snprintf(h.title,sizeof(h.title),"ENGINE WATCH 3D - %s",World3D::deckName(deck_));
-    std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR  MAIN %s  STBY %s  VIEW %s",
+    std::snprintf(h.status,sizeof(h.status),"LO %.2f BAR  MAIN %s  STBY %s  VIEW %s %s",
                   s.lo_pressure_bar,pumpText(s.main_pump),pumpText(s.standby_pump),
                   third_person_?(chase_distance_<1.45f?"3P CLOSE":
-                                chase_shifted_?"3P SHIFT":"3P"):"1P");
+                                chase_shifted_?"3P SHIFT":"3P"):"1P",
+                  PlayerCharacter::hasImportedBody()?"QTR":"PROC");
     if(s.mission==1) {
         std::snprintf(h.objective,sizeof(h.objective),"%s",
             s.objective_complete?"001 DONE - VERIFY ECR TO ADVANCE":
