@@ -26,7 +26,7 @@ def parameters():
     p.add_argument("--input", required=True)
     p.add_argument("--output", required=True, type=Path)
     p.add_argument("--manifest", required=True, type=Path)
-    p.add_argument("--triangles", type=int, default=560)
+    p.add_argument("--triangles", type=int, default=900)
     return p.parse_args(argv)
 
 
@@ -47,46 +47,109 @@ def apply_modifier(obj, mod):
     obj.select_set(False)
 
 
+def mesh_priority(obj, face_count):
+    """Small outfit/face/hand/boot pieces need more topology per face.
+
+    This is weighted per real imported mesh, not a blanket 10% collapse
+    across every item. A character with only a few original submeshes still
+    benefits from the larger 3P-only PSP character draw budget.
+    """
+    name = obj.name.lower()
+    critical = ("head", "face", "hair", "helmet", "hat", "hand",
+                "glove", "shoe", "boot", "eye")
+    if any(word in name for word in critical):
+        return 3.0
+    if face_count < 400:
+        return 2.3
+    if face_count < 950:
+        return 1.7
+    return 1.0
+
+
 def reduce_model(meshes, budget):
+    """Per-mesh silhouette-aware LOD: retain small anatomical/outfit parts.
+
+    The old 542-triangle conversion collapsed ALL 5,240 source triangles
+    to ~10%, turning the hands/head into visually broken fragments.
+    This version budgets a separate 3,000-vertex PSP character draw; the
+    ship mesh remains unchanged and has its own independent GE limit.
+    """
     for obj in meshes:
         mod = obj.modifiers.new("PSP_triangle_setup", "TRIANGULATE")
         apply_modifier(obj, mod)
-    original = tri_count(meshes)
-    if original < 100:
-        raise ValueError("source is too sparse to be a recognizable humanoid")
-    if original > budget:
-        ratio = min(0.95, budget / float(original) * 0.97)
-        # Decimate all original mesh parts proportionally, without dropping
-        # any outfit slot. Preserve vertex groups needed for the armature.
-        for obj in meshes:
-            if len(obj.data.polygons) <= 10:
-                continue
-            mod = obj.modifiers.new("PSP_low_poly", "DECIMATE")
-            mod.decimate_type = "COLLAPSE"
-            mod.ratio = max(0.015, ratio)
-            apply_modifier(obj, mod)
-        # Required after Blender's decimator can produce quads.
-        for obj in meshes:
-            mod = obj.modifiers.new("PSP_triangle_final", "TRIANGULATE")
-            apply_modifier(obj, mod)
+    originals = {o.name: len(o.data.polygons) for o in meshes}
+    original = sum(originals.values())
+    if original < 100 or budget > 960 or budget < 550:
+        raise ValueError("invalid source size or PSP LOD target")
+
+    # Establish a minimum for small-but-important individual objects,
+    # then fill the remainder by weighted object size and significance.
+    priorities = {o.name: mesh_priority(o, originals[o.name]) for o in meshes}
+    allocation = {}
+    for obj in meshes:
+        count = originals[obj.name]
+        floor_pct = 0.21 if priorities[obj.name] >= 2 else 0.12
+        allocation[obj.name] = min(count, max(24, min(145, int(count * floor_pct))))
+    allocated = sum(allocation.values())
+    if allocated > budget:
+        # Extremely fragmented imported models should fail safely rather
+        # than delete all the tiny eye/hand/shoe pieces.
+        raise ValueError("source contains too many individually critical pieces")
+    for _ in range(budget - allocated):
+        remaining = [o for o in meshes if allocation[o.name] < originals[o.name]]
+        if not remaining:
+            break
+        selected = max(
+            remaining,
+            key=lambda o: priorities[o.name] * originals[o.name] ** .77 /
+                          (allocation[o.name] + 20.0) ** .48
+        )
+        allocation[selected.name] += 1
+
+    for obj in meshes:
+        count = originals[obj.name]
+        keep = allocation[obj.name]
+        if count <= keep or count < 20:
+            continue
+        mod = obj.modifiers.new("PSP_anatomy_preserving_LOD", "DECIMATE")
+        mod.decimate_type = "COLLAPSE"
+        mod.ratio = min(.999, max(.02, keep / float(count) * .975))
+        apply_modifier(obj, mod)
+        mod = obj.modifiers.new("PSP_triangle_final", "TRIANGULATE")
+        apply_modifier(obj, mod)
     current = tri_count(meshes)
-    if current > budget:
-        # A handful of protected tiny accessory meshes can keep the total
-        # over target. Decimate the largest parts in a second deterministic
-        # pass; do not silently discard the head or hands.
-        for _ in range(8):
-            if current <= budget:
-                break
-            candidate = max(meshes, key=lambda m: len(m.data.polygons))
-            mod = candidate.modifiers.new("PSP_final_budget", "DECIMATE")
-            mod.ratio = max(0.10, (budget / current) * 0.90)
-            apply_modifier(candidate, mod)
-            mod = candidate.modifiers.new("PSP_final_tris", "TRIANGULATE")
-            apply_modifier(candidate, mod)
-            current = tri_count(meshes)
-    if current > budget or current < 170:
-        raise ValueError(f"PSP conversion out of geometry budget: {current} tris")
-    return original, current
+    # Give a few stubborn meshes a final lightweight correction, but never
+    # erase the last facial, helmet or safety-footwear geometry.
+    for _ in range(10):
+        if current <= budget:
+            break
+        candidates = [o for o in meshes
+                      if len(o.data.polygons) >
+                      min(originals[o.name], max(24, allocation[o.name] // 2))]
+        if not candidates:
+            break
+        obj = max(candidates, key=lambda o: len(o.data.polygons) /
+                  max(1, allocation[o.name]))
+        count = len(obj.data.polygons)
+        mod = obj.modifiers.new("PSP_late_rebalance", "DECIMATE")
+        mod.ratio = max(.40, (budget / current) * .95)
+        apply_modifier(obj, mod)
+        mod = obj.modifiers.new("PSP_late_triangles", "TRIANGULATE")
+        apply_modifier(obj, mod)
+        current = tri_count(meshes)
+        if len(obj.data.polygons) >= count and current > budget:
+            break
+    if current > budget or current < 550:
+        raise ValueError(f"Anatomical PSP LOD outside budget: {current} tris")
+    report = [{
+        "name": obj.name,
+        "source_triangles": originals[obj.name],
+        "target_triangles": allocation[obj.name],
+        "result_triangles": len(obj.data.polygons),
+        "preservation_weight": priorities[obj.name],
+    } for obj in meshes]
+    print("ANATOMY_AWARE_LOD:", json.dumps(report))
+    return original, current, report
 
 
 def find_action(name):
@@ -195,7 +258,7 @@ def bake(args):
         rig.animation_data_create()
         for track in rig.animation_data.nla_tracks:
             track.mute = True
-    original, final_tris = reduce_model(meshes, args.triangles)
+    original, final_tris, lod_report = reduce_model(meshes, args.triangles)
     clips = [("idle", 6), ("walk", 12), ("interact", 8)]
     poses = []
     colors = None
@@ -248,6 +311,7 @@ def bake(args):
         "source_license": "CC0-1.0 (shown on individual pack page)",
         "source_master_is_not_stored_in_repository": True,
         "original_triangles": original,
+        "mesh_lod_allocation": lod_report,
         "psp_triangles": final_tris,
         "psp_vertices_per_frame": frame_size,
         "frames": {name: n for name, n in clips},
