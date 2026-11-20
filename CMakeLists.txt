@@ -38,7 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH G3.5.2"
+            TITLE "ENGINE WATCH G3.6 CONTROLS"
             VERSION 01.00
         )
     endif()
@@ -103,6 +103,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_player_tests tests/PlayerCharacterTests.cpp)
     target_link_libraries(enginewatch_player_tests PRIVATE enginewatch_scene)
     add_test(NAME marine_engineer_character_and_camera COMMAND enginewatch_player_tests)
+
+    add_executable(enginewatch_interaction_tests tests/InteractionSocketTests.cpp)
+    target_link_libraries(enginewatch_interaction_tests PRIVATE enginewatch_scene)
+    add_test(NAME physical_equipment_sockets_and_hand_contact COMMAND enginewatch_interaction_tests)
 
     add_executable(enginewatch_parts_tests tests/MarinePartsTests.cpp)
     target_link_libraries(enginewatch_parts_tests PRIVATE enginewatch_scene)
