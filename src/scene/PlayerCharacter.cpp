@@ -1,4 +1,5 @@
 #include "scene/PlayerCharacter.hpp"
+#include "scene/ImportedHumanoid.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -215,6 +216,13 @@ float reach(const CharacterPose& pose) {
 const float PlayerCharacter::EyeHeight=1.65f;
 const float PlayerCharacter::BodyHeight=1.82f;
 
+bool PlayerCharacter::loadImportedBody(const char* path) {
+    return ImportedHumanoid::load(path);
+}
+void PlayerCharacter::clearImportedBody() { ImportedHumanoid::clear(); }
+bool PlayerCharacter::hasImportedBody() { return ImportedHumanoid::available(); }
+
+
 void CharacterAnimator::reset() {
     pose_=CharacterPose{};
     action_elapsed_=0;
@@ -258,6 +266,13 @@ void CharacterAnimator::trigger(CharacterAction action,const Vec3* target) {
 void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
                                const CharacterPose& pose,
                                std::vector<Vertex3D>& out) {
+    // The shipped Quaternius worker is used for 3P idle/walk and its own
+    // Interact clip. For an accurately aimed *physical* G3.6 pushbutton,
+    // retain the existing two-link right-arm socket IK while retargeting of
+    // the imported skeleton remains a separate engineering milestone.
+    if(!(pose.action==CharacterPressControl && pose.has_target) &&
+       ImportedHumanoid::sample(feet,yaw,pose,out))
+        return;
     out.clear();
     out.reserve(1152);
     MeshBuilder b=bodyBuilder(out,feet,yaw);
