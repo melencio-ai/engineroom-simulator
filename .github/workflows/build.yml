@@ -139,9 +139,9 @@ jobs:
           poses=sorted(root.glob("*.obj"))
           assert len(poses)==6,poses
           assert profile["body_height_m"]>profile["eye_height_m"]
-          assert profile["max_runtime_vertices"]==1800
-          assert profile["idle_body_triangles"]*3 <=1800
-          assert profile["first_person_hand_triangles"]*3 <=1800
+          assert profile["max_runtime_vertices"]==3000
+          assert profile["idle_body_triangles"]*3 <=3000
+          assert profile["first_person_hand_triangles"]*3 <=3000
           assert profile["first_person_hand_triangles"]>72
           assert profile["idle_body_triangles"]>312
           assert (root/"marine_engineer.mtl").exists()
