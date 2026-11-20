@@ -266,6 +266,19 @@ jobs:
           print("G3.7.1 preserved anatomy, PPE palette and stable animation PASS")
           PY
           cp build/humanoid/source_provenance.json assets/generated/source_provenance.json
+      - name: Render 4 front/rear/side validation snapshots of ACTUAL PSP mesh
+        run: |
+          python3 -m py_compile tools/humanoid/render_quality_previews.py
+          blender -b -t 2 --python tools/humanoid/render_quality_previews.py -- \
+            --input assets/generated/ENGINEER.EWM \
+            --output assets/generated/qa-previews
+          test "$(find assets/generated/qa-previews -name '*.png' | wc -l)" -eq 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engine-watch-g371-character-visual-qa
+          path: assets/generated/qa-previews/
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: engine-watch-g371-anatomy-preserved-worker
