@@ -1,4 +1,4 @@
-name: Engine Watch G3.7 Quaternius Worker and PSP CI
+name: Engine Watch G3.7.1 Marine Engineer Humanoid Quality and PSP CI
 
 on:
   push:
@@ -227,7 +227,7 @@ jobs:
             --input build/humanoid/Worker.glb \
             --output assets/generated/ENGINEER.EWM \
             --manifest assets/generated/manifest.json \
-            --triangles 560
+            --triangles 900
           test -s assets/generated/ENGINEER.EWM
           test -s assets/generated/manifest.json
       - name: Verify source animated (not static), fits PSP vertex/memory budgets
@@ -239,18 +239,27 @@ jobs:
           root=pathlib.Path("assets/generated")
           profile=json.load(open(root/"manifest.json"))
           source=json.load(open("build/humanoid/source_provenance.json"))
-          assert 170<=profile["psp_triangles"]<=560
+          assert 650<=profile["psp_triangles"]<=900
           assert profile["original_triangles"]>profile["psp_triangles"]
-          assert profile["psp_vertices_per_frame"]<=1800
+          assert profile["psp_vertices_per_frame"]<=3000
           assert source["rig_count"]>=1
           assert "Idle" in " ".join(source["animations"])
           assert profile["ewmh_file_bytes"]<1350000
-          print("G3.7 Quaternius Worker LOD and animation validation PASS")
+          assert profile["stable_triangle_correspondence"]
+          assert profile["root_motion_source"]=="original Hips bone"
+          assert len(profile["mesh_lod_allocation"])==source["mesh_count"]
+          assert sum(x["result_triangles"] for x in profile["mesh_lod_allocation"])==profile["psp_triangles"]
+          report=json.load(open(root/"validation.json"))
+          assert report["degenerate_triangle_ratio"]<0.025
+          assert report["largest_adjacent_frame_vertex_step_m"]<0.87
+          assert report["stable_face_colours"]
+          assert report["unique_palette_colors"]<=100
+          print("G3.7.1 preserved anatomy, PPE palette and stable animation PASS")
           PY
           cp build/humanoid/source_provenance.json assets/generated/source_provenance.json
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-g37-quaternius-optimized-worker
+          name: engine-watch-g371-anatomy-preserved-worker
           path: assets/generated/
           if-no-files-found: error
           retention-days: 14
@@ -264,7 +273,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-g37-quaternius-optimized-worker
+          name: engine-watch-g371-anatomy-preserved-worker
           path: assets/generated
       - name: Confirm verified Worker sidecar is staged in PSP toolchain
         run: |
@@ -283,7 +292,7 @@ jobs:
           cp assets/generated/ENGINEER.EWM dist/PSP/GAME/ENGINEWATCH/ENGINEER.EWM
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g37-quaternius-worker-preview
+          name: engine-watch-psp-g371-humanoid-quality-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -295,7 +304,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g37-quaternius-worker-preview
+          name: engine-watch-psp-g371-humanoid-quality-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
@@ -341,6 +350,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ppsspp-g37-quaternius-worker-diagnostics
+          name: ppsspp-g371-humanoid-quality-diagnostics
           path: diagnostics/
           if-no-files-found: ignore
