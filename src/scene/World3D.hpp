@@ -29,6 +29,30 @@ enum StationId {
     StrainerStation
 };
 
+// Stable engineering control identifiers. Every socket is authored next
+// to its visible 3D equipment; positions are in vessel world metres.
+// Six LO menu commands are LOCAL PANEL BUTTONS, not physical handwheels.
+enum InteractionSocketId {
+    NoInteractionSocket=0,
+    LoMainStartButton, LoStandbyStartButton,
+    LoMainSuctionButton, LoMainDischargeButton,
+    LoStandbySuctionButton, LoStandbyDischargeButton,
+    LoMainPressureGauge, LoStandbyPressureGauge,
+    EcrVerifyButton, StrainerInspectionHandle,
+    InteractionSocketCount
+};
+enum InteractionSocketKind {
+    PanelPushbutton=0, GaugeInspection, EquipmentHandle
+};
+struct InteractionSocket {
+    InteractionSocketId id;
+    StationId station;
+    InteractionSocketKind kind;
+    Vec3 point;        // actual visible contact/inspection location
+    Vec3 outward;      // surface normal pointing toward the operator
+    float max_eye_distance;
+};
+
 class World3D {
 public:
     World3D();
@@ -65,6 +89,16 @@ public:
                             float radius=0.10f) const;
     std::size_t cameraOccluderCount() const { return camera_occluders_.size(); }
 
+    const std::vector<InteractionSocket>& interactionSockets() const {
+        return interaction_sockets_;
+    }
+    const InteractionSocket* interactionSocket(InteractionSocketId id) const;
+    static InteractionSocketId pumpMenuSocket(int selected);
+    // Mechanical reach proxy from the engineer's EYE (not just station
+    // distance); an accurate wrist target is then solved by the character.
+    bool canReachSocket(InteractionSocketId id,const Vec3& eye,
+                        float facing_yaw) const;
+
 private:
     std::vector<Vertex3D> vertices_;
     std::vector<MarinePartPlacement> parts_;
@@ -72,6 +106,7 @@ private:
     DeckPlan deck_plan_;
     std::vector<Footprint> obstacles_;
     std::vector<CameraOccluder> camera_occluders_;
+    std::vector<InteractionSocket> interaction_sockets_;
     Stair3D stairs_[2];
 
     void triangle(const Vec3& a, const Vec3& b, const Vec3& c, uint32_t color);
@@ -86,6 +121,9 @@ private:
     void pipeZ(float z0,float z1,float x,float y,float radius,uint32_t color);
     void obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask);
     void cameraBlocker(float cx,float cy,float cz,float hx,float hy,float hz);
+    void addSocket(InteractionSocketId id,StationId station,
+                   InteractionSocketKind kind,const Vec3& point,
+                   const Vec3& outward,float reach);
     void occludingBox(float cx,float cy,float cz,float hx,float hy,float hz,
                       uint32_t color);
     void deckSlab(float x0,float x1,float z0,float z1,float height,uint32_t color);

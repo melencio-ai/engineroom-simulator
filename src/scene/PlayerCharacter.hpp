@@ -22,13 +22,15 @@ struct CharacterPose {
     float action_progress=0.0f; // 0..1 for a transient reach / inspection
     bool climbing=false;
     CharacterAction action=CharacterIdle;
+    Vec3 target_world{0,0,0};
+    bool has_target=false; // physical socket toward which right glove reaches
 };
 
 class CharacterAnimator {
 public:
     void reset();
     void advance(float dt,float travelled_metres,bool climbing);
-    void trigger(CharacterAction action);
+    void trigger(CharacterAction action,const Vec3* target=nullptr);
 
     const CharacterPose& pose() const { return pose_; }
 private:
