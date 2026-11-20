@@ -221,12 +221,15 @@ jobs:
           blender --version | head -n 2
       - name: Bake REAL rigged Idle Walk and Interact source clips to PSP LOD
         run: |
+          python3 -m py_compile tools/humanoid/bake_worker.py
           mkdir -p assets/generated
           blender -b -t 2 --python tools/humanoid/bake_worker.py -- \
             --input build/humanoid/Worker.glb \
             --output assets/generated/ENGINEER.EWM \
             --manifest assets/generated/manifest.json \
             --triangles 560
+          test -s assets/generated/ENGINEER.EWM
+          test -s assets/generated/manifest.json
       - name: Verify source animated (not static), fits PSP vertex/memory budgets
         run: |
           python3 tools/humanoid/verify_ewmh.py assets/generated/ENGINEER.EWM \
