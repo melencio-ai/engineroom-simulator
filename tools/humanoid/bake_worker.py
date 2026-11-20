@@ -113,7 +113,7 @@ def rgba_to_abgr(r, g, b):
 
 def base_color(material, mesh, polygon, triangle):
     if material is None:
-        return 0xff8899aau
+        return 0xff8899aa
     factor = list(material.diffuse_color)[:3]
     image = None
     if material.use_nodes:
