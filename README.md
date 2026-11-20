@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.8 — Grounded engineer stair motion (stacked preview)
+
+[Review the G3.8 stair-motion implementation and QA](docs/g38-grounded-engineer-motion.md). Uses the shared physical deck collision solver to probe separate boot heights during inclined-steel-stair movement, plays the genuine Quaternius walk clip from actual 3D travel (including ascent/descent), and blends lower-leg contact plus subtle upper-body slope lean for both the imported Worker and the procedural fallback. The engineer's gameplay, camera and equipment sockets remain intact. **Draft only:** still needs PPSSPP walking video review before any merge.
+
 ## G3.7.1 — Anatomically preserved marine engineer (stacked preview)
 
 The [G3.7.1 humanoid-quality branch](docs/g371-human-quality.md) repairs fragmented body geometry observed in the G3.7 PPSSPP recording. It replaces indiscriminate 90% mesh reduction with anatomy-weighted budgets for the original Worker's body, legs, head and feet; adds an animated 40-triangle yellow hard hat and consistent boiler suit/glove/boot colors; verifies real Idle/Walk/Interact frame topology and feet placement; and improves overhead obstruction scoring for the G3.5.2 smart camera. PSP uses a separate <=3,000-vertex dynamic avatar buffer, not the 128,094-vertex static ship world. This is a **draft** preview pending visual phone review; parent branches and main remain unmerged.
