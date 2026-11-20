@@ -278,6 +278,24 @@ void Game3D::updateChaseCamera(float dt) {
         float score=distances[i]*1.65f-c.preference;
         if(t<0.99f)score-=0.45f;
         if(distances[i]<1.40f)score-=3.20f*(1.40f-distances[i]);
+        // G3.7 video: a large white overhead/column panel could fill
+        // the FOREGROUND even when the original single engineer->camera
+        // ray was clear. Check the real camera->look-ahead line as well as
+        // a chest-height line. Penalize a camera that sees its own nearby
+        // bulkhead/beam instead of a usable engine-room walkway.
+        const float forward_free=
+            world_.cameraRayFraction(positions[i],aim,0.055f);
+        const Vec3 chest{camera_.x,camera_.y-0.36f,camera_.z};
+        const float body_free=
+            world_.cameraRayFraction(positions[i],chest,0.045f);
+        if(forward_free<0.18f) score-=3.50f;
+        else if(forward_free<0.94f)
+            score-=2.50f*(1.0f-forward_free);
+        if(body_free<0.94f)
+            score-=1.70f*(1.0f-body_free);
+        // Prefer a clear shoulder over a high overhead angle whenever
+        // both maintain the same unobstructed distance.
+        if(c.raise>1.18f)score-=0.30f;
         // Hysteresis holds the previous shoulder while similarly suitable,
         // avoiding left/right flicker as the player steps across a railing.
         if(chase_initialized_ && i==chase_candidate_)score+=0.33f;

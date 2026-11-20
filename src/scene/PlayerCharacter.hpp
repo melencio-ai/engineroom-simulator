@@ -46,7 +46,7 @@ class PlayerCharacter {
 public:
     static const float EyeHeight;
     static const float BodyHeight;
-    static const std::size_t MaxRuntimeVertices=1800;
+    static const std::size_t MaxRuntimeVertices=3000;
 
     // Optional imported CC0 Worker body; if the external sidecar is absent,
     // the proven G3.6 procedural engineer remains available on PSP/desktop.

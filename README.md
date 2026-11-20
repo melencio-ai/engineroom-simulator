@@ -1,5 +1,9 @@
 # ENGINE WATCH 3D — PSP Marine Engine Room Simulator
 
+## G3.7.1 — Anatomically preserved marine engineer (stacked preview)
+
+The [G3.7.1 humanoid-quality branch](docs/g371-human-quality.md) repairs fragmented body geometry observed in the G3.7 PPSSPP recording. It replaces indiscriminate 90% mesh reduction with anatomy-weighted budgets for the original Worker's body, legs, head and feet; adds an animated 40-triangle yellow hard hat and consistent boiler suit/glove/boot colors; verifies real Idle/Walk/Interact frame topology and feet placement; and improves overhead obstruction scoring for the G3.5.2 smart camera. PSP uses a separate <=3,000-vertex dynamic avatar buffer, not the 128,094-vertex static ship world. This is a **draft** preview pending visual phone review; parent branches and main remain unmerged.
+
 ## G3.7 — Genuine CC0 Quaternius Worker (stacked preview)
 
 The [G3.7 imported humanoid pipeline](docs/g37-imported-humanoid.md) uses the **rigged Quaternius Worker** from the 2022 CC0 *Ultimate Modular Men* pack, rather than exclusively assembling a person from geometric blocks. CI pins/verifies the individual source GLB, uses headless Blender to simplify the real humanoid to <=560 triangles and bake genuine Idle, Walk and Interact poses, and packages `ENGINEER.EWM` with the PSP `EBOOT.PBP`. The PSP player renders the real human in third person with the existing G3.5.2 camera; 1P gloves and G3.6 contact-target arm IK remain as safe fallbacks. The original source GLB is not committed and the preview is not merged to main.

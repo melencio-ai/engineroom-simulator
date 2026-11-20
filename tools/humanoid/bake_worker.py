@@ -26,7 +26,7 @@ def parameters():
     p.add_argument("--input", required=True)
     p.add_argument("--output", required=True, type=Path)
     p.add_argument("--manifest", required=True, type=Path)
-    p.add_argument("--triangles", type=int, default=560)
+    p.add_argument("--triangles", type=int, default=900)
     return p.parse_args(argv)
 
 
@@ -47,46 +47,128 @@ def apply_modifier(obj, mod):
     obj.select_set(False)
 
 
+def mesh_priority(obj, face_count):
+    """Small outfit/face/hand/boot pieces need more topology per face.
+
+    This is weighted per real imported mesh, not a blanket 10% collapse
+    across every item. A character with only a few original submeshes still
+    benefits from the larger 3P-only PSP character draw budget.
+    """
+    name = obj.name.lower()
+    critical = ("head", "face", "hair", "helmet", "hat", "hand",
+                "glove", "shoe", "boot", "eye")
+    if any(word in name for word in critical):
+        return 3.0
+    if face_count < 400:
+        return 2.3
+    if face_count < 950:
+        return 1.7
+    return 1.0
+
+
 def reduce_model(meshes, budget):
+    """Per-mesh silhouette-aware LOD: retain small anatomical/outfit parts.
+
+    The old 542-triangle conversion collapsed ALL 5,240 source triangles
+    to ~10%, turning the hands/head into visually broken fragments.
+    This version budgets a separate 3,000-vertex PSP character draw; the
+    ship mesh remains unchanged and has its own independent GE limit.
+    """
     for obj in meshes:
         mod = obj.modifiers.new("PSP_triangle_setup", "TRIANGULATE")
         apply_modifier(obj, mod)
-    original = tri_count(meshes)
-    if original < 100:
-        raise ValueError("source is too sparse to be a recognizable humanoid")
-    if original > budget:
-        ratio = min(0.95, budget / float(original) * 0.97)
-        # Decimate all original mesh parts proportionally, without dropping
-        # any outfit slot. Preserve vertex groups needed for the armature.
-        for obj in meshes:
-            if len(obj.data.polygons) <= 10:
-                continue
-            mod = obj.modifiers.new("PSP_low_poly", "DECIMATE")
-            mod.decimate_type = "COLLAPSE"
-            mod.ratio = max(0.015, ratio)
-            apply_modifier(obj, mod)
-        # Required after Blender's decimator can produce quads.
-        for obj in meshes:
-            mod = obj.modifiers.new("PSP_triangle_final", "TRIANGULATE")
-            apply_modifier(obj, mod)
-    current = tri_count(meshes)
-    if current > budget:
-        # A handful of protected tiny accessory meshes can keep the total
-        # over target. Decimate the largest parts in a second deterministic
-        # pass; do not silently discard the head or hands.
-        for _ in range(8):
-            if current <= budget:
+    originals = {o.name: len(o.data.polygons) for o in meshes}
+    original = sum(originals.values())
+    if original < 100 or budget > 960 or budget < 550:
+        raise ValueError("invalid source size or PSP LOD target")
+
+    # Establish a minimum for small-but-important individual objects,
+    # then fill the remainder by weighted object size and significance.
+    priorities = {o.name: mesh_priority(o, originals[o.name]) for o in meshes}
+    # The pinned Worker is four specific skinned meshes. A previous
+    # greedy allocator spent 441 of 875 triangles ON THE HEAD and left
+    # only 95 for two legs, explaining the fragmented suit/limbs in the
+    # user's PPSSPP footage. Reserve each anatomically important part.
+    target_share = {
+        "Worker_Body": .50, "Worker_Legs": .20,
+        "Worker_Head": .22, "Worker_Feet": .08
+    }
+    if set(originals)==set(target_share):
+        allocation = {
+            name:min(originals[name],round(budget*target_share[name]))
+            for name in originals
+        }
+        # Integer rounding and part-capping can leave unassigned triangles.
+        for _ in range(budget - sum(allocation.values())):
+            key=max((name for name in originals
+                     if allocation[name]<originals[name]),
+                    key=lambda name:originals[name]/max(allocation[name],1))
+            allocation[key]+=1
+    else:
+        # A future verified mesh layout uses a conservative generic
+        # proportional allocator rather than assuming four Worker parts.
+        total_weight=sum(
+            originals[name]**.72 * priorities[name]
+            for name in originals
+        )
+        allocation={}
+        for name in originals:
+            ratio=(originals[name]**.72*priorities[name])/total_weight
+            allocation[name]=min(originals[name],max(24,int(budget*ratio)))
+        while sum(allocation.values())<budget:
+            names=[name for name in originals
+                   if allocation[name]<originals[name]]
+            if not names:
                 break
-            candidate = max(meshes, key=lambda m: len(m.data.polygons))
-            mod = candidate.modifiers.new("PSP_final_budget", "DECIMATE")
-            mod.ratio = max(0.10, (budget / current) * 0.90)
-            apply_modifier(candidate, mod)
-            mod = candidate.modifiers.new("PSP_final_tris", "TRIANGULATE")
-            apply_modifier(candidate, mod)
-            current = tri_count(meshes)
-    if current > budget or current < 170:
-        raise ValueError(f"PSP conversion out of geometry budget: {current} tris")
-    return original, current
+            key=max(names,key=lambda name:originals[name]/allocation[name])
+            allocation[key]+=1
+        if sum(allocation.values())>budget:
+            raise ValueError("Too many critical anatomy parts for the PSP LOD")
+
+    for obj in meshes:
+        count = originals[obj.name]
+        keep = allocation[obj.name]
+        if count <= keep or count < 20:
+            continue
+        mod = obj.modifiers.new("PSP_anatomy_preserving_LOD", "DECIMATE")
+        mod.decimate_type = "COLLAPSE"
+        mod.ratio = min(.999, max(.02, keep / float(count) * .975))
+        apply_modifier(obj, mod)
+        mod = obj.modifiers.new("PSP_triangle_final", "TRIANGULATE")
+        apply_modifier(obj, mod)
+    current = tri_count(meshes)
+    # Give a few stubborn meshes a final lightweight correction, but never
+    # erase the last facial, helmet or safety-footwear geometry.
+    for _ in range(10):
+        if current <= budget:
+            break
+        candidates = [o for o in meshes
+                      if len(o.data.polygons) >
+                      min(originals[o.name], max(24, allocation[o.name] // 2))]
+        if not candidates:
+            break
+        obj = max(candidates, key=lambda o: len(o.data.polygons) /
+                  max(1, allocation[o.name]))
+        count = len(obj.data.polygons)
+        mod = obj.modifiers.new("PSP_late_rebalance", "DECIMATE")
+        mod.ratio = max(.40, (budget / current) * .95)
+        apply_modifier(obj, mod)
+        mod = obj.modifiers.new("PSP_late_triangles", "TRIANGULATE")
+        apply_modifier(obj, mod)
+        current = tri_count(meshes)
+        if len(obj.data.polygons) >= count and current > budget:
+            break
+    if current > budget or current < 550:
+        raise ValueError(f"Anatomical PSP LOD outside budget: {current} tris")
+    report = [{
+        "name": obj.name,
+        "source_triangles": originals[obj.name],
+        "target_triangles": allocation[obj.name],
+        "result_triangles": len(obj.data.polygons),
+        "preservation_weight": priorities[obj.name],
+    } for obj in meshes]
+    print("ANATOMY_AWARE_LOD:", json.dumps(report))
+    return original, current, report
 
 
 def find_action(name):
@@ -144,6 +226,141 @@ def base_color(material, mesh, polygon, triangle):
     return rgba_to_abgr(*factor)
 
 
+# A coherent, non-UV-dependent shipboard workwear palette. The old
+# atlas-centroid sampling made heavily decimated triangles alternate between
+# unrelated dark and white texture islands, which looked like torn limbs.
+# Use real imported mesh/skin-bone semantics to paint a recognizable outfit.
+MARINE_COLORS = {
+    "coverall": (221, 104, 38),      # high-visibility orange boiler suit
+    "dark_suit": (37, 55, 70),       # industrial blue/navy side panels
+    "reflective": (202, 220, 215),
+    "skin": (183, 136, 100),
+    "helmet": (230, 184, 49),      # visually identifiable hard hat
+    "glove": (53, 67, 70),
+    "boot": (32, 39, 43),
+    "hair": (45, 40, 37),
+}
+REGION_WORDS = {
+    "helmet": ("hardhat", "helmet", "safetyhat", "cap"),
+    "glove": ("glove",),
+    "boot": ("boot", "shoe", "feet", "foot"),
+    "hair": ("hair", "beard"),
+    "skin": ("face", "eyebrow", "nose", "neck", "ear"),
+}
+
+
+def semantic_region(obj, evaluated_mesh, tri, material):
+    names = (obj.name + " " + (material.name if material else "")).lower()
+    for region, keys in REGION_WORDS.items():
+        if any(k in names for k in keys):
+            return region
+    group_scores = {"skin": 0.0, "glove": 0.0, "boot": 0.0,
+                    "coverall": 0.0}
+    for vertex_index in tri.vertices:
+        vertex = evaluated_mesh.vertices[vertex_index]
+        for binding in vertex.groups:
+            if binding.group >= len(obj.vertex_groups):
+                continue
+            name = obj.vertex_groups[binding.group].name.lower()
+            weight = binding.weight
+            if any(k in name for k in ("finger", "thumb", "hand", "wrist")):
+                group_scores["glove"] += weight
+            elif any(k in name for k in ("foot", "toe", "ankle")):
+                group_scores["boot"] += weight
+            elif any(k in name for k in ("head", "neck", "jaw")):
+                group_scores["skin"] += weight
+            else:
+                group_scores["coverall"] += weight
+    if group_scores["glove"] > .12:
+        return "glove"
+    if group_scores["boot"] > group_scores["coverall"] * .80 and group_scores["boot"] > .03:
+        return "boot"
+    if group_scores["skin"] > group_scores["coverall"] * .70 and group_scores["skin"] > .03:
+        return "skin"
+    if "body" in names or "worker" in names or "clothes" in names:
+        return "coverall"
+    return max(group_scores, key=group_scores.get)
+
+
+def workwear_color(region, tri, material, obj, mesh):
+    rgb = MARINE_COLORS[region]
+    # Flat lighting is a visual-only baked material (PSP disables dynamic
+    # lights). A modest top/front facet shade gives readable anatomy.
+    n = tri.normal
+    brightness = n.z * .75 + n.x * .25
+    factor = (.77 if brightness < -.45 else
+              .88 if brightness < .05 else
+              1.00 if brightness < .60 else 1.10)
+    # Preserve facial detail without recreating noisy atlas seams.
+    if region == "skin" and material is not None:
+        source = base_color(material, mesh,
+                            mesh.polygons[tri.polygon_index], tri)
+        sr, sg, sb = source & 255, (source >> 8) & 255, (source >> 16) & 255
+        # Only keep original dark eyes/lashes on very dark atlas texels.
+        if max(sr, sg, sb) < 65:
+            rgb = (74, 54, 45)
+    return rgba_to_abgr(*[min(255, c * factor)/255 for c in rgb])
+
+
+def append_hardhat(vertices, color_out, topology, regions, head_points,
+                   palette=None):
+    """Add a 40-triangle PPE cap following the REAL animated head.
+
+    The original Worker_Head is a human head, not a safety helmet. We
+    preserve its recognizable face and add a separate brim/crown located
+    from the imported head geometry in each animation frame. No external
+    Blender asset or unsafe rig assumptions. This is visual PPE only.
+    """
+    if len(head_points) < 10:
+        raise ValueError("Could not identify original skinned Worker head")
+    body_height = max(p[1] for p in vertices)-min(p[1] for p in vertices)
+    head_top=max(p[1] for p in head_points)
+    upper=[p for p in head_points if p[1]>head_top-.085*body_height]
+    if len(upper)<3:
+        upper=head_points
+    cx=(min(p[0] for p in upper)+max(p[0] for p in upper))*.5
+    cz=(min(p[2] for p in upper)+max(p[2] for p in upper))*.5
+    unit=body_height/1.82
+    bottom=head_top-.098*unit
+    middle=head_top-.015*unit
+    apex=head_top+.033*unit
+    rx=.132*unit
+    rz=.145*unit
+    segments=8
+    cursor=0
+    def point(theta,scale,y):
+        return (cx+math.cos(theta)*rx*scale,y,
+                cz+math.sin(theta)*rz*scale)
+    def face(p0,p1,p2,shade):
+        nonlocal cursor
+        if palette is None:
+            rgb=MARINE_COLORS["helmet"]
+            c=rgba_to_abgr(*[min(255,v*shade)/255 for v in rgb])
+        else:
+            c=palette[len(color_out)]
+        vertices.extend((p0,p1,p2))
+        color_out.extend((c,c,c))
+        topology.append(("Safety_HardHat", (cursor,cursor+1,cursor+2)))
+        regions["helmet"]=regions.get("helmet",0)+1
+        cursor+=3
+    for i in range(segments):
+        a=math.tau*i/segments
+        b=math.tau*(i+1)/segments
+        a0=point(a,1,bottom)
+        b0=point(b,1,bottom)
+        a1=point(a,.84,middle)
+        b1=point(b,.84,middle)
+        shade=(.85,1.0,1.10,.94)[i%4]
+        face(a0,b0,b1,shade)
+        face(a0,b1,a1,shade)
+        face(a1,b1,(cx,apex,cz),1.04)
+        # The visor-brim prevents the head reading as a yellow sphere.
+        outer0=point(a,1.27,bottom-.008*unit)
+        outer1=point(b,1.27,bottom-.008*unit)
+        face(a0,b0,outer1,.90)
+        face(a0,outer1,outer0,.90)
+
+
 def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     for rig in rigs:
         rig.animation_data_create()
@@ -155,6 +372,9 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     dg.update()
     vertices = []
     color_out = []
+    topology = []
+    regions = {}
+    head_points = []
     for obj in meshes:
         evaluated = obj.evaluated_get(dg)
         evaluated_mesh = evaluated.to_mesh(
@@ -162,21 +382,41 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
         if evaluated_mesh is None:
             raise ValueError(f"Cannot evaluate skinned mesh {obj.name}")
         evaluated_mesh.calc_loop_triangles()
-        mats = [s.material for s in obj.material_slots]
+        mats = [slot.material for slot in obj.material_slots]
         for tri in evaluated_mesh.loop_triangles:
             polygon = evaluated_mesh.polygons[tri.polygon_index]
             material = (mats[polygon.material_index]
                         if polygon.material_index < len(mats) else None)
-            abgr = (base_color(material, evaluated_mesh, polygon, tri)
-                    if palette is None else palette[len(color_out)])
+            if palette is None:
+                region = semantic_region(obj, evaluated_mesh, tri, material)
+                regions[region] = regions.get(region, 0) + 1
+                abgr = workwear_color(region, tri, material, obj, evaluated_mesh)
+            else:
+                abgr = palette[len(color_out)]
+            topology.append((obj.name, tuple(tri.vertices)))
             for vertex_index in tri.vertices:
                 p = evaluated.matrix_world @ evaluated_mesh.vertices[vertex_index].co
-                # glTF forward (-Y after Blender import) -> game forward +X;
-                # Blender vertical Z -> game vertical Y; Blender X -> game Z.
-                vertices.append((-p.y, p.z, p.x))
+                # Blender +Z vertical / -Y forward -> Engine Watch +Y up / +X forward.
+                vert=(-p.y, p.z, p.x)
+                vertices.append(vert)
+                if "head" in obj.name.lower():
+                    head_points.append(vert)
                 color_out.append(abgr)
         evaluated.to_mesh_clear()
-    return vertices, color_out
+    append_hardhat(vertices,color_out,topology,regions,head_points,palette)
+    # Root motion belongs to the actual C++ walk controller. Use the skinned
+    # hips bone, rather than re-centering every frame from animated arm/leg
+    # bounding boxes (which previously made the whole body appear jittery).
+    root_world = None
+    for rig in rigs:
+        hips = next((p for p in rig.pose.bones
+                     if "hip" in p.name.lower() or "pelvis" in p.name.lower()),
+                    None)
+        if hips:
+            root_world = rig.matrix_world @ hips.matrix.translation
+            break
+    root = (-root_world.y, root_world.z, root_world.x) if root_world else None
+    return vertices, color_out, tuple(topology), root, regions
 
 
 def bake(args):
@@ -195,20 +435,32 @@ def bake(args):
         rig.animation_data_create()
         for track in rig.animation_data.nla_tracks:
             track.mute = True
-    original, final_tris = reduce_model(meshes, args.triangles)
+    original, final_tris, lod_report = reduce_model(meshes, args.triangles)
     clips = [("idle", 6), ("walk", 12), ("interact", 8)]
     poses = []
     colors = None
+    reference_topology = None
+    roots = []
+    region_histogram = {}
     for name, frames in clips:
         action = find_action(name)
         for i in range(frames):
-            verts, new_colors = sample_scene(
+            verts, new_colors, topology, root, regions = sample_scene(
                 bpy.context.scene, rigs, meshes, action,
                 i / float(frames), colors)
             if colors is None:
                 colors = new_colors
-            if len(verts) != final_tris * 3:
-                raise ValueError("Animated topology changed between samples")
+                region_histogram = regions
+                reference_topology = topology
+            if len(verts) != (final_tris + 40) * 3:
+                raise ValueError("Animated vertex count changed between samples")
+            if topology != reference_topology:
+                raise ValueError(
+                    "Imported skeleton topology/triangle order changes between "
+                    "frames; cannot safely interpolate PSP vertex streams")
+            if root is None:
+                raise ValueError("No stable Hips/Pelvis bone found for root-motion removal")
+            roots.append(root)
             poses.append(verts)
     if not poses:
         raise ValueError("No actual source rig animations evaluated")
@@ -228,13 +480,14 @@ def bake(args):
         fp.write(struct.pack("<4sIIIIIff", b"EWHM", 1, frame_size,
                              clips[0][1], clips[1][1], clips[2][1],
                              1.82, 12.0))
-        for pose in poses:
-            avg_x = (min(p[0] for p in pose) + max(p[0] for p in pose)) / 2
-            avg_z = (min(p[2] for p in pose) + max(p[2] for p in pose)) / 2
+        for pose, root in zip(poses, roots):
+            # Ground foot contact per sample; correct an imported clip's
+            # vertical root bounce without moving the game player.
+            sample_floor = min(p[1] for p in pose)
             for index, pos in enumerate(pose):
-                x = (pos[0] - avg_x) * scale
-                y = (pos[1] - floor) * scale
-                z = (pos[2] - avg_z) * scale
+                x = (pos[0] - root[0]) * scale
+                y = (pos[1] - sample_floor) * scale
+                z = (pos[2] - root[2]) * scale
                 if not all(math.isfinite(q) for q in (x, y, z)):
                     raise ValueError("Non-finite Blender skinned vertex")
                 fp.write(struct.pack("<Ifff", colors[index], x, y, z))
@@ -248,7 +501,15 @@ def bake(args):
         "source_license": "CC0-1.0 (shown on individual pack page)",
         "source_master_is_not_stored_in_repository": True,
         "original_triangles": original,
-        "psp_triangles": final_tris,
+        "mesh_lod_allocation": lod_report,
+        "semantic_face_regions": region_histogram,
+        "stable_triangle_correspondence": True,
+        "root_motion_source": "original Hips bone",
+        "foot_floor_alignment": "per baked frame",
+        "material_palette": "marine high-vis orange boiler suit, yellow helmet, gloves, boots",
+        "psp_triangles": final_tris+40,
+        "source_mesh_triangles": final_tris,
+        "safety_helmet_triangles": 40,
         "psp_vertices_per_frame": frame_size,
         "frames": {name: n for name, n in clips},
         "total_frames": len(poses),
