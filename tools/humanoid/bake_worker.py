@@ -268,7 +268,10 @@ def workwear_color(region, tri, material, obj, mesh):
     # Flat lighting is a visual-only baked material (PSP disables dynamic
     # lights). A modest top/front facet shade gives readable anatomy.
     n = tri.normal
-    factor = max(.74, min(1.20, .89 + .17 * n.z + .07 * n.x))
+    brightness = n.z * .75 + n.x * .25
+    factor = (.77 if brightness < -.45 else
+              .88 if brightness < .05 else
+              1.00 if brightness < .60 else 1.10)
     # Preserve facial detail without recreating noisy atlas seams.
     if region == "skin" and material is not None:
         source = base_color(material, mesh,
