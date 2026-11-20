@@ -315,7 +315,7 @@ jobs:
           cp assets/generated/ENGINEER.EWM dist/PSP/GAME/ENGINEWATCH/ENGINEER.EWM
       - uses: actions/upload-artifact@v4
         with:
-          name: engine-watch-psp-g38-humanoid-quality-preview
+          name: engine-watch-psp-g38-grounded-engineer-preview
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -327,7 +327,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: engine-watch-psp-g38-humanoid-quality-preview
+          name: engine-watch-psp-g38-grounded-engineer-preview
           path: game/
       - name: Install PPSSPP dependencies and screenshot utilities
         run: |
