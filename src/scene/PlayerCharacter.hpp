@@ -48,6 +48,12 @@ public:
     static const float BodyHeight;
     static const std::size_t MaxRuntimeVertices=1800;
 
+    // Optional imported CC0 Worker body; if the external sidecar is absent,
+    // the proven G3.6 procedural engineer remains available on PSP/desktop.
+    static bool loadImportedBody(const char* filename);
+    static void clearImportedBody();
+    static bool hasImportedBody();
+
     static void buildBody(const Vec3& feet,float yaw,const CharacterPose& pose,
                           std::vector<Vertex3D>& vertices);
     static void buildFirstPersonHands(const Vec3& eye,float yaw,float pitch,
