@@ -7,3 +7,7 @@ build-*/
 *.PBP
 .DS_Store
 .vscode/
+
+# Generated PSP humanoid frames and third-party input stay out of Git
+/assets/generated/
+/assets/source-humanoid/
