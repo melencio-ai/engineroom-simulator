@@ -243,7 +243,7 @@ MARINE_COLORS = {
 REGION_WORDS = {
     "helmet": ("hardhat", "helmet", "safetyhat", "cap"),
     "glove": ("glove",),
-    "boot": ("boot", "shoe"),
+    "boot": ("boot", "shoe", "feet", "foot"),
     "hair": ("hair", "beard"),
     "skin": ("face", "eyebrow", "nose", "neck", "ear"),
 }
@@ -271,7 +271,7 @@ def semantic_region(obj, evaluated_mesh, tri, material):
                 group_scores["skin"] += weight
             else:
                 group_scores["coverall"] += weight
-    if group_scores["glove"] > group_scores["coverall"] * .85 and group_scores["glove"] > .03:
+    if group_scores["glove"] > .12:
         return "glove"
     if group_scores["boot"] > group_scores["coverall"] * .80 and group_scores["boot"] > .03:
         return "boot"
@@ -302,6 +302,65 @@ def workwear_color(region, tri, material, obj, mesh):
     return rgba_to_abgr(*[min(255, c * factor)/255 for c in rgb])
 
 
+def append_hardhat(vertices, color_out, topology, regions, head_points,
+                   palette=None):
+    """Add a 40-triangle PPE cap following the REAL animated head.
+
+    The original Worker_Head is a human head, not a safety helmet. We
+    preserve its recognizable face and add a separate brim/crown located
+    from the imported head geometry in each animation frame. No external
+    Blender asset or unsafe rig assumptions. This is visual PPE only.
+    """
+    if len(head_points) < 10:
+        raise ValueError("Could not identify original skinned Worker head")
+    body_height = max(p[1] for p in vertices)-min(p[1] for p in vertices)
+    head_top=max(p[1] for p in head_points)
+    upper=[p for p in head_points if p[1]>head_top-.085*body_height]
+    if len(upper)<3:
+        upper=head_points
+    cx=(min(p[0] for p in upper)+max(p[0] for p in upper))*.5
+    cz=(min(p[2] for p in upper)+max(p[2] for p in upper))*.5
+    unit=body_height/1.82
+    bottom=head_top-.098*unit
+    middle=head_top-.015*unit
+    apex=head_top+.033*unit
+    rx=.132*unit
+    rz=.145*unit
+    segments=8
+    cursor=0
+    def point(theta,scale,y):
+        return (cx+math.cos(theta)*rx*scale,y,
+                cz+math.sin(theta)*rz*scale)
+    def face(p0,p1,p2,shade):
+        nonlocal cursor
+        if palette is None:
+            rgb=MARINE_COLORS["helmet"]
+            c=rgba_to_abgr(*[min(255,v*shade)/255 for v in rgb])
+        else:
+            c=palette[len(color_out)]
+        vertices.extend((p0,p1,p2))
+        color_out.extend((c,c,c))
+        topology.append(("Safety_HardHat", (cursor,cursor+1,cursor+2)))
+        regions["helmet"]=regions.get("helmet",0)+1
+        cursor+=3
+    for i in range(segments):
+        a=math.tau*i/segments
+        b=math.tau*(i+1)/segments
+        a0=point(a,1,bottom)
+        b0=point(b,1,bottom)
+        a1=point(a,.84,middle)
+        b1=point(b,.84,middle)
+        shade=(.85,1.0,1.10,.94)[i%4]
+        face(a0,b0,b1,shade)
+        face(a0,b1,a1,shade)
+        face(a1,b1,(cx,apex,cz),1.04)
+        # The visor-brim prevents the head reading as a yellow sphere.
+        outer0=point(a,1.27,bottom-.008*unit)
+        outer1=point(b,1.27,bottom-.008*unit)
+        face(a0,b0,outer1,.90)
+        face(a0,outer1,outer0,.90)
+
+
 def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     for rig in rigs:
         rig.animation_data_create()
@@ -315,6 +374,7 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
     color_out = []
     topology = []
     regions = {}
+    head_points = []
     for obj in meshes:
         evaluated = obj.evaluated_get(dg)
         evaluated_mesh = evaluated.to_mesh(
@@ -337,9 +397,13 @@ def sample_scene(scene, rigs, meshes, action, progress, palette=None):
             for vertex_index in tri.vertices:
                 p = evaluated.matrix_world @ evaluated_mesh.vertices[vertex_index].co
                 # Blender +Z vertical / -Y forward -> Engine Watch +Y up / +X forward.
-                vertices.append((-p.y, p.z, p.x))
+                vert=(-p.y, p.z, p.x)
+                vertices.append(vert)
+                if "head" in obj.name.lower():
+                    head_points.append(vert)
                 color_out.append(abgr)
         evaluated.to_mesh_clear()
+    append_hardhat(vertices,color_out,topology,regions,head_points,palette)
     # Root motion belongs to the actual C++ walk controller. Use the skinned
     # hips bone, rather than re-centering every frame from animated arm/leg
     # bounding boxes (which previously made the whole body appear jittery).
@@ -388,7 +452,7 @@ def bake(args):
                 colors = new_colors
                 region_histogram = regions
                 reference_topology = topology
-            if len(verts) != final_tris * 3:
+            if len(verts) != (final_tris + 40) * 3:
                 raise ValueError("Animated vertex count changed between samples")
             if topology != reference_topology:
                 raise ValueError(
@@ -443,7 +507,9 @@ def bake(args):
         "root_motion_source": "original Hips bone",
         "foot_floor_alignment": "per baked frame",
         "material_palette": "marine high-vis orange boiler suit, yellow helmet, gloves, boots",
-        "psp_triangles": final_tris,
+        "psp_triangles": final_tris+40,
+        "source_mesh_triangles": final_tris,
+        "safety_helmet_triangles": 40,
         "psp_vertices_per_frame": frame_size,
         "frames": {name: n for name, n in clips},
         "total_frames": len(poses),
