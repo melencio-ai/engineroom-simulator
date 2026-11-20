@@ -189,7 +189,7 @@ bool World3D::canReachSocket(InteractionSocketId id,const Vec3& eye,
     if(front < -0.03f) return false;
     const float horizontal=std::sqrt(dx*dx+dz*dz);
     if(horizontal>0.08f &&
-       (dx*std::cos(facing_yaw)+dz*std::sin(facing_y))/horizontal<0.15f)
+       (dx*std::cos(facing_yaw)+dz*std::sin(facing_yaw))/horizontal<0.15f)
         return false;
     return true;
 }
