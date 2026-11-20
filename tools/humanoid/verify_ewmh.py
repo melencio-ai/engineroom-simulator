@@ -17,7 +17,7 @@ def inspect(path: Path) -> dict:
     magic, version, vertices, idle, walk, interact, height, fps = HEADER.unpack_from(blob)
     if magic != b"EWHM" or version != 1:
         raise ValueError("invalid EWHM signature/version")
-    if vertices == 0 or vertices % 3 or vertices > 1800:
+    if vertices == 0 or vertices % 3 or vertices > 3000:
         raise ValueError("PSP triangle vertex budget exceeded")
     frames = idle + walk + interact
     if not all(0 < x <= 16 for x in (idle, walk, interact)) or frames > 40:
