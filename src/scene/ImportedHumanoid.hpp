@@ -12,7 +12,7 @@ struct CharacterPose;
 // sees ordinary Vertex3D triangles: no runtime glTF parser or 80-bone skinning.
 class ImportedHumanoid {
 public:
-    static const unsigned MaxVertices=1800;
+    static const unsigned MaxVertices=3000;
     static bool load(const char* filename);
     static void clear();
     static bool available();
