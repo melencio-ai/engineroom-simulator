@@ -106,7 +106,8 @@ void Game3D::use() {
         // X may be pressed only from the front side of the actual local
         // control cabinet, within a human reach distance. A station menu
         // can be read from farther away, but controls are not telekinetic.
-        if(pending_pump_) return;
+        if(pending_pump_ ||
+           character_animator_.pose().action==CharacterPressControl) return;
         const InteractionSocketId id=World3D::pumpMenuSocket(selected_);
         const InteractionSocket* socket=world_.interactionSocket(id);
         if(!socket || !world_.canReachSocket(id,camera_,yaw_)) return;
