@@ -217,7 +217,7 @@ jobs:
       - name: Install headless Blender rig and animation baker
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender python3-numpy
+          sudo apt-get install -y -qq blender python3-numpy xvfb libegl1 libgl1 libgl1-mesa-dri
           blender --version | head -n 2
       - name: Bake REAL rigged Idle Walk and Interact source clips to PSP LOD
         run: |
@@ -269,7 +269,8 @@ jobs:
       - name: Render 4 front/rear/side validation snapshots of ACTUAL PSP mesh
         run: |
           python3 -m py_compile tools/humanoid/render_quality_previews.py
-          blender -b -t 2 --python tools/humanoid/render_quality_previews.py -- \
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
+            blender -b -t 2 --python tools/humanoid/render_quality_previews.py -- \
             --input assets/generated/ENGINEER.EWM \
             --output assets/generated/qa-previews
           test "$(find assets/generated/qa-previews -name '*.png' | wc -l)" -eq 4
