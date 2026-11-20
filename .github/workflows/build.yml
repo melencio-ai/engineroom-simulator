@@ -217,7 +217,7 @@ jobs:
       - name: Install headless Blender rig and animation baker
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender
+          sudo apt-get install -y -qq blender python3-numpy
           blender --version | head -n 2
       - name: Bake REAL rigged Idle Walk and Interact source clips to PSP LOD
         run: |
