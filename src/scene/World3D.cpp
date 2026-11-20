@@ -140,6 +140,60 @@ void World3D::pipeZ(float z0,float z1,float x,float y,float r,uint32_t c) {
     }
 }
 
+void World3D::addSocket(InteractionSocketId id,StationId station,
+                        InteractionSocketKind kind,const Vec3& point,
+                        const Vec3& outward,float reach) {
+    interaction_sockets_.push_back(InteractionSocket{
+        id,station,kind,point,outward,reach
+    });
+}
+
+const InteractionSocket* World3D::interactionSocket(InteractionSocketId id) const {
+    if(id<=NoInteractionSocket || id>=InteractionSocketCount) return nullptr;
+    for(std::size_t i=0;i<interaction_sockets_.size();++i) {
+        if(interaction_sockets_[i].id==id)
+            return &interaction_sockets_[i];
+    }
+    return nullptr;
+}
+
+InteractionSocketId World3D::pumpMenuSocket(int selected) {
+    static const InteractionSocketId ids[6]={
+        LoMainStartButton,LoStandbyStartButton,
+        LoMainSuctionButton,LoMainDischargeButton,
+        LoStandbySuctionButton,LoStandbyDischargeButton
+    };
+    return selected>=0 && selected<6?ids[selected]:NoInteractionSocket;
+}
+
+bool World3D::canReachSocket(InteractionSocketId id,const Vec3& eye,
+                              float facing_yaw) const {
+    const InteractionSocket* target=interactionSocket(id);
+    if(!target || !std::isfinite(eye.x)||!std::isfinite(eye.y)||
+       !std::isfinite(eye.z)||!std::isfinite(facing_yaw))
+        return false;
+    // A station can be inspected from farther away, but operating a
+    // physical surface requires arm's reach and the correct *front side*.
+    if(cameraDeck(eye.y)!=
+       (target->station==EcrConsoleStation?EcrDeck:PumpFlatDeck))
+        return false;
+    const float dx=target->point.x-eye.x;
+    const float dy=target->point.y-eye.y;
+    const float dz=target->point.z-eye.z;
+    const float dist2=dx*dx+dy*dy+dz*dz;
+    if(dist2>target->max_eye_distance*target->max_eye_distance ||
+       dist2<0.0025f) return false;
+    const float front=-(dx*target->outward.x+
+                        dy*target->outward.y+
+                        dz*target->outward.z);
+    if(front < -0.03f) return false;
+    const float horizontal=std::sqrt(dx*dx+dz*dz);
+    if(horizontal>0.08f &&
+       (dx*std::cos(facing_yaw)+dz*std::sin(facing_y))/horizontal<0.15f)
+        return false;
+    return true;
+}
+
 void World3D::obstacle(float x0,float x1,float z0,float z1,unsigned deck_mask) {
     obstacles_.push_back(Footprint{x0,x1,z0,z1,deck_mask});
 }
@@ -487,6 +541,9 @@ void World3D::build() {
         const float z=-1.68f+0.84f*i;
         box(-8.95f,top+2.23f,z,0.03f,0.30f,0.32f,engineBlue);
         box(-8.91f,top+2.36f,z,0.018f,0.065f,0.15f,i<2?green:yellow);
+        if(i==2)
+            addSocket(EcrVerifyButton,EcrConsoleStation,PanelPushbutton,
+                      Vec3{-8.879f,top+2.36f,z},Vec3{1,0,0},1.38f);
     }
     for(int i=0;i<3;++i)
         box(-8.25f+1.70f*i,top+3.85f,0.0f,0.56f,0.034f,0.34f,rgb(171,195,188));
@@ -645,12 +702,29 @@ void World3D::build() {
         obstacle(-0.45f,1.58f,z-0.78f,z+0.78f,1u<<PumpFlatDeck);
     }
     occludingBox(1.88f,py+1.17f,-2.83f,0.17f,0.67f,0.50f,steel);
-    box(1.67f,py+1.32f,-2.83f,0.033f,0.42f,0.40f,dark);
-    box(1.62f,py+1.44f,-2.98f,0.024f,0.07f,0.085f,green);
-    box(1.62f,py+1.44f,-2.67f,0.024f,0.07f,0.085f,yellow);
+    // Local control cabinet faces EAST into the usable gallery. Its front
+    // is at x=2.05; earlier START switches were on the hidden west face.
+    box(2.052f,py+1.28f,-2.83f,0.015f,0.49f,0.44f,dark);
+    // Two columns of 3 labelled-in-HUD pushbuttons: start/stop and
+    // motor-operated LO suction/discharge valves. They are NOT fabricated
+    // handwheels; their matching physical sockets share the exact face.
+    for(int row=0;row<3;++row) {
+        for(int col=0;col<2;++col) {
+            const int index=row*2+col;
+            const float z=col==0?-3.065f:-2.595f;
+            const float y=py+1.61f-0.29f*row;
+            const uint32_t color=index==0?green:index==1?yellow:
+                                 index%2==0?coolingBand:loBand;
+            box(2.090f,y,z,0.024f,0.047f,0.060f,color);
+            addSocket(pumpMenuSocket(index),LoPumpStation,PanelPushbutton,
+                      Vec3{2.119f,y,z},Vec3{1,0,0},1.35f);
+        }
+    }
     obstacle(1.67f,2.14f,-3.32f,-2.30f,1u<<PumpFlatDeck);
     cylinderY(1.68f,py+0.21f,py+1.61f,-5.87f,0.28f,12,steel);
     box(1.68f,py+1.62f,-5.87f,0.36f,0.11f,0.36f,red);
+    addSocket(StrainerInspectionHandle,StrainerStation,EquipmentHandle,
+              Vec3{2.065f,py+1.62f,-5.87f},Vec3{1,0,0},1.35f);
     cylinderX(0.56f,2.51f,py+0.63f,-5.87f,0.09f,10,pipe);
     obstacle(1.20f,2.11f,-6.24f,-5.49f,1u<<PumpFlatDeck);
 
@@ -660,6 +734,9 @@ void World3D::build() {
         cylinderY(0.32f,py+1.21f,py+1.57f,z,0.045f,8,steel);
         cylinderX(0.20f,0.30f,py+1.62f,z,0.20f,10,wall);
         box(0.14f,py+1.66f,z,0.024f,0.035f,0.08f,dark);
+        addSocket(i==0?LoMainPressureGauge:LoStandbyPressureGauge,
+                  LoPumpStation,GaugeInspection,
+                  Vec3{0.325f,py+1.62f,z},Vec3{1,0,0},1.48f);
         for(int side=-1;side<=1;side+=2)
             box(0.10f,py+0.08f,z+side*0.56f,0.08f,0.08f,0.08f,steel);
     }
