@@ -38,6 +38,8 @@ void Game3D::reset() {
     chase_candidate_=-1;
     chase_eye_=camera_;
     chase_target_=camera_;
+    pending_pump_=false;
+    pending_pump_selection_=-1;
 }
 
 void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
@@ -85,9 +87,9 @@ void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
     travel_this_frame_=std::sqrt(xmove*xmove+zmove*zmove);
 }
 
-void Game3D::operate() {
+void Game3D::operate(int selected) {
     const MachineryState& s=sim_.state();
-    switch(selected_) {
+    switch(selected) {
     case 0:sim_.requestPump(MainLoPump,!s.main_pump.requested);break;
     case 1:sim_.requestPump(StandbyLoPump,!s.standby_pump.requested);break;
     case 2:sim_.setValve(MainLoPump,SuctionValve,!s.main_pump.suction_open);break;
@@ -101,12 +103,27 @@ void Game3D::operate() {
 void Game3D::use() {
     if(panel_==Help || panel_==Strainer) { panel_=Closed;return; }
     if(panel_==Pumps) {
-        character_animator_.trigger(CharacterPressControl);
-        operate();
+        // X may be pressed only from the front side of the actual local
+        // control cabinet, within a human reach distance. A station menu
+        // can be read from farther away, but controls are not telekinetic.
+        if(pending_pump_) return;
+        const InteractionSocketId id=World3D::pumpMenuSocket(selected_);
+        const InteractionSocket* socket=world_.interactionSocket(id);
+        if(!socket || !world_.canReachSocket(id,camera_,yaw_)) return;
+        character_animator_.trigger(CharacterPressControl,&socket->point);
+        pending_pump_=true;
+        pending_pump_selection_=selected_;
         return;
     }
     if(panel_==Console) {
-        character_animator_.trigger(CharacterPressControl);
+        // ECR electronic verification remains the existing, immediate
+        // process-simulation action. When physically close, its 3D
+        // monitor socket guides the same right-hand animation.
+        const InteractionSocket* socket=world_.interactionSocket(EcrVerifyButton);
+        if(socket && world_.canReachSocket(EcrVerifyButton,camera_,yaw_))
+            character_animator_.trigger(CharacterPressControl,&socket->point);
+        else
+            character_animator_.trigger(CharacterPressControl);
         const MachineryState& s=sim_.state();
         if(s.mission==1) {
             if(s.objective_complete) {
@@ -120,18 +137,30 @@ void Game3D::use() {
     }
     const StationId station=world_.lookAtStation(camera_,yaw_);
     switch(station) {
-    case EcrConsoleStation:
+    case EcrConsoleStation: {
         panel_=Console;
-        character_animator_.trigger(CharacterInspectInstrument);
+        const InteractionSocket* socket=world_.interactionSocket(EcrVerifyButton);
+        character_animator_.trigger(CharacterInspectInstrument,
+            socket && world_.canReachSocket(EcrVerifyButton,camera_,yaw_)?
+            &socket->point:nullptr);
         break;
-    case LoPumpStation:
+    }
+    case LoPumpStation: {
         panel_=Pumps;selected_=0;
-        character_animator_.trigger(CharacterInspectInstrument);
+        const InteractionSocket* gauge=world_.interactionSocket(LoMainPressureGauge);
+        character_animator_.trigger(CharacterInspectInstrument,
+            gauge && world_.canReachSocket(LoMainPressureGauge,camera_,yaw_)?
+            &gauge->point:nullptr);
         break;
-    case StrainerStation:
+    }
+    case StrainerStation: {
         sim_.inspectStrainer();panel_=Strainer;
-        character_animator_.trigger(CharacterInspectInstrument);
+        const InteractionSocket* handle=world_.interactionSocket(StrainerInspectionHandle);
+        character_animator_.trigger(CharacterInspectInstrument,
+            handle && world_.canReachSocket(StrainerInspectionHandle,camera_,yaw_)?
+            &handle->point:nullptr);
         break;
+    }
     default:break;
     }
 }
@@ -151,15 +180,19 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     sim_.step(dt);
     if(in.help) {
         panel_=panel_==Help?Closed:Help;
+        pending_pump_=false;
+        pending_pump_selection_=-1;
         updateChaseCamera(dt);
         return;
     }
     if(in.back) {
         panel_=Closed;
+        pending_pump_=false;
+        pending_pump_selection_=-1;
         updateChaseCamera(dt);
         return;
     }
-    if(panel_==Pumps) {
+    if(panel_==Pumps && !pending_pump_) {
         if(in.up) selected_=(selected_+5)%6;
         if(in.down) selected_=(selected_+1)%6;
     }
@@ -167,6 +200,16 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     travel_this_frame_=0.0f;
     if(panel_==Closed) move(dt,in.forward,in.strafe,in.turn,in.look);
     character_animator_.advance(dt,travel_this_frame_,climbing_);
+    // Deliver exactly one simulation command at actual hand contact,
+    // not at the instant the user presses X. Closing the panel before
+    // contact cancels the operation; holding X cannot queue duplicates.
+    if(pending_pump_ &&
+       character_animator_.pose().action==CharacterPressControl &&
+       character_animator_.pose().action_progress>=0.47f) {
+        operate(pending_pump_selection_);
+        pending_pump_=false;
+        pending_pump_selection_=-1;
+    }
     updateChaseCamera(dt);
 }
 
@@ -358,6 +401,13 @@ Hud3D Game3D::hud() const {
     else if(station==LoPumpStation) prompt="X: OPERATE LO PUMP STATION";
     else if(station==StrainerStation) prompt="X: INSPECT MAIN LO STRAINER";
     if(panel_!=Closed) prompt="D-PAD UP/DOWN SELECT   X OPERATE   O CLOSE";
+    if(panel_==Pumps) {
+        if(pending_pump_)
+            prompt="REACHING BUTTON - CONTACT WILL APPLY COMMAND";
+        else if(!world_.canReachSocket(World3D::pumpMenuSocket(selected_),
+                                       camera_,yaw_))
+            prompt="O CLOSE - STEP TO THE FRONT OF LO CONTROL PANEL";
+    }
     if(climbing_) prompt="INCLINED STEEL STAIRS - KEEP WALKING TO THE LANDING";
     std::snprintf(h.prompt,sizeof(h.prompt),"%s",prompt);
     h.panel_visible=panel_!=Closed || paused_;
