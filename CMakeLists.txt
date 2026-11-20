@@ -14,6 +14,7 @@ add_library(enginewatch_scene STATIC
     src/scene/World3D.cpp
     src/scene/Game3D.cpp
     src/scene/PlayerCharacter.cpp
+    src/scene/ImportedHumanoid.cpp
     src/scene/FontAtlas.cpp
 )
 target_include_directories(enginewatch_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -38,7 +39,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH G3.6 CONTROLS"
+            TITLE "ENGINE WATCH QUATERNIUS"
             VERSION 01.00
         )
     endif()
