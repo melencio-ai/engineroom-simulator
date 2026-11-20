@@ -30,6 +30,7 @@ void Game3D::reset() {
     climbing_=false;
     third_person_=false;
     travel_this_frame_=0.0f;
+    elevation_this_frame_=0.0f;
     character_animator_.reset();
     chase_initialized_=false;
     chase_distance_=0.0f;
@@ -43,7 +44,7 @@ void Game3D::reset() {
 }
 
 void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
-    const float initial_x=camera_.x,initial_z=camera_.z;
+    const float initial_x=camera_.x,initial_y=camera_.y,initial_z=camera_.z;
     yaw_+=clamp(turn,-1.0f,1.0f)*dt*2.15f;
     if(yaw_>6.28318530718f) yaw_-=6.28318530718f;
     if(yaw_<-6.28318530718f) yaw_+=6.28318530718f;
@@ -84,7 +85,9 @@ void Game3D::move(float dt,float forward,float strafe,float turn,float look) {
     climbing_=world_.onStair(camera_.x,camera_.z,
                             camera_.y-PlayerCharacter::EyeHeight);
     const float xmove=camera_.x-initial_x,zmove=camera_.z-initial_z;
-    travel_this_frame_=std::sqrt(xmove*xmove+zmove*zmove);
+    elevation_this_frame_=camera_.y-initial_y;
+    travel_this_frame_=std::sqrt(xmove*xmove+zmove*zmove+
+                                  elevation_this_frame_*elevation_this_frame_);
 }
 
 void Game3D::operate(int selected) {
@@ -199,8 +202,33 @@ void Game3D::update(float dt_seconds,const Input3D& in) {
     }
     if(in.interact) use();
     travel_this_frame_=0.0f;
+    elevation_this_frame_=0.0f;
     if(panel_==Closed) move(dt,in.forward,in.strafe,in.turn,in.look);
-    character_animator_.advance(dt,travel_this_frame_,climbing_);
+
+    // Probe actual stair support beneath each boot. No ghost treads or
+    // arbitrary step animation heights: the same World3D::walkSurface
+    // determines player movement, foot support and physical collisions.
+    float left_foot=0.0f,right_foot=0.0f;
+    if(climbing_) {
+        const float cs=std::cos(yaw_),sn=std::sin(yaw_);
+        const float phase=std::sin(character_animator_.pose().walk_phase);
+        const float swing=0.13f*character_animator_.pose().motion*phase;
+        const float feet=camera_.y-PlayerCharacter::EyeHeight;
+        for(int side=-1;side<=1;side+=2) {
+            const float front=(side<0?1.0f:-1.0f)*swing;
+            const float lateral=static_cast<float>(side)*0.12f;
+            const float x=camera_.x+cs*front-sn*lateral;
+            const float z=camera_.z+sn*front+cs*lateral;
+            float surface=feet;
+            if(world_.walkSurface(x,z,feet,surface,0.05f)) {
+                const float offset=clamp(surface-feet,-0.20f,0.20f);
+                if(side<0) left_foot=offset;
+                else right_foot=offset;
+            }
+        }
+    }
+    character_animator_.advance(dt,travel_this_frame_,climbing_,
+                                elevation_this_frame_,left_foot,right_foot);
     // Deliver exactly one simulation command at actual hand contact,
     // not at the instant the user presses X. Closing the panel before
     // contact cancels the operation; holding X cannot queue duplicates.
