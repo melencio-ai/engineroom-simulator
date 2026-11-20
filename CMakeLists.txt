@@ -15,7 +15,6 @@ add_library(enginewatch_scene STATIC
     src/scene/Game3D.cpp
     src/scene/PlayerCharacter.cpp
     src/scene/ImportedHumanoid.cpp
-    src/scene/ImportedHumanoid.cpp
     src/scene/FontAtlas.cpp
 )
 target_include_directories(enginewatch_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -40,7 +39,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Generic" OR PSP OR PLATFORM_PSP)
             ICON_PATH NULL
             BACKGROUND_PATH NULL
             PREVIEW_PATH NULL
-            TITLE "ENGINE WATCH G3.7.1 HUMAN"
+            TITLE "ENGINE WATCH G3.8 GROUNDED"
             VERSION 01.00
         )
     endif()
@@ -109,6 +108,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
     add_executable(enginewatch_interaction_tests tests/InteractionSocketTests.cpp)
     target_link_libraries(enginewatch_interaction_tests PRIVATE enginewatch_scene)
     add_test(NAME physical_equipment_sockets_and_hand_contact COMMAND enginewatch_interaction_tests)
+
+    add_executable(enginewatch_grounded_tests tests/GroundedMotionTests.cpp)
+    target_link_libraries(enginewatch_grounded_tests PRIVATE enginewatch_scene)
+    add_test(NAME engineer_real_stair_gait_and_foot_contact COMMAND enginewatch_grounded_tests)
 
     add_executable(enginewatch_humanoid_tests tests/ImportedHumanoidTests.cpp)
     target_link_libraries(enginewatch_humanoid_tests PRIVATE enginewatch_scene)

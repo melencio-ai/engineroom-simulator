@@ -211,6 +211,34 @@ float reach(const CharacterPose& pose) {
     if(pose.action==CharacterIdle) return 0;
     return std::sin(PI*clampf(pose.action_progress,0.0f,1.0f));
 }
+
+// The collision-authoritative deck/stair solver supplies two measured tread
+// elevations. Apply a small, smooth ankle-to-knee correction to BOTH the
+// procedural fallback and the real imported Worker, without changing either
+// mesh's triangle topology or animation bank. The upper body leans along the
+// direction of travel rather than being tilted blindly at every landing.
+void applyStairContact(const Vec3& feet,float yaw,const CharacterPose& pose,
+                       std::vector<Vertex3D>& out) {
+    const float blend=clampf(pose.stair_blend,0.0f,1.0f);
+    if(blend<0.0001f) return;
+    const float cs=std::cos(yaw),sn=std::sin(yaw);
+    const float lean=clampf(pose.stair_direction,-1.0f,1.0f)*0.065f*blend;
+    for(std::size_t i=0;i<out.size();++i) {
+        Vertex3D& p=out[i];
+        const float local_y=p.y-feet.y;
+        const float local_side=-(p.x-feet.x)*sn+(p.z-feet.z)*cs;
+        const float side=clampf(local_side/0.115f,-1.0f,1.0f);
+        const float measured=0.5f*((1.0f-side)*pose.left_foot_offset+
+                                   (1.0f+side)*pose.right_foot_offset);
+        // Support is near the boot and gradually vanishes above the knee.
+        const float leg=clampf((0.94f-local_y)/0.78f,0.0f,1.0f);
+        p.y+=blend*leg*clampf(measured,-0.20f,0.20f);
+        // Shoulder/head lean, leaving feet and hips on the real stair.
+        const float upper=clampf((local_y-0.91f)/0.75f,0.0f,1.0f);
+        p.x+=cs*lean*upper;
+        p.z+=sn*lean*upper;
+    }
+}
 }
 
 const float PlayerCharacter::EyeHeight=1.65f;
@@ -228,16 +256,31 @@ void CharacterAnimator::reset() {
     action_elapsed_=0;
 }
 
-void CharacterAnimator::advance(float dt,float distance,bool climbing) {
+void CharacterAnimator::advance(float dt,float distance,bool climbing,
+                                float elevation_delta,float left_foot_ground,
+                                float right_foot_ground) {
     dt=clampf(dt,0.0f,0.05f);
     if(!std::isfinite(distance) || distance<0.0f) distance=0.0f;
+    if(!std::isfinite(elevation_delta)) elevation_delta=0.0f;
+    if(!std::isfinite(left_foot_ground)) left_foot_ground=0.0f;
+    if(!std::isfinite(right_foot_ground)) right_foot_ground=0.0f;
     pose_.clock_seconds+=dt;
     if(pose_.clock_seconds>3600.0f) pose_.clock_seconds-=3600.0f;
     pose_.climbing=climbing;
-    // Use ACTUAL travelled metres instead of input axes. Blocked movement
-    // must not animate the engineer walking through a bulkhead.
-    const float target=clampf(distance/(std::max(dt,0.001f)*2.55f),0,1);
+    // Travel includes elevation change; slower real stair pace is full
+    // animation intensity, not 60% of a deck walking animation.
+    const float travel_speed=climbing?1.85f:2.55f;
+    const float target=clampf(distance/(std::max(dt,0.001f)*travel_speed),0,1);
     pose_.motion+=clampf(dt*12.0f,0,1)*(target-pose_.motion);
+    const float smoothing=clampf(dt*9.0f,0,1);
+    pose_.stair_blend+=smoothing*((climbing?1.0f:0.0f)-pose_.stair_blend);
+    const float grade=(climbing && distance>0.0001f)?
+        clampf(elevation_delta/distance,-1.0f,1.0f):0.0f;
+    pose_.stair_direction+=smoothing*(grade-pose_.stair_direction);
+    const float left=climbing?clampf(left_foot_ground,-0.20f,0.20f):0.0f;
+    const float right=climbing?clampf(right_foot_ground,-0.20f,0.20f):0.0f;
+    pose_.left_foot_offset+=smoothing*(left-pose_.left_foot_offset);
+    pose_.right_foot_offset+=smoothing*(right-pose_.right_foot_offset);
     if(distance>0.0001f)
         pose_.walk_phase=std::fmod(pose_.walk_phase+
             distance*TWOPI/(climbing?0.88f:1.35f),TWOPI);
@@ -271,8 +314,10 @@ void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
     // retain the existing two-link right-arm socket IK while retargeting of
     // the imported skeleton remains a separate engineering milestone.
     if(!(pose.action==CharacterPressControl && pose.has_target) &&
-       ImportedHumanoid::sample(feet,yaw,pose,out))
+       ImportedHumanoid::sample(feet,yaw,pose,out)) {
+        applyStairContact(feet,yaw,pose,out);
         return;
+    }
     out.clear();
     out.reserve(1152);
     MeshBuilder b=bodyBuilder(out,feet,yaw);
@@ -399,6 +444,7 @@ void PlayerCharacter::buildBody(const Vec3& feet,float yaw,
         b.box(plus(wrist,rotateXY(Vec3{0,-0.070f,0},forearm)),
               Vec3{0.055f,0.040f,0.067f},forearm,GLOVE);
     }
+    applyStairContact(feet,yaw,pose,out);
 }
 
 void PlayerCharacter::buildFirstPersonHands(const Vec3& eye,float yaw,float pitch,

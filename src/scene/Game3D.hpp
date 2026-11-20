@@ -79,6 +79,7 @@ private:
     bool climbing_=false;
     bool third_person_=false;
     float travel_this_frame_=0.0f;
+    float elevation_this_frame_=0.0f;
     CharacterAnimator character_animator_;
     Vec3 chase_eye_{};
     Vec3 chase_target_{};

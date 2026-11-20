@@ -21,6 +21,12 @@ struct CharacterPose {
     float clock_seconds=0.0f;
     float action_progress=0.0f; // 0..1 for a transient reach / inspection
     bool climbing=false;
+    // Slope-aware motion from the SAME physical surfaces as player collision.
+    // Offsets are measured relative to the player's supported feet height.
+    float stair_blend=0.0f;       // filtered 0..1 transition on stair flights
+    float stair_direction=0.0f;   // -1 descending, +1 ascending
+    float left_foot_offset=0.0f;  // metres: individual tread support
+    float right_foot_offset=0.0f;
     CharacterAction action=CharacterIdle;
     Vec3 target_world{0,0,0};
     bool has_target=false; // physical socket toward which right glove reaches
@@ -29,7 +35,10 @@ struct CharacterPose {
 class CharacterAnimator {
 public:
     void reset();
-    void advance(float dt,float travelled_metres,bool climbing);
+    void advance(float dt,float travelled_metres,bool climbing,
+                 float elevation_delta=0.0f,
+                 float left_foot_ground=0.0f,
+                 float right_foot_ground=0.0f);
     void trigger(CharacterAction action,const Vec3* target=nullptr);
 
     const CharacterPose& pose() const { return pose_; }
