@@ -34,6 +34,11 @@ int main(int, char**) {
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 
+    // Load Quaternius Worker baked-clip sidecar once. Missing or corrupt
+    // resources fall back to the known working procedural marine engineer.
+    enginewatch::PlayerCharacter::loadImportedBody(
+        "ms0:/PSP/GAME/ENGINEWATCH/ENGINEER.EWM");
+
     // World geometry is constructed only once and sent to the PSP GE.
     enginewatch::World3D world;
     enginewatch::Game3D game(world);
